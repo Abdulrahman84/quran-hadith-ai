@@ -10,11 +10,12 @@ The product app should orchestrate source systems rather than become a source it
 - Hadith MCP for Sunnah retrieval.
 - A pluggable open-source/open-weight or hosted model for answer composition.
 
-## V0 Scope
+## V1 Scope
 
 - Next.js product shell.
 - Clear source policy and product boundary.
-- Static architecture and flow page.
+- Local Hadith MCP retrieval through a server-side app route.
+- Cited hadith source cards with grades and provenance when available.
 - No production answer generation.
 - No bundled Quran, tafsir, or hadith data.
 
@@ -39,7 +40,7 @@ User question
 ## First Implementation Milestones
 
 1. Define the retrieval result contract shared by source adapters.
-2. Add mocked Tafsir MCP and Hadith MCP adapter interfaces.
-3. Build a cited answer UI from mocked retrieved records.
-4. Add model-provider abstraction, initially disabled behind fixtures.
-5. Add evaluation fixtures for missing citations, missing grades, and unsupported claims.
+2. Connect the product app to local Hadith MCP over stdio.
+3. Build a cited source-record UI from real Hadith MCP retrieval.
+4. Add Tafsir MCP once the local source server exists.
+5. Add model-provider abstraction only after retrieval coverage and citations are stable.

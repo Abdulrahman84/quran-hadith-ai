@@ -13,8 +13,12 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Source-Grounded Islamic AI",
-  description: "A citation-first Quran, tafsir, and Sunnah assistant product scaffold.",
+  title: "Sanad AI",
+  description: "A citation-first Quran, tafsir, and Sunnah assistant.",
+  icons: {
+    icon: "/favicon.png",
+    apple: "/brand/sanad-icon.png",
+  },
 };
 
 export default function RootLayout({

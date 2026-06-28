@@ -7,7 +7,7 @@ const steps = [
   },
   {
     title: "Retrieve source records",
-    text: "Tafsir MCP and Hadith MCP return text, references, editions, grades, and provenance metadata.",
+    text: "V1 calls the local Hadith MCP for text, references, grades, and provenance metadata.",
   },
   {
     title: "Build a citation pack",
@@ -15,7 +15,7 @@ const steps = [
   },
   {
     title: "Compose with limits",
-    text: "The assistant can summarize retrieved records, but it must expose missing coverage and avoid unsupported claims.",
+    text: "Generation is intentionally off in v1. A later model layer can summarize only retrieved records with visible limits.",
   },
 ];
 
@@ -24,7 +24,7 @@ export default function HowItWorks() {
     <main className="min-h-screen bg-[var(--color-sand)] text-[var(--color-ink)]">
       <header className="mx-auto flex max-w-6xl items-center justify-between px-5 py-6">
         <Link className="text-sm font-black uppercase tracking-[0.2em] text-[var(--color-green)]" href="/">
-          Quran Hadith AI
+          Sanad AI
         </Link>
         <Link className="nav-link" href="/source-policy">
           Source policy

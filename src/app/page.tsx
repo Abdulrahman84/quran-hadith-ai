@@ -1,49 +1,19 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { FormEvent, KeyboardEvent, useEffect, useMemo, useRef, useState } from "react";
 
+import type { RetrievalResponse } from "@/lib/retrieval/types";
+
 const suggestions = [
   "Find hadith on intention with source",
-  "Show tafsir notes about mercy",
-  "Explain what the sources say",
+  "Search hadith about mercy",
+  "Show hadith evidence about prayer",
 ];
 
 const sourceRoutes = ["Quran", "Tafsir", "Hadith"];
-
-type MockRecord = {
-  label: string;
-  source: string;
-  status: string;
-  note: string;
-};
-
-function buildMockRetrieval(question: string): MockRecord[] {
-  const normalized = question.toLowerCase();
-  const wantsHadith = /hadith|sunnah|grade|intention/.test(normalized);
-  const wantsTafsir = /tafsir|quran|verse|mercy|explain/.test(normalized);
-
-  return [
-    {
-      label: wantsTafsir ? "Quran + Tafsir match" : "Quran route available",
-      source: "Tafsir MCP mock",
-      status: wantsTafsir ? "Queued for retrieval" : "Available if Quran or tafsir evidence is needed",
-      note: "No Quran text or tafsir excerpt is generated in mock mode. Real text must come from the configured source server.",
-    },
-    {
-      label: wantsHadith ? "Hadith match" : "Hadith route available",
-      source: "Hadith MCP mock",
-      status: wantsHadith ? "Queued for retrieval" : "Available if hadith evidence is needed",
-      note: "No hadith text or grade is generated in mock mode. Grades stay null until an attributed source returns them.",
-    },
-    {
-      label: "Answer boundary",
-      source: "Product policy",
-      status: "Citation pack required",
-      note: "The assistant can summarize retrieved records, expose missing provenance, and avoid fatwas or unsupported interpretation.",
-    },
-  ];
-}
+const minimumLoadingMs = 5000;
 
 function resizeQuestionField(element: HTMLTextAreaElement) {
   const maxHeight = 128;
@@ -57,24 +27,19 @@ export default function Home() {
   const [question, setQuestion] = useState("");
   const [submittedQuestion, setSubmittedQuestion] = useState("");
   const [isRetrieving, setIsRetrieving] = useState(false);
+  const [retrieval, setRetrieval] = useState<RetrievalResponse | null>(null);
+  const [requestError, setRequestError] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  const hasScenario = isRetrieving || Boolean(submittedQuestion);
-
-  const mockRecords = useMemo(
-    () => (submittedQuestion ? buildMockRetrieval(submittedQuestion) : []),
-    [submittedQuestion],
-  );
+  const hasScenario = isRetrieving || Boolean(submittedQuestion) || retrieval !== null || requestError.length > 0;
 
   const activeRoutes = useMemo(() => {
-    const normalized = submittedQuestion.toLowerCase();
-
     return {
-      Quran: /quran|verse|mercy|explain|tafsir/.test(normalized),
-      Tafsir: /tafsir|explain|mercy|quran/.test(normalized),
-      Hadith: /hadith|sunnah|grade|intention/.test(normalized),
+      Quran: false,
+      Tafsir: false,
+      Hadith: hasScenario,
     };
-  }, [submittedQuestion]);
+  }, [hasScenario]);
 
   useEffect(() => {
     if (textareaRef.current) {
@@ -82,19 +47,7 @@ export default function Home() {
     }
   }, [question]);
 
-  useEffect(() => {
-    if (!isRetrieving) {
-      return;
-    }
-
-    const retrievalTimer = window.setTimeout(() => {
-      setIsRetrieving(false);
-    }, 5000);
-
-    return () => window.clearTimeout(retrievalTimer);
-  }, [isRetrieving, submittedQuestion]);
-
-  function runMockSearch(nextQuestion: string) {
+  async function runSearch(nextQuestion: string) {
     const trimmed = nextQuestion.trim();
 
     if (!trimmed) {
@@ -103,12 +56,37 @@ export default function Home() {
 
     setQuestion(trimmed);
     setSubmittedQuestion(trimmed);
+    setRetrieval(null);
+    setRequestError("");
     setIsRetrieving(true);
+
+    try {
+      const [response] = await Promise.all([
+        fetch("/api/search", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ question: trimmed }),
+        }),
+        new Promise((resolve) => window.setTimeout(resolve, minimumLoadingMs)),
+      ]);
+      const payload = (await response.json()) as RetrievalResponse;
+
+      if (!response.ok) {
+        const warning = payload.warnings.at(0);
+        throw new Error(warning?.message || "The retrieval server could not answer this request.");
+      }
+
+      setRetrieval(payload);
+    } catch (error) {
+      setRequestError(error instanceof Error ? error.message : "The local retrieval request failed.");
+    } finally {
+      setIsRetrieving(false);
+    }
   }
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    runMockSearch(question);
+    void runSearch(question);
   }
 
   function handleQuestionKeyDown(event: KeyboardEvent<HTMLTextAreaElement>) {
@@ -117,7 +95,7 @@ export default function Home() {
     }
 
     event.preventDefault();
-    runMockSearch(question);
+    void runSearch(question);
   }
 
   return (
@@ -127,11 +105,18 @@ export default function Home() {
       <header className="sticky top-0 z-30 border-b border-[var(--color-green)]/10 bg-[var(--color-sand)]/88 backdrop-blur">
         <div className="mx-auto flex w-full max-w-6xl items-center justify-between px-5 py-4 sm:px-8">
           <Link className="group flex items-center gap-3" href="/">
-            <span className="grid size-10 place-items-center rounded-2xl border border-[var(--color-gold)] bg-[var(--color-green)] text-sm font-black text-[var(--color-sand)] transition-transform duration-300 group-hover:-translate-y-0.5">
-              QH
+            <span className="grid size-12 place-items-center overflow-hidden rounded-2xl border border-[var(--color-gold)] bg-white transition-transform duration-300 group-hover:-translate-y-0.5">
+              <Image
+                alt=""
+                className="size-10 object-contain"
+                height={40}
+                priority
+                src="/brand/sanad-icon.png"
+                width={40}
+              />
             </span>
             <span>
-              <strong className="block text-sm font-black uppercase tracking-[0.16em]">Quran Hadith AI</strong>
+              <strong className="block text-sm font-black uppercase tracking-[0.16em]">Sanad AI</strong>
               <span className="text-xs font-bold text-[var(--color-muted)]">Source-grounded chat</span>
             </span>
           </Link>
@@ -197,7 +182,7 @@ export default function Home() {
           <>
             <div className="animate-rise mt-5 flex max-w-3xl flex-wrap justify-center gap-2 [animation-delay:220ms]">
               {suggestions.map((suggestion) => (
-                <button className="chip" key={suggestion} onClick={() => runMockSearch(suggestion)} type="button">
+                <button className="chip" key={suggestion} onClick={() => void runSearch(suggestion)} type="button">
                   {suggestion}
                 </button>
               ))}
@@ -205,10 +190,11 @@ export default function Home() {
 
             <div className="animate-rise mt-8 w-full max-w-3xl rounded-[2rem] border border-[var(--color-green)]/12 bg-white/54 p-5 [animation-delay:300ms]">
               <p className="text-sm font-black uppercase tracking-[0.18em] text-[var(--color-green)]">
-                Start a mock source retrieval
+                Start real local retrieval
               </p>
               <p className="mx-auto mt-3 max-w-xl text-sm font-bold leading-7 text-[var(--color-muted)]">
-                Results appear only after you search. The app stays empty until there is a question to route.
+                Results appear only after you search. V1 connects to your local Hadith MCP and returns cited source
+                records, not model-written answers.
               </p>
             </div>
           </>
@@ -220,10 +206,10 @@ export default function Home() {
               <div className="flex items-center justify-between border-b border-white/10 pb-3">
                 <div>
                   <p className="text-xs font-black uppercase tracking-[0.2em] text-[var(--color-gold)]">
-                    {isRetrieving ? "Retrieving" : "Mock retrieval"}
+                    {isRetrieving ? "Retrieving" : "Hadith MCP retrieval"}
                   </p>
                   <h2 className="mt-1 text-lg font-black text-white">
-                    {isRetrieving ? "Tracing source routes" : "Citation pack preview"}
+                    {isRetrieving ? "Tracing local sources" : "Retrieved source records"}
                   </h2>
                   <p className="mt-2 line-clamp-2 max-w-xl whitespace-pre-wrap text-sm font-bold leading-6 text-white/70">
                     {submittedQuestion}
@@ -235,7 +221,7 @@ export default function Home() {
               <div className="mt-4 rounded-3xl border border-white/12 bg-white/8 p-3">
                 <div className="mb-3 flex items-center justify-between gap-3">
                   <p className="text-xs font-black uppercase tracking-[0.18em] text-[var(--color-gold)]">Result routes</p>
-                  <p className="text-xs font-bold text-white/70">Mock routing only</p>
+                  <p className="text-xs font-bold text-white/70">Hadith-only v1</p>
                 </div>
                 <div className="evidence-map">
                   {sourceRoutes.map((route) => (
@@ -252,37 +238,79 @@ export default function Home() {
                     <span />
                     <span />
                     <span />
-                    <p>Retrieving mock source routes...</p>
+                    <p>Opening local MCP and retrieving sources...</p>
+                  </div>
+                ) : requestError ? (
+                  <div role="alert">
+                    <p className="text-xs font-black uppercase tracking-[0.18em] text-[var(--color-red)]">
+                      Retrieval failed
+                    </p>
+                    <p className="mt-3 text-sm font-bold leading-7 text-[var(--color-muted)]">{requestError}</p>
+                    <p className="mt-3 text-xs font-black uppercase tracking-[0.12em] text-[var(--color-green)]">
+                      Check Hadith MCP build and database paths in .env.local.
+                    </p>
                   </div>
                 ) : (
                   <>
                     <p className="text-xs font-black uppercase tracking-[0.18em] text-[var(--color-red)]">
-                      Mock records returned
+                      {retrieval?.status === "empty" ? "No records found" : "Source records returned"}
                     </p>
                     <p className="mt-3 text-sm font-bold leading-7">
-                      Placeholder retrieval data only. The UI shows where sources, grades, and limits appear before a
-                      model drafts an answer.
+                      The app is showing retrieved Hadith MCP records only. No AI answer is generated in this mode.
                     </p>
 
                     <div className="mt-4 grid gap-2">
-                      {mockRecords.map((record) => (
+                      {retrieval?.records.map((record) => (
                         <article
                           className="rounded-2xl border border-[var(--color-green)]/14 bg-white/72 p-3"
-                          key={record.label}
+                          key={record.id}
                         >
                           <div className="flex flex-wrap items-center justify-between gap-2">
-                            <strong className="text-sm text-[var(--color-green)]">{record.label}</strong>
+                            <strong className="text-sm text-[var(--color-green)]">
+                              {record.displayName} {record.hadithNumber}
+                            </strong>
                             <span className="rounded-full border border-[var(--color-gold)]/60 px-2.5 py-1 text-[0.68rem] font-black uppercase tracking-[0.12em] text-[var(--color-red)]">
-                              {record.source}
+                              {record.grade ? record.grade.value : "grade unavailable"}
                             </span>
                           </div>
-                          <p className="mt-2 text-xs font-black uppercase tracking-[0.12em] text-[var(--color-muted)]">
-                            {record.status}
+                          {record.book || record.chapter ? (
+                            <p className="mt-2 text-xs font-black uppercase tracking-[0.12em] text-[var(--color-muted)]">
+                              {[record.book, record.chapter].filter(Boolean).join(" / ")}
+                            </p>
+                          ) : null}
+                          <p className="mt-2 whitespace-pre-wrap text-sm font-bold leading-6 text-[var(--color-ink)]">
+                            {record.englishText || record.snippet || "English text unavailable in this source record."}
                           </p>
-                          <p className="mt-2 text-sm font-bold leading-6 text-[var(--color-muted)]">{record.note}</p>
+                          <p className="mt-3 whitespace-pre-wrap text-right text-base font-black leading-8 text-[var(--color-green)]">
+                            {record.arabicText}
+                          </p>
+                          <div className="mt-3 grid gap-1 text-xs font-bold leading-5 text-[var(--color-muted)]">
+                            <span>Dataset: {record.sourceDataset}</span>
+                            <span>Reference: {record.sourceReference}</span>
+                            {record.grade ? (
+                              <span>
+                                Grade source: {record.grade.source} ({record.grade.sourceReference})
+                              </span>
+                            ) : null}
+                          </div>
+                          {record.provenanceNotes.length > 0 ? (
+                            <p className="mt-3 rounded-2xl border border-[var(--color-green)]/10 bg-[var(--color-sand)] px-3 py-2 text-xs font-bold leading-5 text-[var(--color-muted)]">
+                              {record.provenanceNotes.join(" ")}
+                            </p>
+                          ) : null}
                         </article>
                       ))}
                     </div>
+
+                    {retrieval?.warnings.length ? (
+                      <div className="mt-4 rounded-2xl border border-[var(--color-red)]/18 bg-white/60 p-3">
+                        {retrieval.warnings.map((warning) => (
+                          <p className="text-sm font-bold leading-6 text-[var(--color-muted)]" key={warning.code}>
+                            {warning.message}
+                          </p>
+                        ))}
+                      </div>
+                    ) : null}
                   </>
                 )}
               </div>

@@ -1,6 +1,6 @@
 # quran-hadith-ai
 
-`quran-hadith-ai` is the separate product app for a future citation-first Islamic source assistant.
+`quran-hadith-ai` is the separate product app for Sanad AI, a citation-first Islamic source assistant.
 
 The app is intentionally separate from `hadith-mcp`. Its job is to orchestrate source layers such as Tafsir MCP and Hadith MCP, retrieve cited records, and let a pluggable language model draft answers only from those retrieved records.
 
@@ -14,6 +14,17 @@ The app is intentionally separate from `hadith-mcp`. Its job is to orchestrate s
 
 ## Local Development
 
+Build the local Hadith MCP first:
+
+```bash
+cd /Users/abdulrahman/Projects/hadith-mcp
+npm install
+npm run build
+npm run build:meeatif-sqlite
+```
+
+Copy `.env.example` to `.env.local` if your local paths differ.
+
 ```bash
 npm run dev
 npm run typecheck
@@ -25,6 +36,7 @@ Open [http://localhost:3000](http://localhost:3000) with your browser.
 
 ## Current Status
 
-This repository currently contains a Next.js product shell and planning docs. It does not yet connect to Tafsir MCP, Hadith MCP, or any model provider.
+This repository contains a Next.js product shell, planning docs, and a server-side local Hadith MCP retrieval path. It
+does not yet connect to Tafsir MCP or any model provider.
 
 See [docs/product-plan.md](docs/product-plan.md) and [docs/source-policy.md](docs/source-policy.md).

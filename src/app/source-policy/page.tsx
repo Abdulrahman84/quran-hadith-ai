@@ -13,7 +13,7 @@ export default function SourcePolicy() {
     <main className="min-h-screen bg-[var(--color-sand)] text-[var(--color-ink)]">
       <header className="mx-auto flex max-w-6xl items-center justify-between px-5 py-6">
         <Link className="text-sm font-black uppercase tracking-[0.2em] text-[var(--color-green)]" href="/">
-          Quran Hadith AI
+          Sanad AI
         </Link>
         <Link className="nav-link" href="/how-it-works">
           How it works
@@ -34,9 +34,10 @@ export default function SourcePolicy() {
 
         <aside className="rounded-[2rem] border border-[var(--color-green)] bg-[var(--color-green)] p-6 text-[var(--color-sand)]">
           <p className="text-xs font-black uppercase tracking-[0.22em] text-[var(--color-gold)]">Current status</p>
-          <h2 className="mt-4 text-3xl font-black">Mock-only shell</h2>
+          <h2 className="mt-4 text-3xl font-black">Local Hadith retrieval</h2>
           <p className="mt-4 text-sm font-bold leading-7 text-white/72">
-            This app does not yet connect to Tafsir MCP, Hadith MCP, or a model provider.
+            V1 retrieves cited hadith records from your local Hadith MCP. Tafsir retrieval and model composition remain
+            disabled until their source contracts are ready.
           </p>
         </aside>
       </section>
