@@ -1,8 +1,15 @@
 @import "tailwindcss";
 
 :root {
-  --background: #f7f4ec;
-  --foreground: #172322;
+  --background: #f6f0df;
+  --foreground: #121b1a;
+  --color-green: #123f39;
+  --color-green-soft: #2f675d;
+  --color-gold: #ddbb71;
+  --color-sand: #f6f0df;
+  --color-ink: #121b1a;
+  --color-muted: #5c6760;
+  --color-red: #b43b32;
 }
 
 @theme inline {
@@ -15,5 +22,427 @@
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+}
+
+::selection {
+  background: var(--color-gold);
+  color: var(--color-green);
+}
+
+.nav-link {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--color-green) 22%, transparent);
+  background: color-mix(in srgb, white 58%, transparent);
+  color: var(--color-green);
+  padding: 0.65rem 0.9rem;
+  transition:
+    transform 220ms ease,
+    background 220ms ease,
+    border-color 220ms ease;
+}
+
+.nav-link:hover {
+  transform: translateY(-2px);
+  border-color: var(--color-gold);
+  background: white;
+}
+
+.source-grid {
+  position: absolute;
+  inset: 0;
+  background-image:
+    radial-gradient(circle at 1px 1px, color-mix(in srgb, var(--color-green) 13%, transparent) 1px, transparent 0),
+    linear-gradient(color-mix(in srgb, var(--color-gold) 14%, transparent) 1px, transparent 1px);
+  background-size:
+    34px 34px,
+    100% 84px;
+  mask-image: linear-gradient(to bottom, black, transparent 80%);
+  opacity: 0.55;
+  animation: soft-pan 18s linear infinite;
+}
+
+.source-aura {
+  position: absolute;
+  pointer-events: none;
+  transform: rotate(-10deg);
+  opacity: 0.7;
+}
+
+.source-aura-one {
+  left: -12%;
+  top: 14%;
+  width: 50%;
+  height: 180px;
+  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--color-gold) 34%, transparent), transparent);
+  animation: drift-band 12s ease-in-out infinite;
+}
+
+.source-aura-two {
+  bottom: 6%;
+  right: -16%;
+  width: 48%;
+  height: 220px;
+  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--color-green-soft) 18%, transparent), transparent);
+  animation: drift-band 15s ease-in-out infinite reverse;
+}
+
+.chip {
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--color-green) 18%, transparent);
+  background: color-mix(in srgb, white 64%, transparent);
+  color: var(--color-green);
+  padding: 0.72rem 0.9rem;
+  font-size: 0.8rem;
+  font-weight: 900;
+  transition:
+    transform 220ms ease,
+    border-color 220ms ease,
+    background 220ms ease;
+}
+
+.chip:hover {
+  transform: translateY(-2px);
+  border-color: var(--color-red);
+  background: white;
+}
+
+.query-textarea {
+  max-height: 8rem;
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--color-green) 44%, transparent) transparent;
+}
+
+.query-textarea::-webkit-scrollbar {
+  width: 0.45rem;
+}
+
+.query-textarea::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-green) 44%, transparent);
+}
+
+.search-shell,
+.answer-preview,
+.chat-panel {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--color-green) 18%, transparent);
+}
+
+.search-shell::before,
+.answer-preview::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(120deg, var(--color-green), var(--color-gold), var(--color-red), var(--color-green));
+  background-size: 260% 100%;
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  mask-composite: exclude;
+  pointer-events: none;
+  animation: trace-border 5.8s ease-in-out infinite;
+}
+
+.search-shell > *,
+.answer-preview > * {
+  position: relative;
+  z-index: 1;
+}
+
+.chat-panel {
+  border-radius: 2rem;
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--color-green) 98%, black), var(--color-ink)),
+    var(--color-green);
+}
+
+.chat-panel::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(115deg, transparent 0 38%, color-mix(in srgb, var(--color-gold) 22%, transparent) 38% 39%, transparent 39% 100%),
+    linear-gradient(color-mix(in srgb, white 8%, transparent) 1px, transparent 1px);
+  background-size:
+    240px 240px,
+    36px 36px;
+  animation: trace-lines 10s linear infinite;
+  opacity: 0.35;
+}
+
+.chat-panel > * {
+  position: relative;
+  z-index: 1;
+}
+
+.pulse-dot {
+  width: 0.75rem;
+  height: 0.75rem;
+  border-radius: 999px;
+  border: 2px solid var(--color-gold);
+  background: var(--color-red);
+  animation: pulse-dot 1.8s ease-in-out infinite;
+}
+
+.source-loading {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.source-loading span {
+  height: 0.5rem;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--color-green), var(--color-gold), var(--color-red));
+  background-size: 220% 100%;
+  animation: source-loading 1.2s ease-in-out infinite;
+}
+
+.source-loading span:nth-child(2) {
+  animation-delay: 140ms;
+}
+
+.source-loading span:nth-child(3) {
+  animation-delay: 280ms;
+}
+
+.source-loading p {
+  grid-column: 1 / -1;
+  color: var(--color-muted);
+  font-size: 0.85rem;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.evidence-map {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.5rem;
+}
+
+.evidence-map::before {
+  content: "";
+  position: absolute;
+  left: 0.75rem;
+  right: 0.75rem;
+  top: 50%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--color-gold), transparent);
+  animation: evidence-scan 2.8s ease-in-out infinite;
+}
+
+.evidence-map span {
+  position: relative;
+  z-index: 1;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, white 18%, transparent);
+  background: var(--color-green);
+  color: color-mix(in srgb, white 70%, transparent);
+  padding: 0.75rem 0.65rem;
+  text-align: center;
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  transition:
+    background 240ms ease,
+    border-color 240ms ease,
+    color 240ms ease;
+}
+
+.evidence-map span.is-active {
+  border-color: var(--color-gold);
+  background: var(--color-sand);
+  color: var(--color-green);
+}
+
+.citation-card {
+  border-radius: 1.25rem;
+  border: 1px solid color-mix(in srgb, white 16%, transparent);
+  background: color-mix(in srgb, white 9%, transparent);
+  padding: 0.85rem;
+  opacity: 0;
+  transform: translateY(12px);
+  animation: rise 560ms ease forwards;
+}
+
+.source-rail {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  border-radius: 1.75rem;
+  border: 1px solid color-mix(in srgb, var(--color-green) 16%, transparent);
+  background: color-mix(in srgb, var(--color-green) 12%, transparent);
+  gap: 1px;
+  overflow: hidden;
+}
+
+.source-step {
+  position: relative;
+  min-height: 132px;
+  background: color-mix(in srgb, white 76%, transparent);
+  padding: 1rem;
+}
+
+.source-step::after {
+  content: "";
+  position: absolute;
+  left: 1rem;
+  right: 1rem;
+  bottom: 1rem;
+  height: 3px;
+  background: linear-gradient(90deg, var(--color-red), var(--color-gold), var(--color-green));
+  transform-origin: left;
+  animation: source-flow 2.8s ease-in-out infinite;
+}
+
+.source-step span {
+  color: var(--color-red);
+  font-size: 0.8rem;
+  font-weight: 900;
+}
+
+.source-step strong {
+  display: block;
+  margin-top: 1.6rem;
+  color: var(--color-green);
+  font-size: 1rem;
+  line-height: 1.3;
+}
+
+.product-card {
+  border-radius: 1.75rem;
+  border: 1px solid color-mix(in srgb, var(--color-green) 16%, transparent);
+  background: color-mix(in srgb, white 72%, transparent);
+  padding: 1.4rem;
+}
+
+.animate-rise {
+  opacity: 0;
+  transform: translateY(18px);
+  animation: rise 640ms ease forwards;
+}
+
+@keyframes rise {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes source-flow {
+  0%,
+  100% {
+    transform: scaleX(0.22);
+    opacity: 0.52;
+  }
+  50% {
+    transform: scaleX(1);
+    opacity: 1;
+  }
+}
+
+@keyframes trace-lines {
+  to {
+    background-position:
+      240px 0,
+      36px 36px;
+  }
+}
+
+@keyframes trace-border {
+  0%,
+  100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+@keyframes pulse-dot {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.72;
+  }
+  50% {
+    transform: scale(1.15);
+    opacity: 1;
+  }
+}
+
+@keyframes source-loading {
+  0%,
+  100% {
+    opacity: 0.34;
+    background-position: 0% 50%;
+  }
+  50% {
+    opacity: 1;
+    background-position: 100% 50%;
+  }
+}
+
+@keyframes evidence-scan {
+  0%,
+  100% {
+    opacity: 0.25;
+    transform: scaleX(0.5);
+  }
+  50% {
+    opacity: 1;
+    transform: scaleX(1);
+  }
+}
+
+@keyframes drift-band {
+  0%,
+  100% {
+    transform: translateX(0) rotate(-10deg);
+  }
+  50% {
+    transform: translateX(28px) rotate(-10deg);
+  }
+}
+
+@keyframes soft-pan {
+  to {
+    background-position:
+      34px 34px,
+      0 84px;
+  }
+}
+
+@media (max-width: 760px) {
+  .source-rail {
+    grid-template-columns: 1fr;
+  }
+
+  .source-step {
+    min-height: 104px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 1ms !important;
+  }
 }

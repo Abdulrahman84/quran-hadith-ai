@@ -1,136 +1,294 @@
-const sources = [
-  ["Quran and tafsir", "Tafsir MCP", "Verse text, tafsir passages, editions, and citation metadata."],
-  ["Sunnah", "Hadith MCP", "Hadith text, collection references, source-attributed grades, and provenance notes."],
-  ["Answer layer", "Retrieval-grounded model", "Drafts responses only from retrieved source records and exposes gaps."]
+"use client";
+
+import Link from "next/link";
+import { FormEvent, KeyboardEvent, useEffect, useMemo, useRef, useState } from "react";
+
+const suggestions = [
+  "Find hadith on intention with source",
+  "Show tafsir notes about mercy",
+  "Explain what the sources say",
 ];
 
-const principles = [
-  ["Citations first", "Every answer starts from retrieved records, not model memory."],
-  ["Visible uncertainty", "Missing grades, translation gaps, and source notes stay visible to the reader."],
-  ["No fatwa mode", "The product does not issue rulings or replace qualified scholarship."],
-  ["Pluggable model", "The language model is replaceable and never becomes the source of sacred text."]
-];
+const sourceRoutes = ["Quran", "Tafsir", "Hadith"];
 
-const flow = [
-  "User asks a Quran or hadith question.",
-  "The app routes retrieval to Tafsir MCP, Hadith MCP, or both.",
-  "A grounded answer draft is assembled with citations attached.",
-  "The UI shows cited passages, provenance, and any limits before the answer."
-];
+type MockRecord = {
+  label: string;
+  source: string;
+  status: string;
+  note: string;
+};
+
+function buildMockRetrieval(question: string): MockRecord[] {
+  const normalized = question.toLowerCase();
+  const wantsHadith = /hadith|sunnah|grade|intention/.test(normalized);
+  const wantsTafsir = /tafsir|quran|verse|mercy|explain/.test(normalized);
+
+  return [
+    {
+      label: wantsTafsir ? "Quran + Tafsir match" : "Quran route available",
+      source: "Tafsir MCP mock",
+      status: wantsTafsir ? "Queued for retrieval" : "Available if Quran or tafsir evidence is needed",
+      note: "No Quran text or tafsir excerpt is generated in mock mode. Real text must come from the configured source server.",
+    },
+    {
+      label: wantsHadith ? "Hadith match" : "Hadith route available",
+      source: "Hadith MCP mock",
+      status: wantsHadith ? "Queued for retrieval" : "Available if hadith evidence is needed",
+      note: "No hadith text or grade is generated in mock mode. Grades stay null until an attributed source returns them.",
+    },
+    {
+      label: "Answer boundary",
+      source: "Product policy",
+      status: "Citation pack required",
+      note: "The assistant can summarize retrieved records, expose missing provenance, and avoid fatwas or unsupported interpretation.",
+    },
+  ];
+}
+
+function resizeQuestionField(element: HTMLTextAreaElement) {
+  const maxHeight = 128;
+
+  element.style.height = "auto";
+  element.style.height = `${Math.min(element.scrollHeight, maxHeight)}px`;
+  element.style.overflowY = element.scrollHeight > maxHeight ? "auto" : "hidden";
+}
 
 export default function Home() {
+  const [question, setQuestion] = useState("");
+  const [submittedQuestion, setSubmittedQuestion] = useState("");
+  const [isRetrieving, setIsRetrieving] = useState(false);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  const hasScenario = isRetrieving || Boolean(submittedQuestion);
+
+  const mockRecords = useMemo(
+    () => (submittedQuestion ? buildMockRetrieval(submittedQuestion) : []),
+    [submittedQuestion],
+  );
+
+  const activeRoutes = useMemo(() => {
+    const normalized = submittedQuestion.toLowerCase();
+
+    return {
+      Quran: /quran|verse|mercy|explain|tafsir/.test(normalized),
+      Tafsir: /tafsir|explain|mercy|quran/.test(normalized),
+      Hadith: /hadith|sunnah|grade|intention/.test(normalized),
+    };
+  }, [submittedQuestion]);
+
+  useEffect(() => {
+    if (textareaRef.current) {
+      resizeQuestionField(textareaRef.current);
+    }
+  }, [question]);
+
+  useEffect(() => {
+    if (!isRetrieving) {
+      return;
+    }
+
+    const retrievalTimer = window.setTimeout(() => {
+      setIsRetrieving(false);
+    }, 5000);
+
+    return () => window.clearTimeout(retrievalTimer);
+  }, [isRetrieving, submittedQuestion]);
+
+  function runMockSearch(nextQuestion: string) {
+    const trimmed = nextQuestion.trim();
+
+    if (!trimmed) {
+      return;
+    }
+
+    setQuestion(trimmed);
+    setSubmittedQuestion(trimmed);
+    setIsRetrieving(true);
+  }
+
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    runMockSearch(question);
+  }
+
+  function handleQuestionKeyDown(event: KeyboardEvent<HTMLTextAreaElement>) {
+    if (event.key !== "Enter" || event.shiftKey) {
+      return;
+    }
+
+    event.preventDefault();
+    runMockSearch(question);
+  }
+
   return (
-    <main className="min-h-screen bg-[#f7f4ec] text-[#172322]">
-      <header className="border-b border-[#243b37]/15 bg-[#fbfaf5]">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-5 py-4">
-          <div>
-            <strong className="block text-base font-black">Source-Grounded Islamic AI</strong>
-            <span className="text-sm text-[#172322]/60">Quran, tafsir, and Sunnah retrieval product</span>
-          </div>
-          <a className="border border-[#243b37]/20 px-3 py-1.5 text-sm font-bold" href="#architecture">
-            Architecture
-          </a>
+    <main className="relative min-h-screen overflow-hidden bg-[var(--color-sand)] text-[var(--color-ink)]">
+      <div className="source-grid" aria-hidden="true" />
+
+      <header className="sticky top-0 z-30 border-b border-[var(--color-green)]/10 bg-[var(--color-sand)]/88 backdrop-blur">
+        <div className="mx-auto flex w-full max-w-6xl items-center justify-between px-5 py-4 sm:px-8">
+          <Link className="group flex items-center gap-3" href="/">
+            <span className="grid size-10 place-items-center rounded-2xl border border-[var(--color-gold)] bg-[var(--color-green)] text-sm font-black text-[var(--color-sand)] transition-transform duration-300 group-hover:-translate-y-0.5">
+              QH
+            </span>
+            <span>
+              <strong className="block text-sm font-black uppercase tracking-[0.16em]">Quran Hadith AI</strong>
+              <span className="text-xs font-bold text-[var(--color-muted)]">Source-grounded chat</span>
+            </span>
+          </Link>
+
+          <nav className="flex items-center gap-2 text-sm font-black">
+            <Link className="nav-link" href="/how-it-works">
+              How it works
+            </Link>
+            <Link className="nav-link hidden sm:inline-flex" href="/source-policy">
+              Policy
+            </Link>
+          </nav>
         </div>
       </header>
 
-      <section className="mx-auto grid max-w-6xl gap-10 px-5 py-16 lg:grid-cols-[minmax(0,1fr)_360px]">
-        <div className="border-y border-[#243b37]/20 py-10">
-          <p className="mb-4 text-xs font-black uppercase text-[#76512f]">Product app / separate repository</p>
-          <h1 className="max-w-3xl text-4xl font-black leading-tight md:text-6xl">
-            Cited answers from retrieval, not religious text from memory.
-          </h1>
-          <p className="mt-6 max-w-3xl text-lg leading-8 text-[#172322]/72">
-            This app will orchestrate source MCPs, retrieve Quran, tafsir, and hadith records, then use a pluggable model
-            only to compose answers grounded in those records.
-          </p>
-          <div className="mt-8 flex flex-wrap gap-3">
-            <a className="border border-[#172322] bg-[#172322] px-4 py-2.5 text-sm font-black text-[#fbfaf5]" href="#flow">
-              Read the flow
-            </a>
-            <a className="border border-[#172322]/25 px-4 py-2.5 text-sm font-black" href="#principles">
-              Source policy
-            </a>
-          </div>
-        </div>
-
-        <aside className="self-start border border-[#243b37]/20 bg-[#fffdf8]">
-          <div className="border-b border-[#243b37]/15 p-5">
-            <p className="text-sm font-black uppercase text-[#76512f]">v0 scaffold</p>
-            <h2 className="mt-3 text-2xl font-black">Product boundary</h2>
-            <p className="mt-3 text-sm leading-7 text-[#172322]/70">
-              The model may summarize retrieved records. It must not invent Quran text, hadith text, grades, or scholarly
-              rulings.
+      <section
+        className={`relative z-10 mx-auto flex w-full max-w-5xl flex-col items-center px-5 text-center sm:px-8 ${
+          hasScenario ? "py-4" : "min-h-[calc(100vh-80px)] justify-center py-12"
+        }`}
+      >
+        {!hasScenario ? (
+          <>
+            <p className="animate-rise text-xs font-black uppercase tracking-[0.28em] text-[var(--color-red)]">
+              Ask from retrieved sources
             </p>
+            <h1 className="animate-rise mt-5 text-balance text-4xl font-black leading-tight text-[var(--color-green)] [animation-delay:80ms] sm:text-6xl">
+              What do you want to verify?
+            </h1>
+          </>
+        ) : null}
+
+        <form
+          className={`search-shell animate-rise w-full max-w-3xl rounded-[2rem] bg-white/86 p-2 text-left backdrop-blur ${
+            hasScenario ? "" : "mt-8 [animation-delay:160ms]"
+          }`}
+          onSubmit={handleSubmit}
+        >
+          <label className="sr-only" htmlFor="question">
+            Ask about Quran, tafsir, or hadith
+          </label>
+          <div className="flex flex-col items-stretch gap-2 sm:flex-row sm:items-end">
+            <textarea
+              className="query-textarea min-h-14 flex-1 resize-none rounded-[1.5rem] bg-transparent px-5 py-4 text-base font-bold leading-6 outline-none placeholder:text-[var(--color-muted)]"
+              id="question"
+              onChange={(event) => setQuestion(event.target.value)}
+              onKeyDown={handleQuestionKeyDown}
+              placeholder="Ask about Quran, tafsir, or hadith..."
+              ref={textareaRef}
+              rows={1}
+              value={question}
+            />
+            <button
+              className="min-h-14 rounded-[1.5rem] border border-[var(--color-green)] bg-[var(--color-green)] px-6 text-sm font-black uppercase tracking-[0.16em] text-[var(--color-sand)] transition duration-300 hover:-translate-y-0.5 hover:bg-[var(--color-ink)] disabled:cursor-wait disabled:opacity-75"
+              disabled={isRetrieving}
+              type="submit"
+            >
+              {isRetrieving ? "Scan" : "Search"}
+            </button>
           </div>
-          <dl className="grid gap-px bg-[#243b37]/15">
-            {[
-              ["Status", "App shell"],
-              ["Runtime", "Next.js"],
-              ["Default", "Citation-first"],
-              ["Sources", "MCP-backed"]
-            ].map(([label, value]) => (
-              <div className="grid grid-cols-[110px_1fr] bg-[#fffdf8] px-4 py-3" key={label}>
-                <dt className="font-black text-[#315f55]">{label}</dt>
-                <dd className="text-sm text-[#172322]/70">{value}</dd>
+        </form>
+
+        {!hasScenario ? (
+          <>
+            <div className="animate-rise mt-5 flex max-w-3xl flex-wrap justify-center gap-2 [animation-delay:220ms]">
+              {suggestions.map((suggestion) => (
+                <button className="chip" key={suggestion} onClick={() => runMockSearch(suggestion)} type="button">
+                  {suggestion}
+                </button>
+              ))}
+            </div>
+
+            <div className="animate-rise mt-8 w-full max-w-3xl rounded-[2rem] border border-[var(--color-green)]/12 bg-white/54 p-5 [animation-delay:300ms]">
+              <p className="text-sm font-black uppercase tracking-[0.18em] text-[var(--color-green)]">
+                Start a mock source retrieval
+              </p>
+              <p className="mx-auto mt-3 max-w-xl text-sm font-bold leading-7 text-[var(--color-muted)]">
+                Results appear only after you search. The app stays empty until there is a question to route.
+              </p>
+            </div>
+          </>
+        ) : null}
+
+        {hasScenario ? (
+          <section className="mt-3 grid w-full max-w-3xl text-left">
+            <div className="answer-preview rounded-[2rem] bg-[var(--color-green)] p-4">
+              <div className="flex items-center justify-between border-b border-white/10 pb-3">
+                <div>
+                  <p className="text-xs font-black uppercase tracking-[0.2em] text-[var(--color-gold)]">
+                    {isRetrieving ? "Retrieving" : "Mock retrieval"}
+                  </p>
+                  <h2 className="mt-1 text-lg font-black text-white">
+                    {isRetrieving ? "Tracing source routes" : "Citation pack preview"}
+                  </h2>
+                  <p className="mt-2 line-clamp-2 max-w-xl whitespace-pre-wrap text-sm font-bold leading-6 text-white/70">
+                    {submittedQuestion}
+                  </p>
+                </div>
+                <span className="pulse-dot" aria-hidden="true" />
               </div>
-            ))}
-          </dl>
-        </aside>
-      </section>
 
-      <section id="architecture" className="border-t border-[#243b37]/15">
-        <div className="mx-auto grid max-w-6xl gap-8 px-5 py-14 lg:grid-cols-[320px_1fr]">
-          <div>
-            <p className="mb-3 text-xs font-black uppercase text-[#76512f]">Architecture</p>
-            <h2 className="text-3xl font-black leading-tight">Three layers, separate responsibilities.</h2>
-            <p className="mt-5 leading-8 text-[#172322]/68">
-              The product app coordinates source servers and answer drafting. Each layer remains replaceable and auditable.
-            </p>
-          </div>
-          <div className="overflow-hidden border border-[#243b37]/15 bg-[#fffdf8]">
-            {sources.map(([domain, layer, text]) => (
-              <div className="grid gap-2 border-b border-[#243b37]/12 p-4 last:border-b-0 md:grid-cols-[170px_190px_1fr]" key={domain}>
-                <strong className="text-[#315f55]">{domain}</strong>
-                <code className="text-sm font-black text-[#7e4b32]">{layer}</code>
-                <p className="m-0 text-sm leading-7 text-[#172322]/72">{text}</p>
+              <div className="mt-4 rounded-3xl border border-white/12 bg-white/8 p-3">
+                <div className="mb-3 flex items-center justify-between gap-3">
+                  <p className="text-xs font-black uppercase tracking-[0.18em] text-[var(--color-gold)]">Result routes</p>
+                  <p className="text-xs font-bold text-white/70">Mock routing only</p>
+                </div>
+                <div className="evidence-map">
+                  {sourceRoutes.map((route) => (
+                    <span className={activeRoutes[route as keyof typeof activeRoutes] ? "is-active" : ""} key={route}>
+                      {route}
+                    </span>
+                  ))}
+                </div>
               </div>
-            ))}
-          </div>
-        </div>
-      </section>
 
-      <section id="flow" className="border-t border-[#243b37]/15 bg-[#fbfaf5]">
-        <div className="mx-auto grid max-w-6xl gap-8 px-5 py-14 lg:grid-cols-[320px_1fr]">
-          <div>
-            <p className="mb-3 text-xs font-black uppercase text-[#76512f]">Flow</p>
-            <h2 className="text-3xl font-black leading-tight">The answer is downstream from retrieval.</h2>
-          </div>
-          <ol className="grid gap-px overflow-hidden border border-[#243b37]/15 bg-[#243b37]/15">
-            {flow.map((step, index) => (
-              <li className="grid gap-3 bg-[#fffdf8] p-4 md:grid-cols-[60px_1fr]" key={step}>
-                <span className="font-black text-[#315f55]">{String(index + 1).padStart(2, "0")}</span>
-                <span className="leading-7 text-[#172322]/72">{step}</span>
-              </li>
-            ))}
-          </ol>
-        </div>
-      </section>
+              <div className="mt-4 rounded-3xl border border-[var(--color-gold)]/55 bg-[var(--color-sand)] p-4 text-[var(--color-ink)]">
+                {isRetrieving ? (
+                  <div className="source-loading" role="status" aria-live="polite">
+                    <span />
+                    <span />
+                    <span />
+                    <p>Retrieving mock source routes...</p>
+                  </div>
+                ) : (
+                  <>
+                    <p className="text-xs font-black uppercase tracking-[0.18em] text-[var(--color-red)]">
+                      Mock records returned
+                    </p>
+                    <p className="mt-3 text-sm font-bold leading-7">
+                      Placeholder retrieval data only. The UI shows where sources, grades, and limits appear before a
+                      model drafts an answer.
+                    </p>
 
-      <section id="principles" className="border-t border-[#243b37]/15">
-        <div className="mx-auto grid max-w-6xl gap-8 px-5 py-14 lg:grid-cols-[320px_1fr]">
-          <div>
-            <p className="mb-3 text-xs font-black uppercase text-[#76512f]">Source policy</p>
-            <h2 className="text-3xl font-black leading-tight">A product rulebook before product features.</h2>
-          </div>
-          <div className="grid gap-px overflow-hidden border border-[#243b37]/15 bg-[#243b37]/15 md:grid-cols-2">
-            {principles.map(([title, text]) => (
-              <article className="bg-[#fffdf8] p-5" key={title}>
-                <strong className="text-lg font-black text-[#315f55]">{title}</strong>
-                <p className="mt-3 text-sm leading-7 text-[#172322]/72">{text}</p>
-              </article>
-            ))}
-          </div>
-        </div>
+                    <div className="mt-4 grid gap-2">
+                      {mockRecords.map((record) => (
+                        <article
+                          className="rounded-2xl border border-[var(--color-green)]/14 bg-white/72 p-3"
+                          key={record.label}
+                        >
+                          <div className="flex flex-wrap items-center justify-between gap-2">
+                            <strong className="text-sm text-[var(--color-green)]">{record.label}</strong>
+                            <span className="rounded-full border border-[var(--color-gold)]/60 px-2.5 py-1 text-[0.68rem] font-black uppercase tracking-[0.12em] text-[var(--color-red)]">
+                              {record.source}
+                            </span>
+                          </div>
+                          <p className="mt-2 text-xs font-black uppercase tracking-[0.12em] text-[var(--color-muted)]">
+                            {record.status}
+                          </p>
+                          <p className="mt-2 text-sm font-bold leading-6 text-[var(--color-muted)]">{record.note}</p>
+                        </article>
+                      ))}
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+          </section>
+        ) : null}
       </section>
     </main>
   );
