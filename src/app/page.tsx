@@ -50,6 +50,26 @@ function getWarningKey(warning: RetrievalWarning): TranslationKey {
   return "warning.generic";
 }
 
+function sourceTextForLanguage(
+  record: RetrievalResponse["records"][number],
+  language: string,
+  fallbackText: { arabic: string; english: string },
+) {
+  if (language === "ar") {
+    return {
+      dir: "rtl" as const,
+      text: record.arabicText || fallbackText.arabic,
+      textClass: "text-right text-base font-black leading-8 text-[var(--color-green)]",
+    };
+  }
+
+  return {
+    dir: "ltr" as const,
+    text: record.englishText || fallbackText.english,
+    textClass: "text-left text-sm font-bold leading-6 text-[var(--color-ink)]",
+  };
+}
+
 export default function Home() {
   const { language, t } = useI18n();
   const [question, setQuestion] = useState("");
@@ -93,7 +113,7 @@ export default function Home() {
         fetch("/api/search", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ question: trimmed }),
+          body: JSON.stringify({ language: language === "ar" ? "arabic" : "english", question: trimmed }),
         }),
         new Promise((resolve) => window.setTimeout(resolve, minimumLoadingMs)),
       ]);
@@ -294,55 +314,47 @@ export default function Home() {
 
                     <div className="mt-4 grid gap-2">
                       {retrieval?.records.map((record) => (
-                        <article
-                          className="rounded-2xl border border-[var(--color-green)]/14 bg-white/72 p-3"
-                          key={record.id}
-                        >
-                          <div className="flex flex-wrap items-center justify-between gap-2">
-                            <strong className="text-sm text-[var(--color-green)]">
-                              {record.displayName} {record.hadithNumber}
-                            </strong>
-                            <span className="rounded-full border border-[var(--color-gold)]/60 px-2.5 py-1 text-[0.68rem] font-black uppercase tracking-[0.12em] text-[var(--color-red)]">
-                              {record.grade ? record.grade.value : t("result.gradeUnavailable")}
-                            </span>
-                          </div>
-                          {record.book || record.chapter ? (
-                            <p className="mt-2 text-xs font-black uppercase tracking-[0.12em] text-[var(--color-muted)]">
-                              {[record.book, record.chapter].filter(Boolean).join(" / ")}
-                            </p>
-                          ) : null}
-                          {language === "ar" ? (
-                            <>
-                              <p
-                                className="mt-3 whitespace-pre-wrap text-right text-base font-black leading-8 text-[var(--color-green)]"
-                                dir="rtl"
-                              >
-                                {record.arabicText}
+                        (() => {
+                          const sourceText = sourceTextForLanguage(record, language, {
+                            arabic: t("result.arabicUnavailable"),
+                            english: t("result.englishUnavailable"),
+                          });
+
+                          return (
+                            <article
+                              className="rounded-2xl border border-[var(--color-green)]/14 bg-white/72 p-3"
+                              key={record.id}
+                            >
+                              <div className="flex flex-wrap items-center justify-between gap-2">
+                                <strong className="text-sm text-[var(--color-green)]">
+                                  {record.displayName} {record.hadithNumber}
+                                </strong>
+                                <span className="rounded-full border border-[var(--color-gold)]/60 px-2.5 py-1 text-[0.68rem] font-black uppercase tracking-[0.12em] text-[var(--color-red)]">
+                                  {record.grade ? record.grade.value : t("result.gradeUnavailable")}
+                                </span>
+                              </div>
+                              {record.book || record.chapter ? (
+                                <p
+                                  className={`mt-2 text-xs font-black text-[var(--color-muted)] ${
+                                    language === "ar" ? "" : "uppercase tracking-[0.12em]"
+                                  }`}
+                                >
+                                  {language === "ar"
+                                    ? [
+                                        record.book ? `${t("result.bookLabel")}: ${record.book}` : null,
+                                        record.chapter ? `${t("result.chapterLabel")}: ${record.chapter}` : null,
+                                      ]
+                                        .filter(Boolean)
+                                        .join(" / ")
+                                    : [record.book, record.chapter].filter(Boolean).join(" / ")}
+                                </p>
+                              ) : null}
+                              <p className={`mt-3 whitespace-pre-wrap ${sourceText.textClass}`} dir={sourceText.dir}>
+                                {sourceText.text}
                               </p>
-                              <p
-                                className="mt-3 whitespace-pre-wrap text-left text-sm font-bold leading-6 text-[var(--color-ink)]"
-                                dir="ltr"
-                              >
-                                {record.englishText || record.snippet || t("result.englishUnavailable")}
-                              </p>
-                            </>
-                          ) : (
-                            <>
-                              <p
-                                className="mt-2 whitespace-pre-wrap text-left text-sm font-bold leading-6 text-[var(--color-ink)]"
-                                dir="ltr"
-                              >
-                                {record.englishText || record.snippet || t("result.englishUnavailable")}
-                              </p>
-                              <p
-                                className="mt-3 whitespace-pre-wrap text-right text-base font-black leading-8 text-[var(--color-green)]"
-                                dir="rtl"
-                              >
-                                {record.arabicText}
-                              </p>
-                            </>
-                          )}
-                        </article>
+                            </article>
+                          );
+                        })()
                       ))}
                     </div>
 

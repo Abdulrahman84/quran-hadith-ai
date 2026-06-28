@@ -4,6 +4,7 @@ import type { RetrievalResponse } from "@/lib/retrieval/types";
 export const runtime = "nodejs";
 
 type SearchRequestBody = {
+  language?: unknown;
   question?: unknown;
 };
 
@@ -27,6 +28,7 @@ export async function POST(request: Request) {
   }
 
   const question = typeof body.question === "string" ? body.question.trim() : "";
+  const language = body.language === "arabic" || body.language === "english" ? body.language : "arabic";
 
   if (question.length === 0) {
     return Response.json(
@@ -42,6 +44,6 @@ export async function POST(request: Request) {
     );
   }
 
-  const response = await searchHadithSources(question);
+  const response = await searchHadithSources(question, language);
   return Response.json(response, { status: response.status === "error" ? 502 : 200 });
 }

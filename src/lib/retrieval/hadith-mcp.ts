@@ -37,6 +37,8 @@ type SearchHadithOutput = {
   provenance_notes: string[];
 };
 
+export type RetrievalLanguage = "arabic" | "english";
+
 type McpCallResult = {
   structuredContent?: Record<string, unknown>;
   isError?: boolean;
@@ -102,7 +104,7 @@ function normalizeRecord(record: HadithSearchResult): SourceRecord {
   };
 }
 
-export async function searchHadithSources(query: string): Promise<RetrievalResponse> {
+export async function searchHadithSources(query: string, language: RetrievalLanguage): Promise<RetrievalResponse> {
   const config = getHadithMcpConfig();
   const client = new Client({ name: "quran-hadith-ai", version: "0.1.0" });
   const transport = new StdioClientTransport({
@@ -127,7 +129,7 @@ export async function searchHadithSources(query: string): Promise<RetrievalRespo
       name: "search_hadith",
       arguments: {
         query,
-        language: "both",
+        language,
         limit: 5,
         offset: 0,
       },
