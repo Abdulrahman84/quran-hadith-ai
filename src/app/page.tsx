@@ -4,15 +4,22 @@ import Image from "next/image";
 import Link from "next/link";
 import { FormEvent, KeyboardEvent, useEffect, useMemo, useRef, useState } from "react";
 
-import type { RetrievalResponse } from "@/lib/retrieval/types";
+import { LanguageSwitcher } from "@/components/language-switcher";
+import { useI18n } from "@/components/i18n-provider";
+import type { TranslationKey } from "@/lib/i18n";
+import type { RetrievalResponse, RetrievalWarning } from "@/lib/retrieval/types";
 
-const suggestions = [
-  "Find hadith on intention with source",
-  "Search hadith about mercy",
-  "Show hadith evidence about prayer",
+const suggestionKeys: TranslationKey[] = [
+  "home.suggestion.intention",
+  "home.suggestion.mercy",
+  "home.suggestion.prayer",
 ];
 
-const sourceRoutes = ["Quran", "Tafsir", "Hadith"];
+const sourceRoutes: Array<{ id: "Quran" | "Tafsir" | "Hadith"; labelKey: TranslationKey }> = [
+  { id: "Quran", labelKey: "routes.quran" },
+  { id: "Tafsir", labelKey: "routes.tafsir" },
+  { id: "Hadith", labelKey: "routes.hadith" },
+];
 const minimumLoadingMs = 5000;
 
 function resizeQuestionField(element: HTMLTextAreaElement) {
@@ -23,7 +30,28 @@ function resizeQuestionField(element: HTMLTextAreaElement) {
   element.style.overflowY = element.scrollHeight > maxHeight ? "auto" : "hidden";
 }
 
+function getWarningKey(warning: RetrievalWarning): TranslationKey {
+  if (warning.code === "no_hadith_results") {
+    return "warning.noHadithResults";
+  }
+
+  if (warning.code === "query_expanded") {
+    return "warning.queryExpanded";
+  }
+
+  if (warning.code === "invalid_json") {
+    return "warning.invalidJson";
+  }
+
+  if (warning.code === "empty_question") {
+    return "warning.emptyQuestion";
+  }
+
+  return "warning.generic";
+}
+
 export default function Home() {
+  const { language, t } = useI18n();
   const [question, setQuestion] = useState("");
   const [submittedQuestion, setSubmittedQuestion] = useState("");
   const [isRetrieving, setIsRetrieving] = useState(false);
@@ -73,7 +101,7 @@ export default function Home() {
 
       if (!response.ok) {
         const warning = payload.warnings.at(0);
-        throw new Error(warning?.message || "The retrieval server could not answer this request.");
+        throw new Error(warning ? t(getWarningKey(warning)) : t("warning.generic"));
       }
 
       setRetrieval(payload);
@@ -117,17 +145,18 @@ export default function Home() {
             </span>
             <span>
               <strong className="block text-sm font-black uppercase tracking-[0.16em]">Sanad AI</strong>
-              <span className="text-xs font-bold text-[var(--color-muted)]">Source-grounded chat</span>
+              <span className="text-xs font-bold text-[var(--color-muted)]">{t("brand.subtitle")}</span>
             </span>
           </Link>
 
           <nav className="flex items-center gap-2 text-sm font-black">
             <Link className="nav-link" href="/how-it-works">
-              How it works
+              {t("nav.howItWorks")}
             </Link>
             <Link className="nav-link hidden sm:inline-flex" href="/source-policy">
-              Policy
+              {t("nav.policy")}
             </Link>
+            <LanguageSwitcher />
           </nav>
         </div>
       </header>
@@ -140,22 +169,22 @@ export default function Home() {
         {!hasScenario ? (
           <>
             <p className="animate-rise text-xs font-black uppercase tracking-[0.28em] text-[var(--color-red)]">
-              Ask from retrieved sources
+              {t("home.eyebrow")}
             </p>
             <h1 className="animate-rise mt-5 text-balance text-4xl font-black leading-tight text-[var(--color-green)] [animation-delay:80ms] sm:text-6xl">
-              What do you want to verify?
+              {t("home.title")}
             </h1>
           </>
         ) : null}
 
         <form
-          className={`search-shell animate-rise w-full max-w-3xl rounded-[2rem] bg-white/86 p-2 text-left backdrop-blur ${
+          className={`search-shell animate-rise w-full max-w-3xl rounded-[2rem] bg-white/86 p-2 text-start backdrop-blur ${
             hasScenario ? "" : "mt-8 [animation-delay:160ms]"
           }`}
           onSubmit={handleSubmit}
         >
           <label className="sr-only" htmlFor="question">
-            Ask about Quran, tafsir, or hadith
+            {t("home.inputLabel")}
           </label>
           <div className="flex flex-col items-stretch gap-2 sm:flex-row sm:items-end">
             <textarea
@@ -163,7 +192,7 @@ export default function Home() {
               id="question"
               onChange={(event) => setQuestion(event.target.value)}
               onKeyDown={handleQuestionKeyDown}
-              placeholder="Ask about Quran, tafsir, or hadith..."
+              placeholder={t("home.placeholder")}
               ref={textareaRef}
               rows={1}
               value={question}
@@ -173,7 +202,7 @@ export default function Home() {
               disabled={isRetrieving}
               type="submit"
             >
-              {isRetrieving ? "Scan" : "Search"}
+              {isRetrieving ? t("home.scan") : t("home.search")}
             </button>
           </div>
         </form>
@@ -181,35 +210,39 @@ export default function Home() {
         {!hasScenario ? (
           <>
             <div className="animate-rise mt-5 flex max-w-3xl flex-wrap justify-center gap-2 [animation-delay:220ms]">
-              {suggestions.map((suggestion) => (
-                <button className="chip" key={suggestion} onClick={() => void runSearch(suggestion)} type="button">
-                  {suggestion}
+              {suggestionKeys.map((suggestionKey) => (
+                <button
+                  className="chip"
+                  key={suggestionKey}
+                  onClick={() => void runSearch(t(suggestionKey))}
+                  type="button"
+                >
+                  {t(suggestionKey)}
                 </button>
               ))}
             </div>
 
             <div className="animate-rise mt-8 w-full max-w-3xl rounded-[2rem] border border-[var(--color-green)]/12 bg-white/54 p-5 [animation-delay:300ms]">
               <p className="text-sm font-black uppercase tracking-[0.18em] text-[var(--color-green)]">
-                Start real local retrieval
+                {t("home.startTitle")}
               </p>
               <p className="mx-auto mt-3 max-w-xl text-sm font-bold leading-7 text-[var(--color-muted)]">
-                Results appear only after you search. V1 connects to your local Hadith MCP and returns cited source
-                records, not model-written answers.
+                {t("home.startText")}
               </p>
             </div>
           </>
         ) : null}
 
         {hasScenario ? (
-          <section className="mt-3 grid w-full max-w-3xl text-left">
+          <section className="mt-3 grid w-full max-w-3xl text-start">
             <div className="answer-preview rounded-[2rem] bg-[var(--color-green)] p-4">
               <div className="flex items-center justify-between border-b border-white/10 pb-3">
                 <div>
                   <p className="text-xs font-black uppercase tracking-[0.2em] text-[var(--color-gold)]">
-                    {isRetrieving ? "Retrieving" : "Hadith MCP retrieval"}
+                    {isRetrieving ? t("result.retrieving") : t("result.retrieved")}
                   </p>
                   <h2 className="mt-1 text-lg font-black text-white">
-                    {isRetrieving ? "Tracing local sources" : "Retrieved source records"}
+                    {isRetrieving ? t("result.tracing") : t("result.recordsTitle")}
                   </h2>
                   <p className="mt-2 line-clamp-2 max-w-xl whitespace-pre-wrap text-sm font-bold leading-6 text-white/70">
                     {submittedQuestion}
@@ -220,13 +253,15 @@ export default function Home() {
 
               <div className="mt-4 rounded-3xl border border-white/12 bg-white/8 p-3">
                 <div className="mb-3 flex items-center justify-between gap-3">
-                  <p className="text-xs font-black uppercase tracking-[0.18em] text-[var(--color-gold)]">Result routes</p>
-                  <p className="text-xs font-bold text-white/70">Hadith-only v1</p>
+                  <p className="text-xs font-black uppercase tracking-[0.18em] text-[var(--color-gold)]">
+                    {t("result.routes")}
+                  </p>
+                  <p className="text-xs font-bold text-white/70">{t("result.mode")}</p>
                 </div>
                 <div className="evidence-map">
                   {sourceRoutes.map((route) => (
-                    <span className={activeRoutes[route as keyof typeof activeRoutes] ? "is-active" : ""} key={route}>
-                      {route}
+                    <span className={activeRoutes[route.id] ? "is-active" : ""} key={route.id}>
+                      {t(route.labelKey)}
                     </span>
                   ))}
                 </div>
@@ -238,26 +273,24 @@ export default function Home() {
                     <span />
                     <span />
                     <span />
-                    <p>Opening local MCP and retrieving sources...</p>
+                    <p>{t("result.loading")}</p>
                   </div>
                 ) : requestError ? (
                   <div role="alert">
                     <p className="text-xs font-black uppercase tracking-[0.18em] text-[var(--color-red)]">
-                      Retrieval failed
+                      {t("result.failed")}
                     </p>
                     <p className="mt-3 text-sm font-bold leading-7 text-[var(--color-muted)]">{requestError}</p>
                     <p className="mt-3 text-xs font-black uppercase tracking-[0.12em] text-[var(--color-green)]">
-                      Check Hadith MCP build and database paths in .env.local.
+                      {t("result.checkPaths")}
                     </p>
                   </div>
                 ) : (
                   <>
                     <p className="text-xs font-black uppercase tracking-[0.18em] text-[var(--color-red)]">
-                      {retrieval?.status === "empty" ? "No records found" : "Source records returned"}
+                      {retrieval?.status === "empty" ? t("result.empty") : t("result.returned")}
                     </p>
-                    <p className="mt-3 text-sm font-bold leading-7">
-                      The app is showing retrieved Hadith MCP records only. No AI answer is generated in this mode.
-                    </p>
+                    <p className="mt-3 text-sm font-bold leading-7">{t("result.noAi")}</p>
 
                     <div className="mt-4 grid gap-2">
                       {retrieval?.records.map((record) => (
@@ -270,7 +303,7 @@ export default function Home() {
                               {record.displayName} {record.hadithNumber}
                             </strong>
                             <span className="rounded-full border border-[var(--color-gold)]/60 px-2.5 py-1 text-[0.68rem] font-black uppercase tracking-[0.12em] text-[var(--color-red)]">
-                              {record.grade ? record.grade.value : "grade unavailable"}
+                              {record.grade ? record.grade.value : t("result.gradeUnavailable")}
                             </span>
                           </div>
                           {record.book || record.chapter ? (
@@ -278,26 +311,37 @@ export default function Home() {
                               {[record.book, record.chapter].filter(Boolean).join(" / ")}
                             </p>
                           ) : null}
-                          <p className="mt-2 whitespace-pre-wrap text-sm font-bold leading-6 text-[var(--color-ink)]">
-                            {record.englishText || record.snippet || "English text unavailable in this source record."}
-                          </p>
-                          <p className="mt-3 whitespace-pre-wrap text-right text-base font-black leading-8 text-[var(--color-green)]">
-                            {record.arabicText}
-                          </p>
-                          <div className="mt-3 grid gap-1 text-xs font-bold leading-5 text-[var(--color-muted)]">
-                            <span>Dataset: {record.sourceDataset}</span>
-                            <span>Reference: {record.sourceReference}</span>
-                            {record.grade ? (
-                              <span>
-                                Grade source: {record.grade.source} ({record.grade.sourceReference})
-                              </span>
-                            ) : null}
-                          </div>
-                          {record.provenanceNotes.length > 0 ? (
-                            <p className="mt-3 rounded-2xl border border-[var(--color-green)]/10 bg-[var(--color-sand)] px-3 py-2 text-xs font-bold leading-5 text-[var(--color-muted)]">
-                              {record.provenanceNotes.join(" ")}
-                            </p>
-                          ) : null}
+                          {language === "ar" ? (
+                            <>
+                              <p
+                                className="mt-3 whitespace-pre-wrap text-right text-base font-black leading-8 text-[var(--color-green)]"
+                                dir="rtl"
+                              >
+                                {record.arabicText}
+                              </p>
+                              <p
+                                className="mt-3 whitespace-pre-wrap text-left text-sm font-bold leading-6 text-[var(--color-ink)]"
+                                dir="ltr"
+                              >
+                                {record.englishText || record.snippet || t("result.englishUnavailable")}
+                              </p>
+                            </>
+                          ) : (
+                            <>
+                              <p
+                                className="mt-2 whitespace-pre-wrap text-left text-sm font-bold leading-6 text-[var(--color-ink)]"
+                                dir="ltr"
+                              >
+                                {record.englishText || record.snippet || t("result.englishUnavailable")}
+                              </p>
+                              <p
+                                className="mt-3 whitespace-pre-wrap text-right text-base font-black leading-8 text-[var(--color-green)]"
+                                dir="rtl"
+                              >
+                                {record.arabicText}
+                              </p>
+                            </>
+                          )}
                         </article>
                       ))}
                     </div>
@@ -306,7 +350,7 @@ export default function Home() {
                       <div className="mt-4 rounded-2xl border border-[var(--color-red)]/18 bg-white/60 p-3">
                         {retrieval.warnings.map((warning) => (
                           <p className="text-sm font-bold leading-6 text-[var(--color-muted)]" key={warning.code}>
-                            {warning.message}
+                            {t(getWarningKey(warning))}
                           </p>
                         ))}
                       </div>

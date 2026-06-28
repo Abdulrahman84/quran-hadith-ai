@@ -1,10 +1,12 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Geist_Mono, IBM_Plex_Sans_Arabic } from "next/font/google";
+import { I18nProvider } from "@/components/i18n-provider";
 import "./globals.css";
 
-const geistSans = Geist({
+const ibmPlexSansArabic = IBM_Plex_Sans_Arabic({
   variable: "--font-geist-sans",
-  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+  subsets: ["arabic", "latin"],
 });
 
 const geistMono = Geist_Mono({
@@ -28,10 +30,14 @@ export default function RootLayout({
 }>) {
   return (
     <html
-      lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      dir="rtl"
+      lang="ar"
+      className={`${ibmPlexSansArabic.variable} ${geistMono.variable} h-full antialiased`}
+      suppressHydrationWarning
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex flex-col">
+        <I18nProvider>{children}</I18nProvider>
+      </body>
     </html>
   );
 }

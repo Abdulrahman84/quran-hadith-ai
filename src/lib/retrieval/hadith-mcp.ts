@@ -153,7 +153,7 @@ export async function searchHadithSources(query: string): Promise<RetrievalRespo
 
     return {
       status: records.length > 0 ? "ok" : "empty",
-      query: result.structuredContent.query,
+      query,
       sourceMode: "hadith-only",
       records,
       warnings: records.length > 0 ? [] : [{ code: "no_hadith_results", message: "No hadith records matched this query." }],

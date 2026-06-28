@@ -25,6 +25,10 @@ body {
   font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
 }
 
+html[dir="rtl"] body {
+  text-align: right;
+}
+
 ::selection {
   background: var(--color-gold);
   color: var(--color-green);
@@ -109,8 +113,43 @@ body {
   background: white;
 }
 
+.language-switcher {
+  display: inline-flex;
+  align-items: center;
+  direction: ltr;
+  gap: 0.16rem;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--color-green) 22%, transparent);
+  background: color-mix(in srgb, white 58%, transparent);
+  padding: 0.22rem;
+}
+
+.language-option {
+  min-width: 3rem;
+  border-radius: 999px;
+  padding: 0.46rem 0.62rem;
+  color: var(--color-green);
+  font-size: 0.72rem;
+  font-weight: 900;
+  line-height: 1;
+  transition:
+    background 220ms ease,
+    color 220ms ease,
+    transform 220ms ease;
+}
+
+.language-option:hover {
+  transform: translateY(-1px);
+}
+
+.language-option[data-active="true"] {
+  background: var(--color-green);
+  color: var(--color-sand);
+}
+
 .query-textarea {
   max-height: 8rem;
+  text-align: start;
   scrollbar-width: thin;
   scrollbar-color: color-mix(in srgb, var(--color-green) 44%, transparent) transparent;
 }
