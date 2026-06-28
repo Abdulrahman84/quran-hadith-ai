@@ -1,6 +1,7 @@
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport, getDefaultEnvironment } from "@modelcontextprotocol/sdk/client/stdio.js";
 
+import { planRetrievalQuery, splitFallbackQueries } from "./query-planner";
 import type { RetrievalResponse, SourceGrade, SourceRecord } from "./types";
 
 type HadithGrade = {
@@ -42,6 +43,11 @@ export type RetrievalLanguage = "arabic" | "english";
 type McpCallResult = {
   structuredContent?: Record<string, unknown>;
   isError?: boolean;
+};
+
+type SearchAttempt = {
+  output: SearchHadithOutput;
+  query: string;
 };
 
 const DEFAULT_HADITH_MCP_ROOT = "/Users/abdulrahman/Projects/hadith-mcp";
@@ -104,7 +110,29 @@ function normalizeRecord(record: HadithSearchResult): SourceRecord {
   };
 }
 
+async function callSearchHadith(client: Client, query: string, language: RetrievalLanguage): Promise<SearchAttempt | null> {
+  const result = (await client.callTool({
+    name: "search_hadith",
+    arguments: {
+      query,
+      language,
+      limit: 5,
+      offset: 0,
+    },
+  })) as McpCallResult;
+
+  if (result.isError || !isSearchHadithOutput(result.structuredContent)) {
+    return null;
+  }
+
+  return {
+    output: result.structuredContent,
+    query,
+  };
+}
+
 export async function searchHadithSources(query: string, language: RetrievalLanguage): Promise<RetrievalResponse> {
+  const planned = planRetrievalQuery(query, language);
   const config = getHadithMcpConfig();
   const client = new Client({ name: "quran-hadith-ai", version: "0.1.0" });
   const transport = new StdioClientTransport({
@@ -125,20 +153,28 @@ export async function searchHadithSources(query: string, language: RetrievalLang
 
   try {
     await client.connect(transport);
-    const result = (await client.callTool({
-      name: "search_hadith",
-      arguments: {
-        query,
-        language,
-        limit: 5,
-        offset: 0,
-      },
-    })) as McpCallResult;
+    let searchAttempt = await callSearchHadith(client, planned.retrievalQuery, language);
 
-    if (result.isError || !isSearchHadithOutput(result.structuredContent)) {
+    if (searchAttempt?.output.results.length === 0) {
+      for (const fallbackQuery of splitFallbackQueries(query, language)) {
+        if (fallbackQuery === planned.retrievalQuery) {
+          continue;
+        }
+
+        const fallbackAttempt = await callSearchHadith(client, fallbackQuery, language);
+
+        if (fallbackAttempt && fallbackAttempt.output.results.length > 0) {
+          searchAttempt = fallbackAttempt;
+          break;
+        }
+      }
+    }
+
+    if (!searchAttempt) {
       return {
         status: "error",
         query,
+        retrievalQuery: planned.retrievalQuery,
         sourceMode: "hadith-only",
         records: [],
         warnings: [
@@ -151,15 +187,21 @@ export async function searchHadithSources(query: string, language: RetrievalLang
       };
     }
 
-    const records = result.structuredContent.results.map(normalizeRecord);
+    const records = searchAttempt.output.results.map(normalizeRecord);
 
     return {
       status: records.length > 0 ? "ok" : "empty",
       query,
+      retrievalQuery: searchAttempt.query,
       sourceMode: "hadith-only",
       records,
       warnings: records.length > 0 ? [] : [{ code: "no_hadith_results", message: "No hadith records matched this query." }],
-      provenanceNotes: result.structuredContent.provenance_notes,
+      provenanceNotes: [
+        ...searchAttempt.output.provenance_notes,
+        ...(planned.changed || searchAttempt.query !== query
+          ? [`Product query planner searched Hadith MCP for: ${searchAttempt.query}`]
+          : []),
+      ],
     };
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown Hadith MCP error.";
@@ -167,6 +209,7 @@ export async function searchHadithSources(query: string, language: RetrievalLang
     return {
       status: "error",
       query,
+      retrievalQuery: planned.retrievalQuery,
       sourceMode: "hadith-only",
       records: [],
       warnings: [

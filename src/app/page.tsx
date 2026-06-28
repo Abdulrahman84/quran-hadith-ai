@@ -50,6 +50,22 @@ function getWarningKey(warning: RetrievalWarning): TranslationKey {
   return "warning.generic";
 }
 
+function getAnswerStatusKey(answer: RetrievalResponse["answer"]): TranslationKey {
+  if (answer?.status === "disabled") {
+    return "result.answerDisabled";
+  }
+
+  if (answer?.status === "error") {
+    return "result.answerError";
+  }
+
+  if (answer?.status === "insufficient_sources") {
+    return "result.answerInsufficient";
+  }
+
+  return "result.answerPending";
+}
+
 function sourceTextForLanguage(
   record: RetrievalResponse["records"][number],
   language: string,
@@ -310,7 +326,33 @@ export default function Home() {
                     <p className="text-xs font-black uppercase tracking-[0.18em] text-[var(--color-red)]">
                       {retrieval?.status === "empty" ? t("result.empty") : t("result.returned")}
                     </p>
-                    <p className="mt-3 text-sm font-bold leading-7">{t("result.noAi")}</p>
+                    {retrieval?.answer?.status === "ready" && retrieval.answer.text ? (
+                      <div className="mt-4 rounded-2xl border border-[var(--color-green)]/14 bg-white/72 p-4">
+                        <p className="text-xs font-black uppercase tracking-[0.18em] text-[var(--color-red)]">
+                          {t("result.answerTitle")}
+                        </p>
+                        <p
+                          className="mt-3 whitespace-pre-wrap text-sm font-black leading-8 text-[var(--color-green)]"
+                          dir={language === "ar" ? "rtl" : "ltr"}
+                        >
+                          {retrieval.answer.text}
+                        </p>
+                        {retrieval.answer.citations.length ? (
+                          <div className="mt-4 flex flex-wrap gap-2">
+                            {retrieval.answer.citations.map((citation) => (
+                              <span
+                                className="rounded-full border border-[var(--color-gold)]/60 px-3 py-1 text-[0.68rem] font-black text-[var(--color-muted)]"
+                                key={citation}
+                              >
+                                {citation}
+                              </span>
+                            ))}
+                          </div>
+                        ) : null}
+                      </div>
+                    ) : (
+                      <p className="mt-3 text-sm font-bold leading-7">{t(getAnswerStatusKey(retrieval?.answer))}</p>
+                    )}
 
                     <div className="mt-4 grid gap-2">
                       {retrieval?.records.map((record) => (

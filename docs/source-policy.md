@@ -30,3 +30,6 @@ Every answer must carry:
 - The model receives only the retrieved citation pack and user question.
 - The prompt must forbid unsupported claims and source invention.
 - The UI must be able to show when the model could not answer from retrieved records.
+- If retrieval returns no records, the model must not draft an answer.
+- Query understanding may rewrite a user request into a source-search phrase, but it must not create source text,
+  grades, or provenance.

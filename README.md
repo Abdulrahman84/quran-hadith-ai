@@ -25,6 +25,13 @@ npm run build:meeatif-sqlite
 
 Copy `.env.example` to `.env.local` if your local paths differ.
 
+The default local model path uses Ollama. Start Ollama and set `OLLAMA_MODEL` to an installed model if you want grounded answer drafting:
+
+```bash
+ollama list
+OLLAMA_MODEL=qwen2.5-coder:7b
+```
+
 ```bash
 npm run dev
 npm run typecheck
@@ -36,7 +43,8 @@ Open [http://localhost:3000](http://localhost:3000) with your browser.
 
 ## Current Status
 
-This repository contains a Next.js product shell, planning docs, and a server-side local Hadith MCP retrieval path. It
-does not yet connect to Tafsir MCP or any model provider.
+This repository contains a Next.js product shell, planning docs, a server-side local Hadith MCP retrieval path, and an
+optional local Ollama answer layer. The model receives only retrieved source records and is not used as a source of
+Quran text, hadith text, grades, or provenance. Tafsir MCP is not connected yet.
 
 See [docs/product-plan.md](docs/product-plan.md) and [docs/source-policy.md](docs/source-policy.md).

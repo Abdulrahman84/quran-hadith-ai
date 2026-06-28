@@ -1,5 +1,6 @@
+import { generateGroundedAnswer } from "@/lib/llm/ollama";
 import { searchHadithSources } from "@/lib/retrieval/hadith-mcp";
-import type { RetrievalResponse } from "@/lib/retrieval/types";
+import type { GroundedAnswer, RetrievalResponse } from "@/lib/retrieval/types";
 
 export const runtime = "nodejs";
 
@@ -7,6 +8,15 @@ type SearchRequestBody = {
   language?: unknown;
   question?: unknown;
 };
+
+function noAnswer(status: GroundedAnswer["status"], code: string, message: string): GroundedAnswer {
+  return {
+    status,
+    text: null,
+    citations: [],
+    warnings: [{ code, message }],
+  };
+}
 
 export async function POST(request: Request) {
   let body: SearchRequestBody;
@@ -18,8 +28,10 @@ export async function POST(request: Request) {
       {
         status: "error",
         query: "",
+        retrievalQuery: "",
         sourceMode: "hadith-only",
         records: [],
+        answer: noAnswer("insufficient_sources", "invalid_json", "Request body must be valid JSON."),
         warnings: [{ code: "invalid_json", message: "Request body must be valid JSON." }],
         provenanceNotes: [],
       } satisfies RetrievalResponse,
@@ -35,8 +47,10 @@ export async function POST(request: Request) {
       {
         status: "error",
         query: "",
+        retrievalQuery: "",
         sourceMode: "hadith-only",
         records: [],
+        answer: noAnswer("insufficient_sources", "empty_question", "Enter a question before searching."),
         warnings: [{ code: "empty_question", message: "Enter a question before searching." }],
         provenanceNotes: [],
       } satisfies RetrievalResponse,
@@ -45,5 +59,13 @@ export async function POST(request: Request) {
   }
 
   const response = await searchHadithSources(question, language);
-  return Response.json(response, { status: response.status === "error" ? 502 : 200 });
+  const answer = await generateGroundedAnswer({
+    question,
+    language,
+    records: response.records,
+  });
+
+  return Response.json({ ...response, answer } satisfies RetrievalResponse, {
+    status: response.status === "error" ? 502 : 200,
+  });
 }

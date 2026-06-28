@@ -32,11 +32,22 @@ export type RetrievalWarning = {
   message: string;
 };
 
+export type GroundedAnswerStatus = "ready" | "disabled" | "insufficient_sources" | "error";
+
+export type GroundedAnswer = {
+  status: GroundedAnswerStatus;
+  text: string | null;
+  citations: string[];
+  warnings: RetrievalWarning[];
+};
+
 export type RetrievalResponse = {
   status: RetrievalStatus;
   query: string;
+  retrievalQuery: string;
   sourceMode: "hadith-only";
   records: SourceRecord[];
+  answer?: GroundedAnswer;
   warnings: RetrievalWarning[];
   provenanceNotes: string[];
 };
