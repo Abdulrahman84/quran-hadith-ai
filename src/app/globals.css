@@ -54,6 +54,16 @@ html[dir="rtl"] body {
   background: white;
 }
 
+.nav-link-mobile-hidden {
+  display: none;
+}
+
+@media (min-width: 40rem) {
+  .nav-link-mobile-hidden {
+    display: inline-flex;
+  }
+}
+
 .source-grid {
   position: absolute;
   inset: 0;

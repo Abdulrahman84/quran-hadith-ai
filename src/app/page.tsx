@@ -168,28 +168,22 @@ export default function Home() {
 
       <header className="sticky top-0 z-30 border-b border-[var(--color-green)]/10 bg-[var(--color-sand)]/88 backdrop-blur">
         <div className="mx-auto flex w-full max-w-6xl items-center justify-between px-5 py-4 sm:px-8">
-          <Link className="group flex items-center gap-3" href="/">
-            <span className="grid size-12 place-items-center overflow-hidden rounded-2xl border border-[var(--color-gold)] bg-white transition-transform duration-300 group-hover:-translate-y-0.5">
-              <Image
-                alt=""
-                className="size-10 object-contain"
-                height={40}
-                priority
-                src="/brand/sanad-icon.png"
-                width={40}
-              />
-            </span>
-            <span>
-              <strong className="block text-sm font-black uppercase tracking-[0.16em]">Sanad AI</strong>
-              <span className="text-xs font-bold text-[var(--color-muted)]">{t("brand.subtitle")}</span>
-            </span>
+          <Link className="group flex items-center" href="/" aria-label="Sanad AI">
+            <Image
+              alt="Sanad AI"
+              className="h-10 w-auto shrink-0 object-contain transition-transform duration-300 group-hover:-translate-y-0.5 sm:h-14"
+              height={56}
+              priority
+              src="/brand/sanad-logo.png"
+              width={201}
+            />
           </Link>
 
           <nav className="flex items-center gap-2 text-sm font-black">
             <Link className="nav-link" href="/how-it-works">
               {t("nav.howItWorks")}
             </Link>
-            <Link className="nav-link hidden sm:inline-flex" href="/source-policy">
+            <Link className="nav-link nav-link-mobile-hidden" href="/source-policy">
               {t("nav.policy")}
             </Link>
             <LanguageSwitcher />
