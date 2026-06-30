@@ -30,16 +30,18 @@ export default function HowItWorks() {
 
   return (
     <main className="min-h-screen bg-[var(--color-sand)] text-[var(--color-ink)]">
-      <header className="mx-auto flex max-w-6xl items-center justify-between px-5 py-6">
-        <Link className="text-sm font-black uppercase tracking-[0.2em] text-[var(--color-green)]" href="/">
-          Sanad AI
-        </Link>
-        <nav className="flex items-center gap-2 text-sm font-black">
-          <Link className="nav-link" href="/source-policy">
-            {t("nav.sourcePolicy")}
+      <header className="sticky top-0 z-30 border-b border-[var(--color-green)]/10 bg-[var(--color-sand)]/88 backdrop-blur">
+        <div className="mx-auto flex max-w-6xl items-center justify-between px-5 py-6">
+          <Link className="text-sm font-black uppercase tracking-[0.2em] text-[var(--color-green)]" href="/">
+            Sanad AI
           </Link>
-          <LanguageSwitcher />
-        </nav>
+          <nav className="flex items-center gap-2 text-sm font-black">
+            <Link className="nav-link" href="/source-policy">
+              {t("nav.sourcePolicy")}
+            </Link>
+            <LanguageSwitcher />
+          </nav>
+        </div>
       </header>
 
       <section className="mx-auto max-w-6xl px-5 py-12">

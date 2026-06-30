@@ -245,29 +245,19 @@ html[dir="rtl"] body {
 
 .source-loading {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 0.5rem;
+  justify-items: center;
+  gap: 0.75rem;
   align-items: center;
+  padding: 0.75rem 0 0.25rem;
 }
 
-.source-loading span {
-  height: 0.5rem;
-  border-radius: 999px;
-  background: linear-gradient(90deg, var(--color-green), var(--color-gold), var(--color-red));
-  background-size: 220% 100%;
-  animation: source-loading 1.2s ease-in-out infinite;
-}
-
-.source-loading span:nth-child(2) {
-  animation-delay: 140ms;
-}
-
-.source-loading span:nth-child(3) {
-  animation-delay: 280ms;
+.source-loading-mark {
+  width: min(17rem, 72vw);
+  height: auto;
+  display: block;
 }
 
 .source-loading p {
-  grid-column: 1 / -1;
   color: var(--color-muted);
   font-size: 0.85rem;
   font-weight: 900;
@@ -430,18 +420,6 @@ html[dir="rtl"] body {
   50% {
     transform: scale(1.15);
     opacity: 1;
-  }
-}
-
-@keyframes source-loading {
-  0%,
-  100% {
-    opacity: 0.34;
-    background-position: 0% 50%;
-  }
-  50% {
-    opacity: 1;
-    background-position: 100% 50%;
   }
 }
 

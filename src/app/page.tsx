@@ -163,10 +163,10 @@ export default function Home() {
   }
 
   return (
-    <main className="relative min-h-screen overflow-hidden bg-[var(--color-sand)] text-[var(--color-ink)]">
+    <main className="relative min-h-screen bg-[var(--color-sand)] pt-20 text-[var(--color-ink)] sm:pt-24">
       <div className="source-grid" aria-hidden="true" />
 
-      <header className="sticky top-0 z-30 border-b border-[var(--color-green)]/10 bg-[var(--color-sand)]/88 backdrop-blur">
+      <header className="fixed inset-x-0 top-0 z-50 border-b border-[var(--color-green)]/10 bg-[var(--color-sand)]/88 backdrop-blur">
         <div className="mx-auto flex w-full max-w-6xl items-center justify-between px-5 py-4 sm:px-8">
           <Link className="group flex items-center" href="/" aria-label="Sanad AI">
             <Image
@@ -300,9 +300,15 @@ export default function Home() {
               <div className="mt-4 rounded-3xl border border-[var(--color-gold)]/55 bg-[var(--color-sand)] p-4 text-[var(--color-ink)]">
                 {isRetrieving ? (
                   <div className="source-loading" role="status" aria-live="polite">
-                    <span />
-                    <span />
-                    <span />
+                    <Image
+                      alt=""
+                      aria-hidden="true"
+                      className="source-loading-mark"
+                      height={153}
+                      src="/assets/sanad-ai-loader.svg"
+                      unoptimized
+                      width={272}
+                    />
                     <p>{t("result.loading")}</p>
                   </div>
                 ) : requestError ? (
