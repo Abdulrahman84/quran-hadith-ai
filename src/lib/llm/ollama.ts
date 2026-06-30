@@ -90,8 +90,36 @@ function normalizeArabicForExcerpt(value: string) {
   );
 }
 
+function stripArabicNarratorOpening(value: string) {
+  const text = cleanWhitespace(value);
+  const narratorOpening = /^(?:حدثنا|حدثني|اخبرنا|انبانا|انبا|سمعت)(?:\s|،|,)/;
+
+  if (!narratorOpening.test(text)) {
+    return text;
+  }
+
+  const matnMarkersToKeep = ["قال رسول الله", "قال النبي", "سمعت رسول الله", "عن النبي", "ان رسول الله", "ان النبي"];
+  const markerIndex = matnMarkersToKeep
+    .map((marker) => text.lastIndexOf(marker))
+    .filter((index) => index > 0)
+    .sort((a, b) => b - a)[0];
+
+  if (markerIndex !== undefined) {
+    return text.slice(markerIndex).trim();
+  }
+
+  const genericSpeechMarkers = Array.from(text.matchAll(/\sقال\s*[:،,]\s*/g));
+  const finalSpeechMarker = genericSpeechMarkers.at(-1);
+
+  if (finalSpeechMarker?.index !== undefined) {
+    return text.slice(finalSpeechMarker.index + finalSpeechMarker[0].length).trim();
+  }
+
+  return text;
+}
+
 function excerptArabicText(value: string) {
-  const text = normalizeArabicForExcerpt(value);
+  const text = stripArabicNarratorOpening(normalizeArabicForExcerpt(value));
   const markers = ["قال رسول الله", "سمعت رسول الله", "ان رسول الله", "عن النبي", "قال النبي", " ثم قال ", " قال "];
   const markerIndex = markers
     .map((marker) => text.lastIndexOf(marker))
@@ -160,7 +188,7 @@ function summarizeExcerpt(excerpt: string, language: RetrievalLanguage) {
   return language === "arabic" ? summarizeArabicExcerpt(excerpt) : summarizeEnglishExcerpt(excerpt);
 }
 
-function fallbackGroundedSummary(input: GenerateGroundedAnswerInput): GroundedAnswer {
+export function fallbackGroundedSummary(input: GenerateGroundedAnswerInput): GroundedAnswer {
   const citations = citationLabels(input.records);
   const seenExcerpts = new Set<string>();
   const featuredRecords = input.records
@@ -191,7 +219,7 @@ function fallbackGroundedSummary(input: GenerateGroundedAnswerInput): GroundedAn
 
     return {
       status: "ready",
-      text: `تعرض السجلات المسترجعة مقاطع مرتبطة بسؤال المستخدم، وأبرز ما يظهر في النصوص:\n${lines}\nهذه صياغة تلخص النصوص المسترجعة فقط، وليست فتوى أو حكما شرعيا مستقلا.`,
+      text: `بالنسبة إلى سؤالك، تعرض السجلات المسترجعة مقاطع مرتبطة بما سألت عنه، وأبرز ما يظهر في النصوص:\n${lines}\nهذه صياغة تلخص النصوص المسترجعة فقط، وليست فتوى أو حكما شرعيا مستقلا.`,
       citations,
       warnings: [{ code: "ollama_guardrail_fallback", message: "The model output was replaced by a guarded source summary." }],
     };
@@ -206,7 +234,7 @@ function fallbackGroundedSummary(input: GenerateGroundedAnswerInput): GroundedAn
 
   return {
     status: "ready",
-    text: `The retrieved records contain passages related to the user's question:\n${lines}\nThis summarizes only the retrieved text and is not an independent religious ruling.`,
+    text: `For your question, the retrieved records contain passages related to what you asked:\n${lines}\nThis summarizes only the retrieved text and is not an independent religious ruling.`,
     citations,
     warnings: [{ code: "ollama_guardrail_fallback", message: "The model output was replaced by a guarded source summary." }],
   };
@@ -241,6 +269,15 @@ const arabicAllowedSummaryWords = new Set([
   "روايات",
   "مرتبطة",
   "بسؤال",
+  "سؤالك",
+  "بالنسبة",
+  "بالنسبه",
+  "إلى",
+  "الى",
+  "بما",
+  "سألت",
+  "سالت",
+  "عنه",
   "المستخدم",
   "أبرز",
   "يظهر",
@@ -264,6 +301,11 @@ const englishAllowedSummaryWords = new Set([
   "contain",
   "passages",
   "related",
+  "for",
+  "your",
+  "what",
+  "you",
+  "asked",
   "question",
   "user",
   "summarizes",
@@ -315,6 +357,8 @@ function systemPrompt(language: RetrievalLanguage) {
       "لا تصدر فتوى ولا تقدم حكما شرعيا مستقلا. إن كانت السجلات غير كافية فاذكر ذلك بوضوح.",
       "لا تعتبر عناوين الكتب أو الأبواب حكما شرعيا؛ هي بيانات وصفية فقط.",
       "اكتب إجابة عربية قصيرة تصف ما تحتويه السجلات، لا تجب بصيغة حكم عام.",
+      "خاطب السائل مباشرة بصيغة المخاطب مثل: بالنسبة إلى سؤالك.",
+      "لخّص المعنى والمضمون المشترك للنصوص المسترجعة، ولا تنقل أسانيد الرواة أو افتتاحيات مثل حدثنا وأخبرنا إلا إذا كان السؤال عنها.",
       "لا تعرض قائمة بأسماء المصادر فقط؛ لخّص مضمون نصوص الحديث المسترجعة.",
       "ضع أرقام الاقتباس مثل [1] بجانب كل معلومة مستندة إلى سجل.",
       "لا تذكر أي مصدر غير موجود في الحزمة.",
@@ -327,6 +371,8 @@ function systemPrompt(language: RetrievalLanguage) {
     "Do not issue fatwas or independent religious rulings. If the records are insufficient, say so clearly.",
     "Do not treat book or chapter titles as religious rulings; they are metadata only.",
     "Write a short answer that describes what the records contain, not a broad ruling.",
+    "Address the asker directly in second person, with wording like: For your question.",
+    "Summarize the shared meaning and content of the retrieved hadith texts. Do not quote or paraphrase narrator chains unless the question asks about chains.",
     "Do not only list source names; summarize the content of the retrieved hadith texts.",
     "Place citation markers like [1] beside every sourced claim.",
     "Do not cite any source that is not in the pack.",
@@ -337,10 +383,10 @@ function userPrompt(input: GenerateGroundedAnswerInput) {
   const citationPack = buildCitationPack(input.records, input.language);
 
   if (input.language === "arabic") {
-    return `السؤال:\n${input.question}\n\nسجلات المصادر المسترجعة:\n${citationPack}\n\nاكتب جملتين أو ثلاثا فقط. ابدأ بعبارة مثل: "تعرض السجلات المسترجعة..." ولخّص مضمون النصوص لا أسماء الكتب فقط. لا تضف تفصيلا غير ظاهر في النصوص.`;
+    return `السؤال:\n${input.question}\n\nسجلات المصادر المسترجعة:\n${citationPack}\n\nاكتب جملتين أو ثلاثا فقط. خاطب السائل مباشرة وابدأ بعبارة مثل: "بالنسبة إلى سؤالك، تعرض السجلات المسترجعة..." ولخّص المعنى العام للنصوص لا أسماء الكتب ولا أسانيد الرواة. لا تضف تفصيلا غير ظاهر في النصوص.`;
   }
 
-  return `Question:\n${input.question}\n\nRetrieved source records:\n${citationPack}\n\nWrite only two or three sentences. Start with a phrase like: "The retrieved records show..." and summarize the text content, not only the book names. Do not add details that are not visible in the records.`;
+  return `Question:\n${input.question}\n\nRetrieved source records:\n${citationPack}\n\nWrite only two or three sentences. Address the asker directly and start with a phrase like: "For your question, the retrieved records show..." Summarize the overall meaning of the hadith texts, not only the book names and not narrator chains. Do not add details that are not visible in the records.`;
 }
 
 export async function generateGroundedAnswer(input: GenerateGroundedAnswerInput): Promise<GroundedAnswer> {
