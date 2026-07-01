@@ -181,7 +181,6 @@ html[dir="rtl"] body {
   border: 1px solid color-mix(in srgb, var(--color-green) 18%, transparent);
 }
 
-.search-shell::before,
 .answer-preview::before {
   content: "";
   position: absolute;
@@ -200,6 +199,15 @@ html[dir="rtl"] body {
   mask-composite: exclude;
   pointer-events: none;
   animation: trace-border 5.8s ease-in-out infinite;
+}
+
+.search-shell::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  border: 1px solid color-mix(in srgb, var(--color-gold) 38%, transparent);
+  pointer-events: none;
 }
 
 .search-shell > *,

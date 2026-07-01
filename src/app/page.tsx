@@ -248,7 +248,7 @@ export default function Home() {
         ) : null}
 
         <form
-          className={`search-shell animate-rise w-full max-w-3xl rounded-[2rem] bg-white/86 p-2 text-start backdrop-blur ${
+          className={`search-shell animate-rise w-full max-w-4xl rounded-[1.5rem] bg-white/90 p-3 text-start shadow-[0_24px_60px_rgba(18,63,57,0.10)] backdrop-blur ${
             hasScenario ? "" : "mt-8 [animation-delay:160ms]"
           }`}
           onSubmit={handleSubmit}
@@ -256,40 +256,57 @@ export default function Home() {
           <label className="sr-only" htmlFor="question">
             {t("home.inputLabel")}
           </label>
-          <div className="flex flex-col items-stretch gap-2 sm:flex-row sm:items-end">
-            <textarea
-              className="query-textarea min-h-14 flex-1 resize-none rounded-[1.5rem] bg-transparent px-5 py-4 text-base font-bold leading-6 outline-none placeholder:text-[var(--color-muted)]"
-              id="question"
-              onChange={(event) => setQuestion(event.target.value)}
-              onKeyDown={handleQuestionKeyDown}
-              placeholder={t("home.placeholder")}
-              ref={textareaRef}
-              rows={1}
-              value={question}
-            />
-            <label className="sr-only" htmlFor="tafsir-source">
-              {t("home.tafsirSourceLabel")}
-            </label>
-            <select
-              className="min-h-14 rounded-[1.5rem] border border-[var(--color-green)]/18 bg-white px-4 text-sm font-black text-[var(--color-green)] outline-none"
-              id="tafsir-source"
-              disabled={isRetrieving}
-              onChange={(event) => handleTafsirSourceChange(event.target.value as TafsirSourceSelection)}
-              value={tafsirSource}
-            >
-              <option value="all">{t("home.tafsirSourceAll")}</option>
-              {tafsirSources.map((source) => (
-                <option key={source.id} value={source.id}>
-                  {language === "ar" ? source.labelAr : source.labelEn}
-                </option>
-              ))}
-            </select>
+          <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_210px_auto] lg:items-stretch">
+            <div className="flex min-h-16 items-start gap-3 rounded-[1.15rem] bg-[var(--color-sand)]/70 px-4 py-3 ring-1 ring-[var(--color-green)]/10 transition focus-within:bg-white focus-within:ring-[var(--color-gold)]">
+              <span className="mt-1 grid h-9 w-9 shrink-0 place-items-center rounded-full bg-white text-[var(--color-green)] shadow-sm" aria-hidden="true">
+                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24">
+                  <path d="m20 20-4.5-4.5M18 10.5a7.5 7.5 0 1 1-15 0 7.5 7.5 0 0 1 15 0Z" stroke="currentColor" strokeLinecap="round" strokeWidth="2" />
+                </svg>
+              </span>
+              <textarea
+                className="query-textarea min-h-10 flex-1 resize-none bg-transparent py-2 text-base font-black leading-6 text-[var(--color-green)] outline-none placeholder:text-[var(--color-muted)]/78"
+                id="question"
+                onChange={(event) => setQuestion(event.target.value)}
+                onKeyDown={handleQuestionKeyDown}
+                placeholder={t("home.placeholder")}
+                ref={textareaRef}
+                rows={1}
+                value={question}
+              />
+            </div>
+
+            <div className="relative flex min-h-16 items-center rounded-[1.15rem] border border-[var(--color-green)]/14 bg-white px-4 shadow-sm">
+              <label className="sr-only" htmlFor="tafsir-source">
+                {t("home.tafsirSourceLabel")}
+              </label>
+              <select
+                className="w-full appearance-none bg-transparent py-2 pe-8 text-sm font-black text-[var(--color-green)] outline-none disabled:opacity-60"
+                id="tafsir-source"
+                disabled={isRetrieving}
+                onChange={(event) => handleTafsirSourceChange(event.target.value as TafsirSourceSelection)}
+                value={tafsirSource}
+              >
+                <option value="all">{t("home.tafsirSourceAll")}</option>
+                {tafsirSources.map((source) => (
+                  <option key={source.id} value={source.id}>
+                    {language === "ar" ? source.labelAr : source.labelEn}
+                  </option>
+                ))}
+              </select>
+              <svg className="pointer-events-none absolute end-4 h-4 w-4 text-[var(--color-green)]/70" fill="none" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="m6 9 6 6 6-6" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" />
+              </svg>
+            </div>
+
             <button
-              className="min-h-14 rounded-[1.5rem] border border-[var(--color-green)] bg-[var(--color-green)] px-6 text-sm font-black uppercase tracking-[0.16em] text-[var(--color-sand)] transition duration-300 hover:-translate-y-0.5 hover:bg-[var(--color-ink)] disabled:cursor-wait disabled:opacity-75"
+              className="inline-flex min-h-16 items-center justify-center gap-2 rounded-[1.15rem] border border-[var(--color-green)] bg-[var(--color-green)] px-5 text-sm font-black text-[var(--color-sand)] transition duration-300 hover:-translate-y-0.5 hover:bg-[var(--color-ink)] disabled:cursor-wait disabled:opacity-75"
               disabled={isRetrieving}
               type="submit"
             >
-              {isRetrieving ? t("home.scan") : t("home.search")}
+              <svg className="h-5 w-5 rtl:rotate-180" fill="none" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" />
+              </svg>
+              <span>{isRetrieving ? t("home.scan") : t("home.search")}</span>
             </button>
           </div>
         </form>
