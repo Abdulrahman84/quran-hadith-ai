@@ -23,6 +23,16 @@ npm run build
 npm run build:meeatif-sqlite
 ```
 
+The Quran and tafsir source layer uses the open-source [`tafsircenter/tafsir-mcp`](https://github.com/tafsircenter/tafsir-mcp)
+server through local stdio:
+
+```bash
+uvx tafsir-mcp
+```
+
+On first run it may download its Quran database and cache it under `~/.cache/tafsir-mcp/`. Set `TAFSIR_DB_PATH`
+in `.env.local` only if you want to point it at a specific local `quran.db`.
+
 Copy `.env.example` to `.env.local` if your local paths differ.
 
 The default local model path uses Ollama. Start Ollama and set `OLLAMA_MODEL` to an installed model if you want grounded answer drafting:
@@ -34,6 +44,7 @@ OLLAMA_MODEL=qwen2.5-coder:7b
 
 ```bash
 npm run dev
+npm test
 npm run typecheck
 npm run lint
 npm run build
@@ -43,8 +54,9 @@ Open [http://localhost:3000](http://localhost:3000) with your browser.
 
 ## Current Status
 
-This repository contains a Next.js product shell, planning docs, a server-side local Hadith MCP retrieval path, and an
-optional local Ollama answer layer. The model receives only retrieved source records and is not used as a source of
-Quran text, hadith text, grades, or provenance. Tafsir MCP is not connected yet.
+This repository contains a Next.js product shell, planning docs, server-side local Tafsir and Hadith MCP retrieval
+paths, and an optional local Ollama answer layer. The model receives only retrieved source records and is not used as a
+source of Quran text, tafsir text, hadith text, grades, or provenance. Tafsir MCP code is MIT licensed; its Quranic data
+requires Tafsir Center attribution under CC BY 4.0.
 
 See [docs/product-plan.md](docs/product-plan.md) and [docs/source-policy.md](docs/source-policy.md).

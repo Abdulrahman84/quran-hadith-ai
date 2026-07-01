@@ -24,6 +24,8 @@ Every answer must carry:
 - Quran text and tafsir excerpts must come from the configured retrieval source.
 - Translation edition and tafsir source must remain visible.
 - The app must distinguish Quran text, translation, tafsir, and assistant summary.
+- If Tafsir MCP is unavailable, the UI must show the retrieval warning and must not synthesize Quran or tafsir text.
+- Tafsir MCP Quranic data attribution to Tafsir Center must remain visible in provenance or documentation.
 
 ## Model Rules
 

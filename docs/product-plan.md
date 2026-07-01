@@ -14,9 +14,9 @@ The product app should orchestrate source systems rather than become a source it
 
 - Next.js product shell.
 - Clear source policy and product boundary.
-- Local Hadith MCP retrieval through a server-side app route.
-- Cited hadith source cards with grades and provenance when available.
-- Local Ollama answer composition from retrieved hadith records only.
+- Local Tafsir MCP and Hadith MCP retrieval through a server-side app route.
+- Cited Quran, tafsir, and hadith source cards with grades and provenance when available.
+- Local Ollama answer composition from retrieved source records only.
 - No bundled Quran, tafsir, or hadith data.
 
 ## Future Architecture
@@ -44,5 +44,5 @@ User question
 3. Build a cited source-record UI from real Hadith MCP retrieval.
 4. Add conservative query understanding so natural requests become useful source searches.
 5. Add a local Ollama composition layer that can only summarize retrieved records.
-6. Add Tafsir MCP once the local source server exists.
+6. Add Tafsir MCP over local stdio for Quran and tafsir retrieval.
 7. Extract a broader model-provider abstraction after local grounding behavior is stable.
