@@ -36,6 +36,11 @@ test("information pages have copy for the retrieval pipeline and source boundary
     "policy.sources.title",
     "policy.sources.tafsir.tabari",
     "policy.sources.hadith.bukhari",
+    "policy.provenance.title",
+    "policy.provenance.useLabel",
+    "policy.provenance.quran.origin",
+    "policy.provenance.tafsir.visible",
+    "policy.provenance.hadith.note",
   ]) {
     assert.match(dictionarySource, new RegExp(`"${key}"`));
   }

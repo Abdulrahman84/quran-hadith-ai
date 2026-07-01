@@ -62,6 +62,51 @@ const trustFlowItems: Array<{ icon: "source" | "arrange" | "answer"; titleKey: T
   },
 ];
 
+const provenanceItems: Array<{
+  titleKey: TranslationKey;
+  originKey: TranslationKey;
+  useKey: TranslationKey;
+  visibleKey: TranslationKey;
+  noteKey: TranslationKey;
+}> = [
+  {
+    titleKey: "policy.provenance.quran.title",
+    originKey: "policy.provenance.quran.origin",
+    useKey: "policy.provenance.quran.use",
+    visibleKey: "policy.provenance.quran.visible",
+    noteKey: "policy.provenance.quran.note",
+  },
+  {
+    titleKey: "policy.provenance.tafsir.title",
+    originKey: "policy.provenance.tafsir.origin",
+    useKey: "policy.provenance.tafsir.use",
+    visibleKey: "policy.provenance.tafsir.visible",
+    noteKey: "policy.provenance.tafsir.note",
+  },
+  {
+    titleKey: "policy.provenance.hadith.title",
+    originKey: "policy.provenance.hadith.origin",
+    useKey: "policy.provenance.hadith.use",
+    visibleKey: "policy.provenance.hadith.visible",
+    noteKey: "policy.provenance.hadith.note",
+  },
+];
+
+const boundarySteps: Array<{ icon: "source" | "arrange" | "answer"; titleKey: TranslationKey }> = [
+  {
+    icon: "source",
+    titleKey: "policy.boundary.sources",
+  },
+  {
+    icon: "arrange",
+    titleKey: "policy.boundary.model",
+  },
+  {
+    icon: "answer",
+    titleKey: "policy.boundary.answer",
+  },
+];
+
 function FlowIcon({ type }: { type: "source" | "arrange" | "answer" }) {
   if (type === "source") {
     return (
@@ -170,27 +215,119 @@ export default function SourcePolicy() {
         </div>
       </section>
 
-      <section className="relative z-10 mx-auto grid max-w-6xl gap-6 px-5 pb-16 sm:px-8 lg:grid-cols-[320px_minmax(0,1fr)]">
-        <div>
-          <p className="text-xs font-black uppercase tracking-[0.22em] text-[var(--color-red)]">
-            {t("policy.boundary.title")}
-          </p>
-          <h2 className="mt-4 text-3xl font-black leading-tight text-[var(--color-green)]">
-            {t("policy.guardrails.title")}
-          </h2>
-          <p className="mt-4 text-sm font-bold leading-7 text-[var(--color-muted)]">{t("policy.guardrails.text")}</p>
+      <section className="relative z-10 mx-auto max-w-6xl px-5 pb-10 sm:px-8">
+        <div className="relative overflow-hidden rounded-lg bg-[var(--color-green)] p-5 text-[var(--color-sand)] shadow-[0_24px_60px_rgba(18,63,57,0.18)] sm:p-7">
+          <div className="absolute inset-x-0 top-0 h-px bg-[var(--color-gold)]/60" aria-hidden="true" />
+          <div className="pointer-events-none absolute inset-0 opacity-[0.08]" aria-hidden="true">
+            <div className="h-full w-full bg-[linear-gradient(90deg,currentColor_1px,transparent_1px),linear-gradient(0deg,currentColor_1px,transparent_1px)] bg-[size:46px_46px]" />
+          </div>
+
+          <div className="relative grid gap-8 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.15fr)]">
+            <div>
+              <p className="text-xs font-black uppercase tracking-[0.22em] text-[var(--color-gold)]">
+                {t("policy.boundary.title")}
+              </p>
+              <h2 className="mt-4 max-w-xl text-3xl font-black leading-tight text-white sm:text-4xl">
+                {t("policy.guardrails.title")}
+              </h2>
+              <p className="mt-4 max-w-2xl text-sm font-bold leading-7 text-white/72">{t("policy.guardrails.text")}</p>
+            </div>
+
+            <div className="grid gap-3 md:grid-cols-3">
+              {boundarySteps.map((step, index) => (
+                <article
+                  className="animate-rise relative rounded-lg border border-white/12 bg-white/8 p-4"
+                  key={step.titleKey}
+                  style={{ animationDelay: `${index * 80}ms` }}
+                >
+                  {index < boundarySteps.length - 1 ? (
+                    <span
+                      className="absolute top-9 hidden h-px w-8 bg-[var(--color-gold)]/60 ltr:-right-5 rtl:-left-5 md:block"
+                      aria-hidden="true"
+                    />
+                  ) : null}
+                  <div className="grid h-11 w-11 place-items-center rounded-full bg-[var(--color-gold)] text-[var(--color-green)]">
+                    <FlowIcon type={step.icon} />
+                  </div>
+                  <p className="mt-4 text-base font-black leading-7 text-white">{t(step.titleKey)}</p>
+                </article>
+              ))}
+            </div>
+          </div>
+
+          <div className="relative mt-7 grid gap-2 border-t border-white/12 pt-5 lg:grid-cols-2">
+            {ruleKeys.map((ruleKey, index) => (
+              <article
+                className={`animate-rise flex gap-3 rounded-lg border border-white/10 bg-[var(--color-green)]/55 p-4 ${index === ruleKeys.length - 1 ? "lg:col-span-2" : ""}`}
+                key={ruleKey}
+                style={{ animationDelay: `${index * 80}ms` }}
+              >
+                <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-[var(--color-gold)]/50 text-xs font-black text-[var(--color-gold)]">
+                  {String(index + 1).padStart(2, "0")}
+                </span>
+                <p className="text-sm font-black leading-7 text-white/86">{t(ruleKey)}</p>
+              </article>
+            ))}
+          </div>
         </div>
-        <div className="grid gap-3">
-          {ruleKeys.map((ruleKey, index) => (
-            <article
-              className="animate-rise rounded-lg border border-[var(--color-green)]/16 bg-white/76 p-5"
-              key={ruleKey}
-              style={{ animationDelay: `${index * 80}ms` }}
-            >
-              <span className="text-sm font-black text-[var(--color-red)]">{String(index + 1).padStart(2, "0")}</span>
-              <p className="mt-3 text-lg font-black leading-8 text-[var(--color-green)]">{t(ruleKey)}</p>
-            </article>
-          ))}
+      </section>
+
+      <section className="relative z-10 mx-auto max-w-6xl px-5 pb-16 sm:px-8">
+        <div className="rounded-lg border border-[var(--color-green)]/16 bg-white/74 p-5 shadow-[0_18px_42px_rgba(18,63,57,0.08)] sm:p-6">
+          <div className="grid gap-6 lg:grid-cols-[320px_minmax(0,1fr)]">
+            <div>
+              <p className="text-xs font-black uppercase tracking-[0.22em] text-[var(--color-red)]">
+                {t("policy.provenance.eyebrow")}
+              </p>
+              <h2 className="mt-3 text-2xl font-black leading-tight text-[var(--color-green)]">
+                {t("policy.provenance.title")}
+              </h2>
+              <p className="mt-3 text-sm font-bold leading-7 text-[var(--color-muted)]">
+                {t("policy.provenance.text")}
+              </p>
+            </div>
+
+            <div className="grid gap-3">
+              {provenanceItems.map((item, index) => (
+                <article
+                  className="animate-rise rounded-lg border border-[var(--color-green)]/12 bg-[var(--color-sand)] p-4"
+                  key={item.titleKey}
+                  style={{ animationDelay: `${index * 80}ms` }}
+                >
+                  <div className="grid gap-4 md:grid-cols-[190px_minmax(0,1fr)]">
+                    <div>
+                      <span className="grid h-9 w-9 place-items-center rounded-full bg-[var(--color-green)] text-sm font-black text-[var(--color-gold)]">
+                        {String(index + 1).padStart(2, "0")}
+                      </span>
+                      <h3 className="mt-3 text-lg font-black leading-7 text-[var(--color-green)]">{t(item.titleKey)}</h3>
+                      <p className="mt-2 text-sm font-black leading-7 text-[var(--color-red)]">{t(item.originKey)}</p>
+                    </div>
+
+                    <div className="grid gap-3 lg:grid-cols-3">
+                      <div>
+                        <p className="text-xs font-black uppercase tracking-[0.16em] text-[var(--color-green)]/60">
+                          {t("policy.provenance.useLabel")}
+                        </p>
+                        <p className="mt-2 text-sm font-bold leading-7 text-[var(--color-muted)]">{t(item.useKey)}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs font-black uppercase tracking-[0.16em] text-[var(--color-green)]/60">
+                          {t("policy.provenance.visibleLabel")}
+                        </p>
+                        <p className="mt-2 text-sm font-bold leading-7 text-[var(--color-muted)]">{t(item.visibleKey)}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs font-black uppercase tracking-[0.16em] text-[var(--color-green)]/60">
+                          {t("policy.provenance.noteLabel")}
+                        </p>
+                        <p className="mt-2 text-sm font-bold leading-7 text-[var(--color-muted)]">{t(item.noteKey)}</p>
+                      </div>
+                    </div>
+                  </div>
+                </article>
+              ))}
+            </div>
+          </div>
         </div>
       </section>
     </main>
