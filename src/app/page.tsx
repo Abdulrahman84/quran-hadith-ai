@@ -35,6 +35,10 @@ function getWarningKey(warning: RetrievalWarning): TranslationKey {
     return "warning.noHadithResults";
   }
 
+  if (warning.code === "no_tafsir_results") {
+    return "warning.noTafsirResults";
+  }
+
   if (warning.code === "query_expanded") {
     return "warning.queryExpanded";
   }
@@ -74,16 +78,60 @@ function sourceTextForLanguage(
   if (language === "ar") {
     return {
       dir: "rtl" as const,
-      text: record.arabicText || fallbackText.arabic,
+      text: [record.arabicText, record.sourceKind === "tafsir" ? record.tafsirText : null].filter(Boolean).join("\n\n") || fallbackText.arabic,
       textClass: "text-right text-base font-black leading-8 text-[var(--color-green)]",
     };
   }
 
   return {
     dir: "ltr" as const,
-    text: record.englishText || fallbackText.english,
+    text:
+      [record.englishText, record.sourceKind === "tafsir" ? record.tafsirText : null].filter(Boolean).join("\n\n") ||
+      fallbackText.english,
     textClass: "text-left text-sm font-bold leading-6 text-[var(--color-ink)]",
   };
+}
+
+function recordTitle(record: RetrievalResponse["records"][number]) {
+  return `${record.displayName} ${record.reference}`.trim();
+}
+
+function recordBadge(record: RetrievalResponse["records"][number], t: (key: TranslationKey) => string) {
+  if (record.sourceKind === "hadith") {
+    return record.grade ? record.grade.value : t("result.gradeUnavailable");
+  }
+
+  if (record.sourceKind === "tafsir") {
+    return record.tafsirSource || t("result.tafsirUnavailable");
+  }
+
+  return t("routes.quran");
+}
+
+function recordMetadata(record: RetrievalResponse["records"][number], language: string, t: (key: TranslationKey) => string) {
+  if (record.sourceKind === "hadith") {
+    if (!record.book && !record.chapter) {
+      return "";
+    }
+
+    if (language === "ar") {
+      return [
+        record.book ? `${t("result.bookLabel")}: ${record.book}` : null,
+        record.chapter ? `${t("result.chapterLabel")}: ${record.chapter}` : null,
+      ]
+        .filter(Boolean)
+        .join(" / ");
+    }
+
+    return [record.book, record.chapter].filter(Boolean).join(" / ");
+  }
+
+  return [
+    record.translationEdition ? `${t("result.translationLabel")}: ${record.translationEdition}` : null,
+    record.tafsirSource ? `${t("result.tafsirLabel")}: ${record.tafsirSource}` : null,
+  ]
+    .filter(Boolean)
+    .join(" / ");
 }
 
 export default function Home() {
@@ -98,12 +146,14 @@ export default function Home() {
   const hasScenario = isRetrieving || Boolean(submittedQuestion) || retrieval !== null || requestError.length > 0;
 
   const activeRoutes = useMemo(() => {
+    const kinds = new Set(retrieval?.records.map((record) => record.sourceKind) ?? []);
+
     return {
-      Quran: false,
-      Tafsir: false,
-      Hadith: hasScenario,
+      Quran: kinds.has("quran") || kinds.has("tafsir"),
+      Tafsir: kinds.has("tafsir"),
+      Hadith: kinds.has("hadith"),
     };
-  }, [hasScenario]);
+  }, [retrieval]);
 
   useEffect(() => {
     if (textareaRef.current) {
@@ -361,6 +411,7 @@ export default function Home() {
                             arabic: t("result.arabicUnavailable"),
                             english: t("result.englishUnavailable"),
                           });
+                          const metadata = recordMetadata(record, language, t);
 
                           return (
                             <article
@@ -369,26 +420,19 @@ export default function Home() {
                             >
                               <div className="flex flex-wrap items-center justify-between gap-2">
                                 <strong className="text-sm text-[var(--color-green)]">
-                                  {record.displayName} {record.hadithNumber}
+                                  {recordTitle(record)}
                                 </strong>
                                 <span className="rounded-full border border-[var(--color-gold)]/60 px-2.5 py-1 text-[0.68rem] font-black uppercase tracking-[0.12em] text-[var(--color-red)]">
-                                  {record.grade ? record.grade.value : t("result.gradeUnavailable")}
+                                  {recordBadge(record, t)}
                                 </span>
                               </div>
-                              {record.book || record.chapter ? (
+                              {metadata ? (
                                 <p
                                   className={`mt-2 text-xs font-black text-[var(--color-muted)] ${
                                     language === "ar" ? "" : "uppercase tracking-[0.12em]"
                                   }`}
                                 >
-                                  {language === "ar"
-                                    ? [
-                                        record.book ? `${t("result.bookLabel")}: ${record.book}` : null,
-                                        record.chapter ? `${t("result.chapterLabel")}: ${record.chapter}` : null,
-                                      ]
-                                        .filter(Boolean)
-                                        .join(" / ")
-                                    : [record.book, record.chapter].filter(Boolean).join(" / ")}
+                                  {metadata}
                                 </p>
                               ) : null}
                               <p className={`mt-3 whitespace-pre-wrap ${sourceText.textClass}`} dir={sourceText.dir}>

@@ -43,14 +43,51 @@ function sourceRecord(overrides = {}) {
     sourceKind: "hadith",
     collection: "bukhari",
     displayName: "Sahih al-Bukhari",
+    reference: "1",
     book: "Revelation",
     chapter: "How the Divine Revelation started",
     hadithNumber: "1",
+    surahNumber: null,
+    surahName: null,
+    ayahNumber: null,
+    verseKey: null,
+    translationEdition: null,
+    tafsirSource: null,
     arabicText: "قال رسول الله صلى الله عليه وسلم إنما الأعمال بالنيات",
     englishText: "I heard Allah's Messenger saying, The reward of deeds depends upon the intentions.",
+    tafsirText: null,
     grade: { value: "sahih", source: "source", sourceReference: "ref", provenanceNotes: [] },
     sourceDataset: "fixture",
     sourceReference: "bukhari:1",
+    provenanceNotes: [],
+    snippet: null,
+    rank: 1,
+    ...overrides,
+  };
+}
+
+function tafsirRecord(overrides = {}) {
+  return {
+    id: "tafsir-1-1",
+    sourceKind: "tafsir",
+    collection: "mukhtasar_en",
+    displayName: "Tafsir 1:1",
+    reference: "1:1",
+    book: null,
+    chapter: null,
+    hadithNumber: null,
+    surahNumber: 1,
+    surahName: null,
+    ayahNumber: 1,
+    verseKey: "1:1",
+    translationEdition: null,
+    tafsirSource: "Concise Quran Commentary (English)",
+    arabicText: "بسم الله الرحمن الرحيم",
+    englishText: null,
+    tafsirText: "This verse begins the surah by invoking Allah's name.",
+    grade: null,
+    sourceDataset: "tafsir-mcp",
+    sourceReference: "tafsir:mukhtasar_en:1:1",
     provenanceNotes: [],
     snippet: null,
     rank: 1,
@@ -100,4 +137,17 @@ test("fallback Arabic summary omits narrator-chain openings", () => {
 
   assert.doesNotMatch(answer.text, /حدثنا|سفيان|الزهري/);
   assert.match(answer.text, /انما الاعمال بالنيات/);
+});
+
+test("fallback answer can cite tafsir records", () => {
+  const { fallbackGroundedSummary } = loadOllamaModule();
+
+  const answer = fallbackGroundedSummary({
+    question: "What is the tafsir of Al-Fatihah 1:1?",
+    language: "english",
+    records: [tafsirRecord()],
+  });
+
+  assert.match(answer.text, /^For your question, the retrieved records/);
+  assert.deepEqual(answer.citations, ["[1] Tafsir 1:1 1:1"]);
 });

@@ -1,5 +1,4 @@
-import type { RetrievalLanguage } from "@/lib/retrieval/hadith-mcp";
-import type { GroundedAnswer, SourceRecord } from "@/lib/retrieval/types";
+import type { GroundedAnswer, RetrievalLanguage, SourceRecord } from "@/lib/retrieval/types";
 
 type GenerateGroundedAnswerInput = {
   question: string;
@@ -41,6 +40,14 @@ function getOllamaConfig() {
 }
 
 function getRecordText(record: SourceRecord, language: RetrievalLanguage) {
+  if (record.sourceKind === "tafsir") {
+    if (language === "arabic") {
+      return [record.arabicText, record.tafsirText].filter(Boolean).join("\n");
+    }
+
+    return [record.englishText, record.tafsirText].filter(Boolean).join("\n");
+  }
+
   if (language === "arabic") {
     return record.arabicText;
   }
@@ -53,17 +60,26 @@ function buildCitationPack(records: SourceRecord[], language: RetrievalLanguage)
     .map((record, index) => {
       const citation = `[${index + 1}]`;
       const text = getRecordText(record, language).trim();
-      const metadata = [
-        `${record.displayName} ${record.hadithNumber}`,
-        record.book ? `book: ${record.book}` : null,
-        record.chapter ? `chapter: ${record.chapter}` : null,
-        record.grade?.value ? `grade: ${record.grade.value}` : "grade: unavailable",
-        `source: ${record.sourceReference}`,
-      ]
+      const metadata =
+        record.sourceKind === "hadith"
+          ? [
+              `${record.displayName} ${record.reference}`,
+              record.book ? `book: ${record.book}` : null,
+              record.chapter ? `chapter: ${record.chapter}` : null,
+              record.grade?.value ? `grade: ${record.grade.value}` : "grade: unavailable",
+              `source: ${record.sourceReference}`,
+            ]
+          : [
+              `${record.displayName} ${record.reference}`,
+              record.translationEdition ? `translation: ${record.translationEdition}` : null,
+              record.tafsirSource ? `tafsir: ${record.tafsirSource}` : null,
+              `source: ${record.sourceReference}`,
+            ];
+      const metadataText = metadata
         .filter(Boolean)
         .join("; ");
 
-      return `${citation} ${metadata}\n${text.slice(0, 900)}`;
+      return `${citation} ${metadataText}\n${text.slice(0, 900)}`;
     })
     .join("\n\n");
 }
@@ -73,7 +89,7 @@ function stripThinkingBlocks(value: string) {
 }
 
 function citationLabels(records: SourceRecord[]) {
-  return records.map((record, index) => `[${index + 1}] ${record.displayName} ${record.hadithNumber}`);
+  return records.map((record, index) => `[${index + 1}] ${record.displayName} ${record.reference}`);
 }
 
 function cleanWhitespace(value: string) {
@@ -149,6 +165,10 @@ function contentExcerpt(record: SourceRecord, language: RetrievalLanguage) {
     return language === "arabic" ? "لا يتوفر نص بهذا اللسان في هذا السجل" : "No text is available in this language for this record";
   }
 
+  if (record.sourceKind !== "hadith") {
+    return cleanWhitespace(text).slice(0, language === "arabic" ? 260 : 230);
+  }
+
   return language === "arabic" ? excerptArabicText(text) : excerptEnglishText(text);
 }
 
@@ -213,7 +233,7 @@ export function fallbackGroundedSummary(input: GenerateGroundedAnswerInput): Gro
     const lines = featuredRecords
       .map((record) => {
         const grade = record.grade ? ` درجة السجل: ${record.grade}.` : "";
-        return `- تلخص إحدى الروايات ${summarizeExcerpt(record.excerpt, input.language)} ${record.citation}.${grade}`;
+        return `- يلخص أحد السجلات ${summarizeExcerpt(record.excerpt, input.language)} ${record.citation}.${grade}`;
       })
       .join("\n");
 
@@ -353,13 +373,13 @@ function systemPrompt(language: RetrievalLanguage) {
   if (language === "arabic") {
     return [
       "أنت طبقة صياغة في Sanad AI، ولست مفتيا.",
-      "استخدم سجلات المصادر المرفقة فقط. لا تضف نص قرآن أو حديث أو درجة أو مصدر من الذاكرة.",
+      "استخدم سجلات المصادر المرفقة فقط. لا تضف نص قرآن أو تفسير أو حديث أو درجة أو مصدر من الذاكرة.",
       "لا تصدر فتوى ولا تقدم حكما شرعيا مستقلا. إن كانت السجلات غير كافية فاذكر ذلك بوضوح.",
       "لا تعتبر عناوين الكتب أو الأبواب حكما شرعيا؛ هي بيانات وصفية فقط.",
       "اكتب إجابة عربية قصيرة تصف ما تحتويه السجلات، لا تجب بصيغة حكم عام.",
       "خاطب السائل مباشرة بصيغة المخاطب مثل: بالنسبة إلى سؤالك.",
-      "لخّص المعنى والمضمون المشترك للنصوص المسترجعة، ولا تنقل أسانيد الرواة أو افتتاحيات مثل حدثنا وأخبرنا إلا إذا كان السؤال عنها.",
-      "لا تعرض قائمة بأسماء المصادر فقط؛ لخّص مضمون نصوص الحديث المسترجعة.",
+      "لخّص المعنى والمضمون المشترك للنصوص المسترجعة، ولا تنقل أسانيد الرواة في الحديث إلا إذا كان السؤال عنها.",
+      "لا تعرض قائمة بأسماء المصادر فقط؛ لخّص مضمون النصوص المسترجعة.",
       "ضع أرقام الاقتباس مثل [1] بجانب كل معلومة مستندة إلى سجل.",
       "لا تذكر أي مصدر غير موجود في الحزمة.",
     ].join("\n");
@@ -367,13 +387,13 @@ function systemPrompt(language: RetrievalLanguage) {
 
   return [
     "You are the composition layer for Sanad AI, not a mufti.",
-    "Use only the attached retrieved source records. Do not add Quran text, hadith text, grades, or provenance from memory.",
+    "Use only the attached retrieved source records. Do not add Quran text, tafsir text, hadith text, grades, or provenance from memory.",
     "Do not issue fatwas or independent religious rulings. If the records are insufficient, say so clearly.",
     "Do not treat book or chapter titles as religious rulings; they are metadata only.",
     "Write a short answer that describes what the records contain, not a broad ruling.",
     "Address the asker directly in second person, with wording like: For your question.",
-    "Summarize the shared meaning and content of the retrieved hadith texts. Do not quote or paraphrase narrator chains unless the question asks about chains.",
-    "Do not only list source names; summarize the content of the retrieved hadith texts.",
+    "Summarize the shared meaning and content of the retrieved source texts. Do not quote or paraphrase hadith narrator chains unless the question asks about chains.",
+    "Do not only list source names; summarize the content of the retrieved texts.",
     "Place citation markers like [1] beside every sourced claim.",
     "Do not cite any source that is not in the pack.",
   ].join("\n");
@@ -383,10 +403,10 @@ function userPrompt(input: GenerateGroundedAnswerInput) {
   const citationPack = buildCitationPack(input.records, input.language);
 
   if (input.language === "arabic") {
-    return `السؤال:\n${input.question}\n\nسجلات المصادر المسترجعة:\n${citationPack}\n\nاكتب جملتين أو ثلاثا فقط. خاطب السائل مباشرة وابدأ بعبارة مثل: "بالنسبة إلى سؤالك، تعرض السجلات المسترجعة..." ولخّص المعنى العام للنصوص لا أسماء الكتب ولا أسانيد الرواة. لا تضف تفصيلا غير ظاهر في النصوص.`;
+    return `السؤال:\n${input.question}\n\nسجلات المصادر المسترجعة:\n${citationPack}\n\nاكتب جملتين أو ثلاثا فقط. خاطب السائل مباشرة وابدأ بعبارة مثل: "بالنسبة إلى سؤالك، تعرض السجلات المسترجعة..." ولخّص المعنى العام للنصوص لا أسماء الكتب ولا أسانيد الرواة في الحديث. لا تضف تفصيلا غير ظاهر في النصوص.`;
   }
 
-  return `Question:\n${input.question}\n\nRetrieved source records:\n${citationPack}\n\nWrite only two or three sentences. Address the asker directly and start with a phrase like: "For your question, the retrieved records show..." Summarize the overall meaning of the hadith texts, not only the book names and not narrator chains. Do not add details that are not visible in the records.`;
+  return `Question:\n${input.question}\n\nRetrieved source records:\n${citationPack}\n\nWrite only two or three sentences. Address the asker directly and start with a phrase like: "For your question, the retrieved records show..." Summarize the overall meaning of the retrieved texts, not only the source names and not hadith narrator chains. Do not add details that are not visible in the records.`;
 }
 
 export async function generateGroundedAnswer(input: GenerateGroundedAnswerInput): Promise<GroundedAnswer> {

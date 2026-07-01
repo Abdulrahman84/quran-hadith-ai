@@ -1,5 +1,5 @@
 import { generateGroundedAnswer } from "@/lib/llm/ollama";
-import { searchHadithSources } from "@/lib/retrieval/hadith-mcp";
+import { searchSources } from "@/lib/retrieval/source-router";
 import type { GroundedAnswer, RetrievalResponse } from "@/lib/retrieval/types";
 
 export const runtime = "nodejs";
@@ -29,7 +29,7 @@ export async function POST(request: Request) {
         status: "error",
         query: "",
         retrievalQuery: "",
-        sourceMode: "hadith-only",
+        sourceMode: "quran-tafsir-hadith",
         records: [],
         answer: noAnswer("insufficient_sources", "invalid_json", "Request body must be valid JSON."),
         warnings: [{ code: "invalid_json", message: "Request body must be valid JSON." }],
@@ -48,7 +48,7 @@ export async function POST(request: Request) {
         status: "error",
         query: "",
         retrievalQuery: "",
-        sourceMode: "hadith-only",
+        sourceMode: "quran-tafsir-hadith",
         records: [],
         answer: noAnswer("insufficient_sources", "empty_question", "Enter a question before searching."),
         warnings: [{ code: "empty_question", message: "Enter a question before searching." }],
@@ -58,7 +58,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const response = await searchHadithSources(question, language);
+  const response = await searchSources(question, language);
   const answer = await generateGroundedAnswer({
     question,
     language,

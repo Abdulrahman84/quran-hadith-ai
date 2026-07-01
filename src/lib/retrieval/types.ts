@@ -1,6 +1,10 @@
 export type RetrievalStatus = "ok" | "empty" | "error";
 
-export type SourceKind = "hadith";
+export type RetrievalLanguage = "arabic" | "english";
+
+export type SourceKind = "quran" | "tafsir" | "hadith";
+
+export type SourceMode = "quran-tafsir-hadith" | "quran-tafsir-only" | "hadith-only";
 
 export type SourceGrade = {
   value: string;
@@ -14,11 +18,19 @@ export type SourceRecord = {
   sourceKind: SourceKind;
   collection: string;
   displayName: string;
+  reference: string;
   book: string | null;
   chapter: string | null;
-  hadithNumber: string;
+  hadithNumber: string | null;
+  surahNumber: number | null;
+  surahName: string | null;
+  ayahNumber: number | null;
+  verseKey: string | null;
+  translationEdition: string | null;
+  tafsirSource: string | null;
   arabicText: string;
   englishText: string | null;
+  tafsirText: string | null;
   grade: SourceGrade | null;
   sourceDataset: string;
   sourceReference: string;
@@ -45,7 +57,7 @@ export type RetrievalResponse = {
   status: RetrievalStatus;
   query: string;
   retrievalQuery: string;
-  sourceMode: "hadith-only";
+  sourceMode: SourceMode;
   records: SourceRecord[];
   answer?: GroundedAnswer;
   warnings: RetrievalWarning[];

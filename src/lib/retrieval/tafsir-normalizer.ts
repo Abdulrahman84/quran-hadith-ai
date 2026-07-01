@@ -1,0 +1,122 @@
+import type { SourceRecord } from "./types";
+
+export type QuranSearchResult = {
+  surah: number;
+  ayah: number;
+  text: string;
+  snippet: string | null;
+  score: number | null;
+};
+
+export type TafsirSearchResult = {
+  surah: number;
+  ayah: number;
+  tafsir_excerpt: string;
+  source_attribution: string;
+};
+
+export type FetchedAyah = {
+  surah: number;
+  ayah: number;
+  text: string;
+  word_count?: number;
+};
+
+export type FetchedTafsir = {
+  surah: number;
+  ayah: number;
+  tafsirs: Array<{
+    source: string;
+    attribution: string;
+    text: string;
+  }>;
+};
+
+function reference(surah: number, ayah: number) {
+  return `${surah}:${ayah}`;
+}
+
+function baseRecord(surah: number, ayah: number, rank: number | null): Omit<SourceRecord, "id" | "sourceKind" | "collection" | "displayName" | "sourceReference"> {
+  const verseKey = reference(surah, ayah);
+
+  return {
+    reference: verseKey,
+    book: null,
+    chapter: null,
+    hadithNumber: null,
+    surahNumber: surah,
+    surahName: null,
+    ayahNumber: ayah,
+    verseKey,
+    translationEdition: null,
+    tafsirSource: null,
+    arabicText: "",
+    englishText: null,
+    tafsirText: null,
+    grade: null,
+    sourceDataset: "tafsir-mcp",
+    provenanceNotes: ["Retrieved from Tafsir MCP by Tafsir Center for Quranic Studies."],
+    snippet: null,
+    rank,
+  };
+}
+
+export function normalizeQuranSearchResult(result: QuranSearchResult, index: number): SourceRecord {
+  const verseKey = reference(result.surah, result.ayah);
+
+  return {
+    ...baseRecord(result.surah, result.ayah, index + 1),
+    id: `quran:${verseKey}:${index + 1}`,
+    sourceKind: "quran",
+    collection: "quran",
+    displayName: `Quran ${verseKey}`,
+    arabicText: result.text,
+    sourceReference: `quran:${verseKey}`,
+    snippet: result.snippet,
+  };
+}
+
+export function normalizeTafsirSearchResult(result: TafsirSearchResult, source: string, index: number): SourceRecord {
+  const verseKey = reference(result.surah, result.ayah);
+
+  return {
+    ...baseRecord(result.surah, result.ayah, index + 1),
+    id: `tafsir:${source}:${verseKey}:${index + 1}`,
+    sourceKind: "tafsir",
+    collection: source,
+    displayName: `Tafsir ${verseKey}`,
+    tafsirSource: result.source_attribution,
+    tafsirText: result.tafsir_excerpt,
+    sourceReference: `tafsir:${source}:${verseKey}`,
+    provenanceNotes: [result.source_attribution, "Retrieved from Tafsir MCP by Tafsir Center for Quranic Studies."],
+    snippet: result.tafsir_excerpt,
+  };
+}
+
+export function normalizeFetchedAyahWithTafsir(ayah: FetchedAyah, tafsir: FetchedTafsir): SourceRecord[] {
+  const verseKey = reference(ayah.surah, ayah.ayah);
+  const quranRecord: SourceRecord = {
+    ...baseRecord(ayah.surah, ayah.ayah, 1),
+    id: `quran:${verseKey}:fetch`,
+    sourceKind: "quran",
+    collection: "quran",
+    displayName: `Quran ${verseKey}`,
+    arabicText: ayah.text,
+    sourceReference: `quran:${verseKey}`,
+  };
+  const tafsirRecords = tafsir.tafsirs.map((entry, index) => ({
+    ...baseRecord(tafsir.surah, tafsir.ayah, index + 2),
+    id: `tafsir:${entry.source}:${verseKey}:fetch`,
+    sourceKind: "tafsir" as const,
+    collection: entry.source,
+    displayName: `Tafsir ${verseKey}`,
+    arabicText: ayah.text,
+    tafsirSource: entry.attribution,
+    tafsirText: entry.text,
+    sourceReference: `tafsir:${entry.source}:${verseKey}`,
+    provenanceNotes: [entry.attribution, "Retrieved from Tafsir MCP by Tafsir Center for Quranic Studies."],
+    snippet: entry.text.slice(0, 240),
+  }));
+
+  return [quranRecord, ...tafsirRecords];
+}

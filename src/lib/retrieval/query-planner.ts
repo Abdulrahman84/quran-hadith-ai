@@ -1,4 +1,4 @@
-import type { RetrievalLanguage } from "./hadith-mcp";
+import type { RetrievalLanguage } from "./types";
 
 type PlannedQuery = {
   retrievalQuery: string;
