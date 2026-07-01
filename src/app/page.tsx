@@ -25,7 +25,7 @@ const minimumLoadingMs = 5000;
 const sourcePageSize = 5;
 
 function resizeQuestionField(element: HTMLTextAreaElement) {
-  const maxHeight = 128;
+  const maxHeight = 120;
 
   element.style.height = "auto";
   element.style.height = `${Math.min(element.scrollHeight, maxHeight)}px`;
@@ -51,6 +51,10 @@ function getWarningKey(warning: RetrievalWarning): TranslationKey {
 
   if (warning.code === "empty_question") {
     return "warning.emptyQuestion";
+  }
+
+  if (warning.code === "source_tool_router_unavailable") {
+    return "warning.sourceToolRouterUnavailable";
   }
 
   return "warning.generic";
@@ -139,6 +143,7 @@ export default function Home() {
   const [isRetrieving, setIsRetrieving] = useState(false);
   const [retrieval, setRetrieval] = useState<RetrievalResponse | null>(null);
   const [requestError, setRequestError] = useState("");
+  const [requestErrorHelp, setRequestErrorHelp] = useState<TranslationKey>("result.checkPaths");
   const [tafsirSource, setTafsirSource] = useState<TafsirSourceSelection>("all");
   const [sourcePage, setSourcePage] = useState(1);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -176,6 +181,7 @@ export default function Home() {
     setSubmittedQuestion(trimmed);
     setRetrieval(null);
     setRequestError("");
+    setRequestErrorHelp("result.checkPaths");
     setSourcePage(1);
     setIsRetrieving(true);
 
@@ -192,6 +198,7 @@ export default function Home() {
 
       if (!response.ok) {
         const warning = payload.warnings.at(0);
+        setRequestErrorHelp(warning?.code === "source_tool_router_unavailable" ? "result.checkAiRouter" : "result.checkPaths");
         throw new Error(warning ? t(getWarningKey(warning)) : t("warning.generic"));
       }
 
@@ -248,7 +255,7 @@ export default function Home() {
         ) : null}
 
         <form
-          className={`search-shell animate-rise w-full max-w-4xl rounded-[1.5rem] bg-white/90 p-3 text-start shadow-[0_24px_60px_rgba(18,63,57,0.10)] backdrop-blur ${
+          className={`search-shell animate-rise w-full max-w-4xl rounded-[1.35rem] bg-white/90 p-2.5 text-start shadow-[0_20px_54px_rgba(18,63,57,0.10)] backdrop-blur ${
             hasScenario ? "" : "mt-8 [animation-delay:160ms]"
           }`}
           onSubmit={handleSubmit}
@@ -256,18 +263,23 @@ export default function Home() {
           <label className="sr-only" htmlFor="question">
             {t("home.inputLabel")}
           </label>
-          <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_210px_auto] lg:items-stretch">
-            <div className="flex min-h-16 items-start gap-3 rounded-[1.15rem] bg-[var(--color-sand)]/70 px-4 py-3 ring-1 ring-[var(--color-green)]/10 transition focus-within:bg-white focus-within:ring-[var(--color-gold)]">
-              <span className="mt-1 grid h-9 w-9 shrink-0 place-items-center rounded-full bg-white text-[var(--color-green)] shadow-sm" aria-hidden="true">
+          <div className="grid gap-2.5 lg:grid-cols-[minmax(0,1fr)_190px_auto] lg:items-start">
+            <div className="flex min-h-14 items-start gap-3 rounded-[1rem] bg-[var(--color-sand)]/70 px-4 py-2.5 ring-1 ring-[var(--color-green)]/10 transition focus-within:bg-white focus-within:ring-[var(--color-gold)]">
+              <span className="mt-0.5 grid h-9 w-9 shrink-0 place-items-center rounded-full bg-white text-[var(--color-green)] shadow-sm" aria-hidden="true">
                 <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24">
                   <path d="m20 20-4.5-4.5M18 10.5a7.5 7.5 0 1 1-15 0 7.5 7.5 0 0 1 15 0Z" stroke="currentColor" strokeLinecap="round" strokeWidth="2" />
                 </svg>
               </span>
               <textarea
-                className="query-textarea min-h-10 flex-1 resize-none bg-transparent py-2 text-base font-black leading-6 text-[var(--color-green)] outline-none placeholder:text-[var(--color-muted)]/78"
+                className="query-textarea min-h-9 min-w-0 flex-1 resize-none bg-transparent py-1.5 text-base font-black leading-6 text-[var(--color-green)] outline-none placeholder:text-[var(--color-muted)]/78"
                 id="question"
-                onChange={(event) => setQuestion(event.target.value)}
+                onChange={(event) => {
+                  resizeQuestionField(event.currentTarget);
+                  setQuestion(event.target.value);
+                }}
+                onInput={(event) => resizeQuestionField(event.currentTarget)}
                 onKeyDown={handleQuestionKeyDown}
+                onKeyUp={(event) => resizeQuestionField(event.currentTarget)}
                 placeholder={t("home.placeholder")}
                 ref={textareaRef}
                 rows={1}
@@ -275,7 +287,7 @@ export default function Home() {
               />
             </div>
 
-            <div className="relative flex min-h-16 items-center rounded-[1.15rem] border border-[var(--color-green)]/14 bg-white px-4 shadow-sm">
+            <div className="relative flex h-14 items-center rounded-[1rem] border border-[var(--color-green)]/14 bg-white px-4 shadow-sm">
               <label className="sr-only" htmlFor="tafsir-source">
                 {t("home.tafsirSourceLabel")}
               </label>
@@ -299,7 +311,7 @@ export default function Home() {
             </div>
 
             <button
-              className="inline-flex min-h-16 items-center justify-center gap-2 rounded-[1.15rem] border border-[var(--color-green)] bg-[var(--color-green)] px-5 text-sm font-black text-[var(--color-sand)] transition duration-300 hover:-translate-y-0.5 hover:bg-[var(--color-ink)] disabled:cursor-wait disabled:opacity-75"
+              className="inline-flex h-14 items-center justify-center gap-2 rounded-[1rem] border border-[var(--color-green)] bg-[var(--color-green)] px-5 text-sm font-black text-[var(--color-sand)] transition duration-300 hover:-translate-y-0.5 hover:bg-[var(--color-ink)] disabled:cursor-wait disabled:opacity-75"
               disabled={isRetrieving}
               type="submit"
             >
@@ -338,14 +350,25 @@ export default function Home() {
         ) : null}
 
         {hasScenario ? (
-          <section className="mt-3 grid w-full max-w-3xl text-start">
+          <section className="mt-3 grid w-full max-w-3xl gap-3 text-start">
+            <div className="animate-rise rounded-[1.35rem] border border-[var(--color-green)]/10 bg-white/62 px-4 py-3 shadow-[0_14px_34px_rgba(18,63,57,0.06)]">
+              <div className="source-trail" aria-label={t("result.routes")}>
+                {sourceRoutes.map((route, index) => (
+                  <span className="contents" key={route.id}>
+                    <span className="source-trail-item" data-active={activeRoutes[route.id]}>
+                      <span className="source-trail-dot" aria-hidden="true" />
+                      <span>{t(route.labelKey)}</span>
+                    </span>
+                    {index < sourceRoutes.length - 1 ? <span className="source-trail-separator" aria-hidden="true" /> : null}
+                  </span>
+                ))}
+              </div>
+            </div>
+
             <div className="answer-preview rounded-[2rem] bg-[var(--color-green)] p-4">
               <div className="flex items-center justify-between border-b border-white/10 pb-3">
                 <div>
-                  <p className="text-xs font-black uppercase tracking-[0.2em] text-[var(--color-gold)]">
-                    {isRetrieving ? t("result.retrieving") : t("result.retrieved")}
-                  </p>
-                  <h2 className="mt-1 text-lg font-black text-white">
+                  <h2 className="text-lg font-black text-white">
                     {isRetrieving ? t("result.tracing") : t("result.recordsTitle")}
                   </h2>
                   <p className="mt-2 line-clamp-2 max-w-xl whitespace-pre-wrap text-sm font-bold leading-6 text-white/70">
@@ -353,22 +376,6 @@ export default function Home() {
                   </p>
                 </div>
                 <span className="pulse-dot" aria-hidden="true" />
-              </div>
-
-              <div className="mt-4 rounded-3xl border border-white/12 bg-white/8 p-3">
-                <div className="mb-3 flex items-center justify-between gap-3">
-                  <p className="text-xs font-black uppercase tracking-[0.18em] text-[var(--color-gold)]">
-                    {t("result.routes")}
-                  </p>
-                  <p className="text-xs font-bold text-white/70">{t("result.mode")}</p>
-                </div>
-                <div className="evidence-map">
-                  {sourceRoutes.map((route) => (
-                    <span className={activeRoutes[route.id] ? "is-active" : ""} key={route.id}>
-                      {t(route.labelKey)}
-                    </span>
-                  ))}
-                </div>
               </div>
 
               <div className="mt-4 rounded-3xl border border-[var(--color-gold)]/55 bg-[var(--color-sand)] p-4 text-[var(--color-ink)]">
@@ -392,21 +399,18 @@ export default function Home() {
                     </p>
                     <p className="mt-3 text-sm font-bold leading-7 text-[var(--color-muted)]">{requestError}</p>
                     <p className="mt-3 text-xs font-black uppercase tracking-[0.12em] text-[var(--color-green)]">
-                      {t("result.checkPaths")}
+                      {t(requestErrorHelp)}
                     </p>
                   </div>
                 ) : (
                   <>
-                    <p className="text-xs font-black uppercase tracking-[0.18em] text-[var(--color-red)]">
-                      {retrieval?.status === "empty" ? t("result.empty") : t("result.returned")}
-                    </p>
+                    {retrieval?.status === "empty" ? (
+                      <p className="text-sm font-black leading-7 text-[var(--color-red)]">{t("result.empty")}</p>
+                    ) : null}
                     {retrieval?.answer?.status === "ready" && retrieval.answer.text ? (
-                      <div className="mt-4 rounded-2xl border border-[var(--color-green)]/14 bg-white/72 p-4">
-                        <p className="text-xs font-black uppercase tracking-[0.18em] text-[var(--color-red)]">
-                          {t("result.answerTitle")}
-                        </p>
+                      <div className="rounded-2xl border border-[var(--color-green)]/14 bg-white/72 p-4">
                         <p
-                          className="mt-3 whitespace-pre-wrap text-sm font-black leading-8 text-[var(--color-green)]"
+                          className="whitespace-pre-wrap text-sm font-black leading-8 text-[var(--color-green)]"
                           dir={language === "ar" ? "rtl" : "ltr"}
                         >
                           {retrieval.answer.text}

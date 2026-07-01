@@ -6,7 +6,6 @@ export const tafsirSources = [
   { id: "moyassar", labelAr: "التفسير الميسر", labelEn: "Al-Muyassar" },
   { id: "mukhtasar_ar", labelAr: "المختصر في التفسير", labelEn: "Mukhtasar Arabic" },
   { id: "mukhtasar_en", labelAr: "المختصر بالإنجليزية", labelEn: "Mukhtasar English" },
-  { id: "mukhtasar_bn", labelAr: "المختصر بالبنغالية", labelEn: "Mukhtasar Bengali" },
 ] as const;
 
 export type TafsirSourceId = (typeof tafsirSources)[number]["id"];

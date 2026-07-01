@@ -42,7 +42,6 @@ test("resolves all Tafsir MCP sources", () => {
     "moyassar",
     "mukhtasar_ar",
     "mukhtasar_en",
-    "mukhtasar_bn",
   ]);
 });
 
