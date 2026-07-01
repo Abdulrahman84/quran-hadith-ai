@@ -1,0 +1,20 @@
+services:
+  sanad-ai:
+    build:
+      context: .
+      args:
+        HADITH_MCP_REPO: ${HADITH_MCP_REPO:-https://github.com/Abdulrahman84/hadith-mcp.git}
+        HADITH_MCP_REF: ${HADITH_MCP_REF:-main}
+    ports:
+      - "${PORT:-3000}:3000"
+    environment:
+      OLLAMA_ENABLED: ${OLLAMA_ENABLED:-true}
+      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-qwen2.5-coder:7b}
+      OLLAMA_TIMEOUT_MS: ${OLLAMA_TIMEOUT_MS:-25000}
+      MCP_TOOL_ROUTER_ENABLED: ${MCP_TOOL_ROUTER_ENABLED:-true}
+      MCP_TOOL_ROUTER_MODEL: ${MCP_TOOL_ROUTER_MODEL:-qwen2.5-coder:7b}
+      MCP_TOOL_ROUTER_TIMEOUT_MS: ${MCP_TOOL_ROUTER_TIMEOUT_MS:-12000}
+      HADITH_QUERY_PLANNER_ENABLED: ${HADITH_QUERY_PLANNER_ENABLED:-true}
+      HADITH_QUERY_PLANNER_MODEL: ${HADITH_QUERY_PLANNER_MODEL:-qwen2.5-coder:7b}
+      HADITH_QUERY_PLANNER_TIMEOUT_MS: ${HADITH_QUERY_PLANNER_TIMEOUT_MS:-12000}

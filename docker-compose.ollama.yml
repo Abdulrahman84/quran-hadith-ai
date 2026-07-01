@@ -1,0 +1,22 @@
+services:
+  sanad-ai:
+    depends_on:
+      - ollama
+    environment:
+      OLLAMA_ENABLED: ${OLLAMA_ENABLED:-true}
+      OLLAMA_BASE_URL: http://ollama:11434
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-qwen2.5-coder:7b}
+      MCP_TOOL_ROUTER_ENABLED: ${MCP_TOOL_ROUTER_ENABLED:-true}
+      MCP_TOOL_ROUTER_MODEL: ${MCP_TOOL_ROUTER_MODEL:-qwen2.5-coder:7b}
+      HADITH_QUERY_PLANNER_ENABLED: ${HADITH_QUERY_PLANNER_ENABLED:-true}
+      HADITH_QUERY_PLANNER_MODEL: ${HADITH_QUERY_PLANNER_MODEL:-qwen2.5-coder:7b}
+
+  ollama:
+    image: ollama/ollama:latest
+    ports:
+      - "${OLLAMA_PORT:-11434}:11434"
+    volumes:
+      - ollama-data:/root/.ollama
+
+volumes:
+  ollama-data:
