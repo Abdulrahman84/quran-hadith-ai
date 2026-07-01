@@ -2,16 +2,20 @@ import type { Client } from "@modelcontextprotocol/sdk/client/index.js";
 
 import { getMcpPayload, withStdioMcpClient, type McpCallResult } from "./mcp-stdio";
 import { planRetrievalQuery, splitFallbackQueries } from "./query-planner";
+import { resolveTafsirSources, type TafsirSourceSelection } from "./tafsir-sources";
 import {
   normalizeFetchedAyahWithTafsir,
+  normalizeFetchedTafsirForAyah,
   normalizeQuranSearchResult,
   normalizeTafsirSearchResult,
+  planTafsirSearchQueries,
   type FetchedAyah,
   type FetchedTafsir,
   type QuranSearchResult,
   type TafsirSearchResult,
+  unwrapTafsirToolResults,
 } from "./tafsir-normalizer";
-import type { RetrievalLanguage, RetrievalResponse } from "./types";
+import type { RetrievalLanguage, RetrievalResponse, SourceRecord } from "./types";
 
 const tafsirAttribution = "Tafsir MCP by Tafsir Center for Quranic Studies. Quranic data licensed CC BY 4.0.";
 
@@ -32,10 +36,6 @@ function getTafsirMcpConfig() {
   const env = dbPath ? { TAFSIR_DB_PATH: dbPath } : undefined;
 
   return { command, args, env };
-}
-
-function defaultTafsirSource(language: RetrievalLanguage) {
-  return language === "english" ? "mukhtasar_en" : "moyassar";
 }
 
 function isQuranSearchResult(value: unknown): value is QuranSearchResult {
@@ -102,7 +102,7 @@ async function callTool(client: Client, name: string, args: Record<string, unkno
   return getMcpPayload(result);
 }
 
-async function callExactVerse(client: Client, query: string, language: RetrievalLanguage) {
+async function callExactVerse(client: Client, query: string, tafsirSources: string[]) {
   const parsed = parseVerseReference(query);
 
   if (!parsed) {
@@ -114,7 +114,7 @@ async function callExactVerse(client: Client, query: string, language: Retrieval
     callTool(client, "fetch_tafsir", {
       surah: parsed.surah,
       ayah: parsed.ayah,
-      sources: [defaultTafsirSource(language)],
+      sources: tafsirSources,
     }),
   ]);
 
@@ -125,35 +125,63 @@ async function callExactVerse(client: Client, query: string, language: Retrieval
   return normalizeFetchedAyahWithTafsir(ayahPayload, tafsirPayload);
 }
 
-async function callSearches(client: Client, query: string, language: RetrievalLanguage) {
-  const tafsirSource = defaultTafsirSource(language);
-  const [quranPayload, tafsirPayload] = await Promise.all([
+async function callSearches(client: Client, query: string, tafsirSources: string[]) {
+  const [quranPayload, tafsirPayloads] = await Promise.all([
     callTool(client, "search_quran_text", { query, limit: 5 }),
-    callTool(client, "search_in_tafsir", { query, source: tafsirSource, limit: 5 }),
+    Promise.all(tafsirSources.map((source) => callTool(client, "search_in_tafsir", { query, source, limit: 5 }))),
   ]);
-  const quranRecords = Array.isArray(quranPayload)
-    ? quranPayload.filter(isQuranSearchResult).map((result, index) => normalizeQuranSearchResult(result, index))
-    : [];
-  const tafsirRecords = Array.isArray(tafsirPayload)
-    ? tafsirPayload.filter(isTafsirSearchResult).map((result, index) => normalizeTafsirSearchResult(result, tafsirSource, index))
-    : [];
+  const quranRecords = unwrapTafsirToolResults(quranPayload)
+    .filter(isQuranSearchResult)
+    .map((result, index) => normalizeQuranSearchResult(result, index));
+  const quranResults = unwrapTafsirToolResults(quranPayload).filter(isQuranSearchResult);
+  const fetchedTafsirRecords = (
+    await Promise.all(
+      quranResults.map(async (result, index) => {
+        const payload = await callTool(client, "fetch_tafsir", {
+          surah: result.surah,
+          ayah: result.ayah,
+          sources: tafsirSources,
+        });
 
-  return [...quranRecords, ...tafsirRecords];
+        if (!isFetchedTafsir(payload)) {
+          return [];
+        }
+
+        return normalizeFetchedTafsirForAyah(result, payload, quranRecords.length + index + 1);
+      }),
+    )
+  ).flat();
+  const tafsirRecords = tafsirPayloads.flatMap((payload, sourceIndex) => {
+    const source = tafsirSources[sourceIndex] || tafsirSources[0] || "moyassar";
+
+    return unwrapTafsirToolResults(payload)
+      .filter(isTafsirSearchResult)
+      .map((result, index) => normalizeTafsirSearchResult(result, source, quranRecords.length + fetchedTafsirRecords.length + index + 1));
+  });
+
+  return [...quranRecords, ...fetchedTafsirRecords, ...tafsirRecords].filter((record, index, records) => {
+    return records.findIndex((candidate) => candidate.sourceReference === record.sourceReference) === index;
+  });
 }
 
-async function retrieveTafsirRecords(client: Client, query: string, language: RetrievalLanguage) {
-  const exactRecords = await callExactVerse(client, query, language);
+async function retrieveTafsirRecords(client: Client, query: string, tafsirSources: string[]) {
+  const exactRecords = await callExactVerse(client, query, tafsirSources);
 
   if (exactRecords.length > 0) {
     return exactRecords;
   }
 
-  return callSearches(client, query, language);
+  return callSearches(client, query, tafsirSources);
 }
 
-export async function searchTafsirSources(query: string, language: RetrievalLanguage): Promise<RetrievalResponse> {
+export async function searchTafsirSources(
+  query: string,
+  language: RetrievalLanguage,
+  options: { tafsirSource?: TafsirSourceSelection } = {},
+): Promise<RetrievalResponse> {
   const planned = planRetrievalQuery(query, language);
   const config = getTafsirMcpConfig();
+  const selectedTafsirSources = resolveTafsirSources(options.tafsirSource);
 
   try {
     return await withStdioMcpClient(
@@ -163,8 +191,19 @@ export async function searchTafsirSources(query: string, language: RetrievalLang
         env: config.env,
       },
       async ({ client, stderr }) => {
-        let retrievalQuery = planned.retrievalQuery;
-        let records = await retrieveTafsirRecords(client, retrievalQuery, language);
+        const searchQueries = [...new Set([...planTafsirSearchQueries(query, language), planned.retrievalQuery])];
+        let retrievalQuery = searchQueries[0] || planned.retrievalQuery;
+        let records: SourceRecord[] = [];
+
+        for (const searchQuery of searchQueries) {
+          const attemptRecords = await retrieveTafsirRecords(client, searchQuery, selectedTafsirSources);
+
+          if (attemptRecords.length > 0) {
+            retrievalQuery = searchQuery;
+            records = attemptRecords;
+            break;
+          }
+        }
 
         if (records.length === 0) {
           for (const fallbackQuery of splitFallbackQueries(query, language)) {
@@ -172,7 +211,7 @@ export async function searchTafsirSources(query: string, language: RetrievalLang
               continue;
             }
 
-            const fallbackRecords = await retrieveTafsirRecords(client, fallbackQuery, language);
+            const fallbackRecords = await retrieveTafsirRecords(client, fallbackQuery, selectedTafsirSources);
 
             if (fallbackRecords.length > 0) {
               retrievalQuery = fallbackQuery;

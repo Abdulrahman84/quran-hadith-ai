@@ -1,4 +1,5 @@
 import type { SourceRecord } from "./types";
+import type { RetrievalLanguage } from "./types";
 
 export type QuranSearchResult = {
   surah: number;
@@ -34,6 +35,102 @@ export type FetchedTafsir = {
 
 function reference(surah: number, ayah: number) {
   return `${surah}:${ayah}`;
+}
+
+function normalizeArabic(value: string) {
+  return value
+    .replace(/[\u064B-\u065F\u0670]/g, "")
+    .replace(/\u0640/g, "")
+    .replace(/[إأآٱ]/g, "ا")
+    .replace(/ى/g, "ي")
+    .replace(/ة/g, "ه");
+}
+
+function tokenize(value: string) {
+  return value
+    .replace(/[^\p{L}\p{N}:：\s]/gu, " ")
+    .split(/\s+/)
+    .map((token) => token.trim())
+    .filter(Boolean);
+}
+
+function cleanTafsirText(value: string) {
+  return value
+    .replace(/&lt;br\s*\/?&gt;/gi, "\n")
+    .replace(/<br\s*\/?>/gi, "\n")
+    .replace(/<[^>]+>/g, "")
+    .replace(/&nbsp;/gi, " ")
+    .replace(/&amp;/gi, "&")
+    .replace(/[ \t]+\n/g, "\n")
+    .replace(/\n[ \t]+/g, "\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .replace(/[ \t]{2,}/g, " ")
+    .trim();
+}
+
+const tafsirArabicPromptWords = new Set([
+  "تفسير",
+  "تفسيرا",
+  "تفسيراً",
+  "ايه",
+  "آية",
+  "الايه",
+  "الآية",
+  "سوره",
+  "سورة",
+  "معني",
+  "معنى",
+  "اشرح",
+  "شرح",
+]);
+
+const tafsirEnglishPromptWords = new Set([
+  "tafsir",
+  "interpretation",
+  "meaning",
+  "explain",
+  "explanation",
+  "ayah",
+  "aya",
+  "verse",
+  "surah",
+  "sura",
+  "quran",
+  "qur",
+  "an",
+]);
+
+export function unwrapTafsirToolResults(payload: unknown): unknown[] {
+  if (Array.isArray(payload)) {
+    return payload;
+  }
+
+  if (typeof payload !== "object" || payload === null) {
+    return [];
+  }
+
+  const candidate = payload as { result?: unknown };
+
+  return Array.isArray(candidate.result) ? candidate.result : [];
+}
+
+export function planTafsirSearchQueries(query: string, language: RetrievalLanguage) {
+  const trimmed = query.trim();
+
+  if (!trimmed) {
+    return [];
+  }
+
+  const terms = tokenize(trimmed).filter((token) => {
+    if (language === "arabic") {
+      return !tafsirArabicPromptWords.has(token) && !tafsirArabicPromptWords.has(normalizeArabic(token));
+    }
+
+    return !tafsirEnglishPromptWords.has(token.toLowerCase());
+  });
+  const cleaned = terms.join(" ").trim();
+
+  return [...new Set([cleaned, trimmed].filter(Boolean))];
 }
 
 function baseRecord(surah: number, ayah: number, rank: number | null): Omit<SourceRecord, "id" | "sourceKind" | "collection" | "displayName" | "sourceReference"> {
@@ -78,6 +175,7 @@ export function normalizeQuranSearchResult(result: QuranSearchResult, index: num
 
 export function normalizeTafsirSearchResult(result: TafsirSearchResult, source: string, index: number): SourceRecord {
   const verseKey = reference(result.surah, result.ayah);
+  const tafsirText = cleanTafsirText(result.tafsir_excerpt);
 
   return {
     ...baseRecord(result.surah, result.ayah, index + 1),
@@ -86,10 +184,10 @@ export function normalizeTafsirSearchResult(result: TafsirSearchResult, source: 
     collection: source,
     displayName: `Tafsir ${verseKey}`,
     tafsirSource: result.source_attribution,
-    tafsirText: result.tafsir_excerpt,
+    tafsirText,
     sourceReference: `tafsir:${source}:${verseKey}`,
     provenanceNotes: [result.source_attribution, "Retrieved from Tafsir MCP by Tafsir Center for Quranic Studies."],
-    snippet: result.tafsir_excerpt,
+    snippet: tafsirText,
   };
 }
 
@@ -104,19 +202,45 @@ export function normalizeFetchedAyahWithTafsir(ayah: FetchedAyah, tafsir: Fetche
     arabicText: ayah.text,
     sourceReference: `quran:${verseKey}`,
   };
-  const tafsirRecords = tafsir.tafsirs.map((entry, index) => ({
-    ...baseRecord(tafsir.surah, tafsir.ayah, index + 2),
-    id: `tafsir:${entry.source}:${verseKey}:fetch`,
-    sourceKind: "tafsir" as const,
-    collection: entry.source,
-    displayName: `Tafsir ${verseKey}`,
-    arabicText: ayah.text,
-    tafsirSource: entry.attribution,
-    tafsirText: entry.text,
-    sourceReference: `tafsir:${entry.source}:${verseKey}`,
-    provenanceNotes: [entry.attribution, "Retrieved from Tafsir MCP by Tafsir Center for Quranic Studies."],
-    snippet: entry.text.slice(0, 240),
-  }));
+  const tafsirRecords = tafsir.tafsirs.map((entry, index) => {
+    const tafsirText = cleanTafsirText(entry.text);
+
+    return {
+      ...baseRecord(tafsir.surah, tafsir.ayah, index + 2),
+      id: `tafsir:${entry.source}:${verseKey}:fetch`,
+      sourceKind: "tafsir" as const,
+      collection: entry.source,
+      displayName: `Tafsir ${verseKey}`,
+      arabicText: ayah.text,
+      tafsirSource: entry.attribution,
+      tafsirText,
+      sourceReference: `tafsir:${entry.source}:${verseKey}`,
+      provenanceNotes: [entry.attribution, "Retrieved from Tafsir MCP by Tafsir Center for Quranic Studies."],
+      snippet: tafsirText.slice(0, 240),
+    };
+  });
 
   return [quranRecord, ...tafsirRecords];
+}
+
+export function normalizeFetchedTafsirForAyah(ayah: QuranSearchResult | FetchedAyah, tafsir: FetchedTafsir, startRank = 1): SourceRecord[] {
+  const verseKey = reference(ayah.surah, ayah.ayah);
+
+  return tafsir.tafsirs.map((entry, index) => {
+    const tafsirText = cleanTafsirText(entry.text);
+
+    return {
+      ...baseRecord(tafsir.surah, tafsir.ayah, startRank + index),
+      id: `tafsir:${entry.source}:${verseKey}:search`,
+      sourceKind: "tafsir" as const,
+      collection: entry.source,
+      displayName: `Tafsir ${verseKey}`,
+      arabicText: ayah.text,
+      tafsirSource: entry.attribution,
+      tafsirText,
+      sourceReference: `tafsir:${entry.source}:${verseKey}`,
+      provenanceNotes: [entry.attribution, "Retrieved from Tafsir MCP by Tafsir Center for Quranic Studies."],
+      snippet: tafsirText.slice(0, 240),
+    };
+  });
 }

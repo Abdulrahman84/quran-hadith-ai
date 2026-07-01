@@ -77,6 +77,24 @@ test("normalizes search_in_tafsir results into Tafsir source records", () => {
   assert.equal(record.sourceReference, "tafsir:moyassar:1:1");
 });
 
+test("cleans HTML line breaks from tafsir text before display", () => {
+  const { normalizeTafsirSearchResult } = loadTafsirNormalizer();
+
+  const record = normalizeTafsirSearchResult(
+    {
+      surah: 55,
+      ayah: 26,
+      tafsir_excerpt: "<br> القول في تأويل قوله عز وجل: {كل من عليها فان}<br /> ويبقى وجه ربك",
+      source_attribution: "تفسير الإمام الطبري",
+    },
+    "tabary",
+    0,
+  );
+
+  assert.equal(record.tafsirText, "القول في تأويل قوله عز وجل: {كل من عليها فان}\nويبقى وجه ربك");
+  assert.equal(record.snippet, "القول في تأويل قوله عز وجل: {كل من عليها فان}\nويبقى وجه ربك");
+});
+
 test("normalizes fetch_ayah and fetch_tafsir results together", () => {
   const { normalizeFetchedAyahWithTafsir } = loadTafsirNormalizer();
 
@@ -107,4 +125,55 @@ test("normalizes fetch_ayah and fetch_tafsir results together", () => {
   assert.equal(records[1].arabicText, "قُلْ هُوَ اللَّهُ أَحَدٌ");
   assert.equal(records[1].tafsirText, "Say, O Messenger: He is Allah, the One.");
   assert.equal(records[1].tafsirSource, "Concise Quran Commentary (English)");
+});
+
+test("normalizes fetched tafsir for a Quran search hit", () => {
+  const { normalizeFetchedTafsirForAyah } = loadTafsirNormalizer();
+
+  const records = normalizeFetchedTafsirForAyah(
+    {
+      surah: 55,
+      ayah: 26,
+      text: "كل من عليها فان",
+      snippet: "<m>كل</m> <m>من</m> <m>عليها</m> <m>فان</m>",
+      score: -17,
+    },
+    {
+      surah: 55,
+      ayah: 26,
+      tafsirs: [
+        {
+          source: "moyassar",
+          attribution: "التفسير الميسر، مجمع الملك فهد لطباعة المصحف الشريف",
+          text: "كل مَن على وجه الأرض مِن الخلق هالك.",
+        },
+      ],
+    },
+    2,
+  );
+
+  assert.equal(records.length, 1);
+  assert.equal(records[0].sourceKind, "tafsir");
+  assert.equal(records[0].reference, "55:26");
+  assert.equal(records[0].arabicText, "كل من عليها فان");
+  assert.equal(records[0].tafsirText, "كل مَن على وجه الأرض مِن الخلق هالك.");
+  assert.equal(records[0].rank, 2);
+});
+
+test("unwraps Tafsir MCP structuredContent result arrays", () => {
+  const { unwrapTafsirToolResults } = loadTafsirNormalizer();
+  const rows = [{ surah: 55, ayah: 26, text: "كل من عليها فان" }];
+
+  assert.deepEqual(Array.from(unwrapTafsirToolResults({ result: rows })), rows);
+  assert.deepEqual(Array.from(unwrapTafsirToolResults(rows)), rows);
+  assert.deepEqual(Array.from(unwrapTafsirToolResults({ result: "not an array" })), []);
+});
+
+test("plans Quran phrase searches without dropping Quranic stop words", () => {
+  const { planTafsirSearchQueries } = loadTafsirNormalizer();
+
+  assert.deepEqual(Array.from(planTafsirSearchQueries("تفسير آية كل من عليها فان", "arabic")), [
+    "كل من عليها فان",
+    "تفسير آية كل من عليها فان",
+  ]);
 });

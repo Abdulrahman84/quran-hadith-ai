@@ -5,7 +5,7 @@ type PlannedQuery = {
   changed: boolean;
 };
 
-const arabicStopWords = new Set([
+const arabicPromptTerms = new Set([
   "ابحث",
   "اعرض",
   "اعطني",
@@ -27,32 +27,21 @@ const arabicStopWords = new Set([
   "حديثياً",
   "احاديث",
   "أحاديث",
+  "تفسير",
+  "تفسيرا",
+  "تفسيراً",
+  "آية",
+  "ايه",
+  "الآية",
+  "الايه",
   "رواية",
   "روايات",
-  "عن",
-  "حول",
-  "في",
-  "على",
-  "من",
-  "مع",
   "المصدر",
   "مصدر",
   "بالمصدر",
-  "لنا",
-  "لي",
-  "ما",
-  "هو",
-  "هي",
-  "هل",
-  "الذي",
-  "التي",
-  "هذا",
-  "هذه",
-  "شيء",
-  "شيئا",
 ]);
 
-const englishStopWords = new Set([
+const englishPromptTerms = new Set([
   "show",
   "find",
   "search",
@@ -61,19 +50,14 @@ const englishStopWords = new Set([
   "display",
   "hadith",
   "hadeeth",
+  "tafsir",
+  "ayah",
+  "aya",
+  "verse",
+  "quran",
   "evidence",
   "source",
   "sources",
-  "about",
-  "around",
-  "on",
-  "for",
-  "with",
-  "the",
-  "a",
-  "an",
-  "me",
-  "please",
 ]);
 
 function normalizeArabic(value: string) {
@@ -93,14 +77,14 @@ function tokenize(value: string) {
     .filter(Boolean);
 }
 
-function isArabicStopWord(token: string) {
-  return arabicStopWords.has(token) || arabicStopWords.has(normalizeArabic(token));
+function isArabicPromptTerm(token: string) {
+  return arabicPromptTerms.has(token) || arabicPromptTerms.has(normalizeArabic(token));
 }
 
 function planArabicQuery(query: string): PlannedQuery {
   const terms = tokenize(query).filter((token) => {
     const normalized = normalizeArabic(token);
-    return normalized.length > 1 && !isArabicStopWord(token);
+    return normalized.length > 1 && !isArabicPromptTerm(token);
   });
   const compact = terms.slice(-4).join(" ").trim();
   const retrievalQuery = compact || query.trim();
@@ -112,7 +96,7 @@ function planArabicQuery(query: string): PlannedQuery {
 }
 
 function planEnglishQuery(query: string): PlannedQuery {
-  const terms = tokenize(query.toLowerCase()).filter((token) => token.length > 1 && !englishStopWords.has(token));
+  const terms = tokenize(query.toLowerCase()).filter((token) => token.length > 1 && !englishPromptTerms.has(token));
   const compact = terms.slice(-5).join(" ").trim();
   const retrievalQuery = compact || query.trim();
 
@@ -134,8 +118,8 @@ export function splitFallbackQueries(query: string, language: RetrievalLanguage)
   const tokens = tokenize(query);
   const terms =
     language === "arabic"
-      ? tokens.filter((token) => normalizeArabic(token).length > 1 && !isArabicStopWord(token))
-      : tokens.filter((token) => token.length > 1 && !englishStopWords.has(token.toLowerCase()));
+      ? tokens.filter((token) => normalizeArabic(token).length > 1 && !isArabicPromptTerm(token))
+      : tokens.filter((token) => token.length > 1 && !englishPromptTerms.has(token.toLowerCase()));
 
   return [...new Set(terms)].slice(-5).reverse();
 }

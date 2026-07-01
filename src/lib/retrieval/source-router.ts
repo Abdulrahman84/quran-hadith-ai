@@ -1,6 +1,7 @@
 import { searchHadithSources } from "./hadith-mcp";
 import { planSourceRoutes, type SourceRoute } from "./source-intent";
 import { searchTafsirSources } from "./tafsir-mcp";
+import type { TafsirSourceSelection } from "./tafsir-sources";
 import type { RetrievalLanguage, RetrievalResponse, RetrievalStatus, SourceMode } from "./types";
 
 function sourceModeForRoutes(routes: SourceRoute[]): SourceMode {
@@ -27,10 +28,16 @@ function combinedStatus(responses: RetrievalResponse[]): RetrievalStatus {
   return "empty";
 }
 
-export async function searchSources(query: string, language: RetrievalLanguage): Promise<RetrievalResponse> {
+export async function searchSources(
+  query: string,
+  language: RetrievalLanguage,
+  options: { tafsirSource?: TafsirSourceSelection } = {},
+): Promise<RetrievalResponse> {
   const routes = planSourceRoutes(query);
   const responses = await Promise.all(
-    routes.map((route) => (route === "tafsir" ? searchTafsirSources(query, language) : searchHadithSources(query, language))),
+    routes.map((route) =>
+      route === "tafsir" ? searchTafsirSources(query, language, { tafsirSource: options.tafsirSource }) : searchHadithSources(query, language),
+    ),
   );
   const records = responses
     .flatMap((response) => response.records)

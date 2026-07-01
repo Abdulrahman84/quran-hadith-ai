@@ -1,5 +1,6 @@
 import { generateGroundedAnswer } from "@/lib/llm/ollama";
 import { searchSources } from "@/lib/retrieval/source-router";
+import { isTafsirSourceSelection } from "@/lib/retrieval/tafsir-sources";
 import type { GroundedAnswer, RetrievalResponse } from "@/lib/retrieval/types";
 
 export const runtime = "nodejs";
@@ -7,6 +8,7 @@ export const runtime = "nodejs";
 type SearchRequestBody = {
   language?: unknown;
   question?: unknown;
+  tafsirSource?: unknown;
 };
 
 function noAnswer(status: GroundedAnswer["status"], code: string, message: string): GroundedAnswer {
@@ -41,6 +43,7 @@ export async function POST(request: Request) {
 
   const question = typeof body.question === "string" ? body.question.trim() : "";
   const language = body.language === "arabic" || body.language === "english" ? body.language : "arabic";
+  const tafsirSource = isTafsirSourceSelection(body.tafsirSource) ? body.tafsirSource : "all";
 
   if (question.length === 0) {
     return Response.json(
@@ -58,7 +61,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const response = await searchSources(question, language);
+  const response = await searchSources(question, language, { tafsirSource });
   const answer = await generateGroundedAnswer({
     question,
     language,
