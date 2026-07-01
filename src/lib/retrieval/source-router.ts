@@ -1,5 +1,5 @@
 import { searchHadithSources } from "./hadith-mcp";
-import { planSourceRoutes, type SourceRoute } from "./source-intent";
+import { planSourceRouteDecision, type SourceRoute } from "./source-intent";
 import { searchTafsirSources } from "./tafsir-mcp";
 import type { TafsirSourceSelection } from "./tafsir-sources";
 import type { RetrievalLanguage, RetrievalResponse, RetrievalStatus, SourceMode } from "./types";
@@ -33,7 +33,29 @@ export async function searchSources(
   language: RetrievalLanguage,
   options: { tafsirSource?: TafsirSourceSelection } = {},
 ): Promise<RetrievalResponse> {
-  const routes = planSourceRoutes(query);
+  const routeDecision = await planSourceRouteDecision(query);
+  const routes = routeDecision.routes;
+
+  if (routes.length === 0) {
+    return {
+      status: "error",
+      query,
+      retrievalQuery: query,
+      sourceMode: "quran-tafsir-hadith",
+      records: [],
+      warnings: [
+        {
+          code: "source_tool_router_unavailable",
+          message: routeDecision.warning || "The AI source-tool router did not choose an MCP tool.",
+        },
+      ],
+      provenanceNotes: [
+        "Source tool router: ollama.",
+        ...(routeDecision.warning ? [`Source tool router error: ${routeDecision.warning}`] : []),
+      ],
+    };
+  }
+
   const responses = await Promise.all(
     routes.map((route) =>
       route === "tafsir" ? searchTafsirSources(query, language, { tafsirSource: options.tafsirSource }) : searchHadithSources(query, language),
@@ -50,6 +72,10 @@ export async function searchSources(
     sourceMode: sourceModeForRoutes(routes),
     records,
     warnings: responses.flatMap((response) => response.warnings),
-    provenanceNotes: responses.flatMap((response) => response.provenanceNotes),
+    provenanceNotes: [
+      `Source tool router: ${routeDecision.planner}${routeDecision.reason ? ` (${routeDecision.reason})` : ""}.`,
+      ...(routeDecision.warning ? [`Source tool router fallback warning: ${routeDecision.warning}`] : []),
+      ...responses.flatMap((response) => response.provenanceNotes),
+    ],
   };
 }

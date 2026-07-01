@@ -42,3 +42,15 @@ test("English query planning does not strip normal prepositions", () => {
 
   assert.equal(planRetrievalQuery("find hadith about mercy for children", "english").retrievalQuery, "about mercy for children");
 });
+
+test("Arabic hadith planning expands Prophet trait questions before raw tokens", () => {
+  const { planHadithSearchQueries } = loadQueryPlanner();
+
+  assert.deepEqual(Array.from(planHadithSearchQueries("صفات سيدنا محمد", "arabic")), [
+    "خلق رسول الله",
+    "كان رسول الله",
+    "كان النبي",
+    "صفة النبي",
+    "صفات سيدنا محمد",
+  ]);
+});

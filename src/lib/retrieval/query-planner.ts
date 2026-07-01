@@ -114,6 +114,32 @@ export function planRetrievalQuery(query: string, language: RetrievalLanguage): 
   return planEnglishQuery(query);
 }
 
+export function planHadithSearchQueries(query: string, language: RetrievalLanguage, plannedQuery = planRetrievalQuery(query, language).retrievalQuery) {
+  const normalizedQuery = language === "arabic" ? normalizeArabic(query) : query.toLowerCase();
+  const planned = plannedQuery.trim();
+  const expansions: string[] = [];
+
+  if (language === "arabic") {
+    const tokens = new Set(tokenize(normalizedQuery));
+    const asksAboutProphet =
+      tokens.has("محمد") || tokens.has("النبي") || tokens.has("رسول") || tokens.has("الرسول") || normalizedQuery.includes("سيدنا محمد");
+    const asksAboutTraits = ["صفات", "صفه", "اخلاق", "خلق", "شمائل", "وصف", "هيئه"].some((term) => tokens.has(term));
+
+    if (asksAboutProphet && asksAboutTraits) {
+      expansions.push("خلق رسول الله", "كان رسول الله", "كان النبي", "صفة النبي");
+    }
+  } else {
+    const asksAboutProphet = /\b(?:prophet|messenger|muhammad)\b/.test(normalizedQuery);
+    const asksAboutTraits = /\b(?:trait|traits|character|description|appearance|manners|qualities)\b/.test(normalizedQuery);
+
+    if (asksAboutProphet && asksAboutTraits) {
+      expansions.push("character of the prophet", "messenger of allah character", "description of the prophet");
+    }
+  }
+
+  return [...new Set([...expansions, planned].filter(Boolean))];
+}
+
 export function splitFallbackQueries(query: string, language: RetrievalLanguage) {
   const tokens = tokenize(query);
   const terms =

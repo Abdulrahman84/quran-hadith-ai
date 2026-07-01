@@ -1,5 +1,6 @@
 import type { Client } from "@modelcontextprotocol/sdk/client/index.js";
 
+import { planHadithRetrievalQueries } from "./hadith-query-planner";
 import { getMcpPayload, withStdioMcpClient, type McpCallResult } from "./mcp-stdio";
 import { planRetrievalQuery, splitFallbackQueries } from "./query-planner";
 import type { RetrievalLanguage, RetrievalResponse, SourceGrade, SourceRecord } from "./types";
@@ -150,7 +151,20 @@ export async function searchHadithSources(query: string, language: RetrievalLang
         },
       },
       async ({ client, stderr }) => {
-        let searchAttempt = await callSearchHadith(client, planned.retrievalQuery, language);
+        let searchAttempt: SearchAttempt | null = null;
+        const hadithQueryPlan = await planHadithRetrievalQueries(query, language, planned.retrievalQuery);
+
+        for (const searchQuery of hadithQueryPlan.queries) {
+          const attempt = await callSearchHadith(client, searchQuery, language);
+
+          if (!searchAttempt || (attempt && attempt.output.results.length > 0)) {
+            searchAttempt = attempt;
+          }
+
+          if (searchAttempt && searchAttempt.output.results.length > 0) {
+            break;
+          }
+        }
 
         if (searchAttempt?.output.results.length === 0) {
           for (const fallbackQuery of splitFallbackQueries(query, language)) {
@@ -195,9 +209,9 @@ export async function searchHadithSources(query: string, language: RetrievalLang
           warnings: records.length > 0 ? [] : [{ code: "no_hadith_results", message: "No hadith records matched this query." }],
           provenanceNotes: [
             ...searchAttempt.output.provenance_notes,
-            ...(planned.changed || searchAttempt.query !== query
-              ? [`Product query planner searched Hadith MCP for: ${searchAttempt.query}`]
-              : []),
+            `Hadith query planner: ${hadithQueryPlan.planner}.`,
+            ...(hadithQueryPlan.warning ? [`Hadith query planner warning: ${hadithQueryPlan.warning}`] : []),
+            ...(planned.changed || searchAttempt.query !== query ? [`Product query planner searched Hadith MCP for: ${searchAttempt.query}`] : []),
           ],
         };
       },

@@ -8,7 +8,7 @@ import ts from "typescript";
 
 const require = createRequire(import.meta.url);
 
-function loadSourceIntent() {
+function loadSourceIntent(overrides = {}) {
   const filename = path.join(process.cwd(), "src/lib/retrieval/source-intent.ts");
   const source = fs.readFileSync(filename, "utf8");
   const transpiled = ts.transpileModule(source, {
@@ -20,9 +20,14 @@ function loadSourceIntent() {
     fileName: filename,
   }).outputText;
   const sandbox = {
+    AbortController,
     exports: {},
     module: { exports: {} },
+    process: { env: {} },
     require,
+    setTimeout,
+    clearTimeout,
+    ...overrides,
   };
 
   sandbox.exports = sandbox.module.exports;
@@ -31,23 +36,78 @@ function loadSourceIntent() {
   return sandbox.module.exports;
 }
 
-test("routes tafsir and ayah questions to Tafsir MCP only", () => {
-  const { planSourceRoutes } = loadSourceIntent();
+test("lets the AI router choose source tools from the approved MCP set", async () => {
+  const { planSourceRouteDecision } = loadSourceIntent({
+    fetch: async (_url, init) => {
+      const body = JSON.parse(init.body);
 
-  assert.deepEqual(Array.from(planSourceRoutes("What is the tafsir of ayah 2:255?")), ["tafsir"]);
-  assert.deepEqual(Array.from(planSourceRoutes("ما تفسير آية الكرسي؟")), ["tafsir"]);
+      assert.equal(body.model, "router-model");
+      assert.match(body.messages.at(-1).content, /patience/);
+
+      return {
+        ok: true,
+        json: async () => ({
+          message: {
+            content: '{"routes":["tafsir","hadith"],"reason":"The question asks for broad evidence."}',
+          },
+        }),
+      };
+    },
+    process: {
+      env: {
+        OLLAMA_ENABLED: "true",
+        MCP_TOOL_ROUTER_ENABLED: "true",
+        MCP_TOOL_ROUTER_MODEL: "router-model",
+      },
+    },
+  });
+
+  const decision = await planSourceRouteDecision("What evidence is there about patience?");
+
+  assert.equal(decision.planner, "ollama");
+  assert.deepEqual(Array.from(decision.routes), ["tafsir", "hadith"]);
+  assert.equal(decision.reason, "The question asks for broad evidence.");
+  assert.equal(decision.warning, null);
 });
 
-test("routes hadith and sunnah questions to Hadith MCP only", () => {
-  const { planSourceRoutes } = loadSourceIntent();
+test("does not call MCP tools when the AI router returns invalid tools", async () => {
+  const { planSourceRouteDecision } = loadSourceIntent({
+    fetch: async () => ({
+      ok: true,
+      json: async () => ({
+        message: {
+          content: '{"routes":["web_search"],"reason":"unsupported"}',
+        },
+      }),
+    }),
+    process: {
+      env: {
+        OLLAMA_ENABLED: "true",
+        MCP_TOOL_ROUTER_ENABLED: "true",
+      },
+    },
+  });
 
-  assert.deepEqual(Array.from(planSourceRoutes("Find hadith about intention")), ["hadith"]);
-  assert.deepEqual(Array.from(planSourceRoutes("ابحث عن حديث النية")), ["hadith"]);
+  const decision = await planSourceRouteDecision("Find hadith about intention");
+
+  assert.equal(decision.planner, "ollama");
+  assert.deepEqual(Array.from(decision.routes), []);
+  assert.match(decision.warning, /invalid route plan/);
 });
 
-test("routes broad source questions to Tafsir and Hadith MCPs", () => {
-  const { planSourceRoutes } = loadSourceIntent();
+test("requires the AI router to be enabled before source tools are selected", async () => {
+  const { planSourceRouteDecision } = loadSourceIntent({
+    process: {
+      env: {
+        OLLAMA_ENABLED: "false",
+        MCP_TOOL_ROUTER_ENABLED: "true",
+      },
+    },
+  });
 
-  assert.deepEqual(Array.from(planSourceRoutes("What sources mention mercy?")), ["tafsir", "hadith"]);
-  assert.deepEqual(Array.from(planSourceRoutes("ما المصادر التي تذكر الرحمة؟")), ["tafsir", "hadith"]);
+  const decision = await planSourceRouteDecision("What sources mention mercy?");
+
+  assert.equal(decision.planner, "ollama");
+  assert.deepEqual(Array.from(decision.routes), []);
+  assert.match(decision.warning, /router is disabled/i);
 });
