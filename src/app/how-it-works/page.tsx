@@ -1,9 +1,7 @@
 "use client";
 
-import Link from "next/link";
-
-import { LanguageSwitcher } from "@/components/language-switcher";
 import { useI18n } from "@/components/i18n-provider";
+import { SiteHeader } from "@/components/site-header";
 import type { TranslationKey } from "@/lib/i18n";
 
 const steps: Array<{ titleKey: TranslationKey; textKey: TranslationKey }> = [
@@ -25,34 +23,201 @@ const steps: Array<{ titleKey: TranslationKey; textKey: TranslationKey }> = [
   },
 ];
 
+const pipeline: Array<{ icon: "question" | "sources" | "answer"; labelKey: TranslationKey; textKey: TranslationKey }> = [
+  {
+    icon: "question",
+    labelKey: "how.pipeline.query",
+    textKey: "how.pipeline.queryText",
+  },
+  {
+    icon: "sources",
+    labelKey: "how.pipeline.sources",
+    textKey: "how.pipeline.sourcesText",
+  },
+  {
+    icon: "answer",
+    labelKey: "how.pipeline.answer",
+    textKey: "how.pipeline.answerText",
+  },
+];
+
+function PageIcon({ type }: { type: "question" | "sources" | "answer" | "risk" | "solve" }) {
+  if (type === "risk") {
+    return (
+      <svg aria-hidden="true" className="h-6 w-6" fill="none" viewBox="0 0 24 24">
+        <path
+          d="M12 4 3.5 19h17L12 4Z"
+          stroke="currentColor"
+          strokeLinejoin="round"
+          strokeWidth="2"
+        />
+        <path d="M12 9v4M12 16.5h.01" stroke="currentColor" strokeLinecap="round" strokeWidth="2.5" />
+      </svg>
+    );
+  }
+
+  if (type === "solve") {
+    return (
+      <svg aria-hidden="true" className="h-6 w-6" fill="none" viewBox="0 0 24 24">
+        <path
+          d="m5 13 4 4L19 7"
+          stroke="currentColor"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth="2"
+        />
+        <path
+          d="M4 6.5A2.5 2.5 0 0 1 6.5 4h11A2.5 2.5 0 0 1 20 6.5v11a2.5 2.5 0 0 1-2.5 2.5h-11A2.5 2.5 0 0 1 4 17.5v-11Z"
+          stroke="currentColor"
+          strokeWidth="2"
+        />
+      </svg>
+    );
+  }
+
+  if (type === "question") {
+    return (
+      <svg aria-hidden="true" className="h-6 w-6" fill="none" viewBox="0 0 24 24">
+        <path
+          d="M12 18h.01M9.4 9a2.8 2.8 0 1 1 4.6 2.15c-.98.7-1.75 1.18-1.9 2.35"
+          stroke="currentColor"
+          strokeLinecap="round"
+          strokeWidth="2"
+        />
+        <path
+          d="M4 12a8 8 0 1 0 16 0 8 8 0 0 0-16 0Z"
+          stroke="currentColor"
+          strokeWidth="2"
+        />
+      </svg>
+    );
+  }
+
+  if (type === "sources") {
+    return (
+      <svg aria-hidden="true" className="h-6 w-6" fill="none" viewBox="0 0 24 24">
+        <path
+          d="M5 5.5c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2v13l-3-1.8-3 1.8-3-1.8-3 1.8v-13Z"
+          stroke="currentColor"
+          strokeLinejoin="round"
+          strokeWidth="2"
+        />
+        <path d="M8.5 8h7M8.5 11h7M8.5 14h4" stroke="currentColor" strokeLinecap="round" strokeWidth="2" />
+      </svg>
+    );
+  }
+
+  return (
+    <svg aria-hidden="true" className="h-6 w-6" fill="none" viewBox="0 0 24 24">
+      <path
+        d="M5 6.5A2.5 2.5 0 0 1 7.5 4h9A2.5 2.5 0 0 1 19 6.5v7A2.5 2.5 0 0 1 16.5 16H11l-4.5 4v-4A2.5 2.5 0 0 1 4 13.5v-7Z"
+        stroke="currentColor"
+        strokeLinejoin="round"
+        strokeWidth="2"
+      />
+      <path d="M8 8.5h8M8 11.5h5" stroke="currentColor" strokeLinecap="round" strokeWidth="2" />
+    </svg>
+  );
+}
+
 export default function HowItWorks() {
   const { t } = useI18n();
 
   return (
-    <main className="min-h-screen bg-[var(--color-sand)] pt-20 text-[var(--color-ink)] sm:pt-24">
-      <header className="fixed inset-x-0 top-0 z-50 border-b border-[var(--color-green)]/10 bg-[var(--color-sand)]/88 backdrop-blur">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-5 py-6">
-          <Link className="text-sm font-black uppercase tracking-[0.2em] text-[var(--color-green)]" href="/">
-            Sanad AI
-          </Link>
-          <nav className="flex items-center gap-2 text-sm font-black">
-            <Link className="nav-link" href="/source-policy">
-              {t("nav.sourcePolicy")}
-            </Link>
-            <LanguageSwitcher />
-          </nav>
-        </div>
-      </header>
+    <main className="relative min-h-screen overflow-hidden bg-[var(--color-sand)] pt-20 text-[var(--color-ink)] sm:pt-24">
+      <div className="source-grid" aria-hidden="true" />
+      <SiteHeader />
 
-      <section className="mx-auto max-w-6xl px-5 py-12">
+      <section className="relative z-10 mx-auto max-w-6xl px-5 py-8 sm:px-8 sm:py-10">
         <p className="text-xs font-black uppercase tracking-[0.28em] text-[var(--color-red)]">{t("how.eyebrow")}</p>
-        <h1 className="mt-5 max-w-4xl text-balance text-5xl font-black leading-tight text-[var(--color-green)]">
+        <h1 className="mt-4 max-w-4xl text-balance text-3xl font-black leading-tight text-[var(--color-green)] sm:text-5xl">
           {t("how.title")}
         </h1>
-        <p className="mt-6 max-w-2xl text-lg font-bold leading-8 text-[var(--color-muted)]">{t("how.intro")}</p>
+        <p className="mt-4 max-w-3xl text-base font-bold leading-7 text-[var(--color-muted)] sm:text-lg sm:leading-8">
+          {t("how.intro")}
+        </p>
       </section>
 
-      <section className="mx-auto grid max-w-6xl gap-3 px-5 pb-16 md:grid-cols-2">
+      <section className="relative z-10 bg-[var(--color-green)] py-10 text-[var(--color-sand)] shadow-[0_24px_70px_rgba(18,63,57,0.14)] sm:py-12">
+        <div className="mx-auto grid max-w-6xl gap-8 px-5 sm:px-8 lg:grid-cols-[minmax(0,1fr)_110px_minmax(0,1fr)] lg:items-center">
+          <div className="animate-rise">
+            <div className="flex items-center gap-3">
+              <span className="grid h-11 w-11 place-items-center rounded-full border border-[var(--color-red)]/35 bg-white/8 text-[var(--color-gold)]">
+                <PageIcon type="risk" />
+              </span>
+              <p className="text-xs font-black uppercase tracking-[0.2em] text-[var(--color-gold)]">
+                {t("how.problem.general.label")}
+              </p>
+            </div>
+            <h2 className="mt-5 text-3xl font-black leading-tight text-white sm:text-4xl">{t("how.problem.general.title")}</h2>
+            <p className="mt-4 text-base font-bold leading-8 text-white/72">{t("how.problem.general.text")}</p>
+            <p className="mt-5 border-s-4 border-[var(--color-red)]/70 ps-4 text-xl font-black leading-9 text-white">
+              {t("how.problem.general.callout")}
+            </p>
+          </div>
+
+          <div className="relative grid place-items-center text-[var(--color-gold)] lg:h-full">
+            <div className="hidden h-full w-px bg-white/14 lg:block" aria-hidden="true" />
+            <div className="grid h-12 w-12 place-items-center rounded-full border border-[var(--color-gold)]/70 bg-[var(--color-green)] text-xl font-black shadow-[0_0_0_10px_rgba(18,63,57,1)] lg:absolute">
+              ←
+            </div>
+          </div>
+
+          <div className="animate-rise [animation-delay:90ms]">
+            <div className="flex items-center gap-3">
+              <span className="grid h-11 w-11 place-items-center rounded-full border border-[var(--color-gold)]/60 bg-white/8 text-[var(--color-gold)]">
+                <PageIcon type="solve" />
+              </span>
+              <p className="text-xs font-black uppercase tracking-[0.2em] text-[var(--color-gold)]">
+                {t("how.problem.solution.label")}
+              </p>
+            </div>
+            <h2 className="mt-5 text-3xl font-black leading-tight text-white sm:text-4xl">{t("how.problem.solution.title")}</h2>
+            <p className="mt-4 text-base font-bold leading-8 text-white/72">{t("how.problem.solution.text")}</p>
+            <div className="mt-5 grid gap-2">
+              <p className="rounded-full border border-white/14 bg-white/8 px-4 py-2.5 text-sm font-black text-white/82">
+                {t("how.problem.solution.stepOne")}
+              </p>
+              <p className="rounded-full border border-white/14 bg-white/8 px-4 py-2.5 text-sm font-black text-white/82">
+                {t("how.problem.solution.stepTwo")}
+              </p>
+              <p className="rounded-full border border-white/14 bg-white/8 px-4 py-2.5 text-sm font-black text-white/82">
+                {t("how.problem.solution.stepThree")}
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="relative z-10 mx-auto max-w-6xl px-5 py-10 sm:px-8">
+        <div className="mb-4">
+          <p className="text-xs font-black uppercase tracking-[0.22em] text-[var(--color-red)]">
+            {t("how.flow.eyebrow")}
+          </p>
+          <h2 className="mt-3 text-2xl font-black leading-tight text-[var(--color-green)] sm:text-3xl">
+            {t("how.flow.title")}
+          </h2>
+          <p className="mt-3 max-w-3xl text-sm font-bold leading-7 text-[var(--color-muted)]">{t("how.flow.text")}</p>
+        </div>
+
+        <div className="grid gap-3 lg:grid-cols-3">
+          {pipeline.map((item, index) => (
+            <article
+              className="animate-rise rounded-lg border border-[var(--color-green)]/16 bg-[var(--color-green)] p-5 text-[var(--color-sand)] shadow-[0_18px_42px_rgba(18,63,57,0.12)]"
+              key={item.labelKey}
+              style={{ animationDelay: `${index * 80}ms` }}
+            >
+              <div className="grid h-12 w-12 place-items-center rounded-full border border-[var(--color-gold)]/60 bg-white/8 text-[var(--color-gold)]">
+                <PageIcon type={item.icon} />
+              </div>
+              <h3 className="mt-4 text-xl font-black text-white">{t(item.labelKey)}</h3>
+              <p className="mt-3 text-sm font-bold leading-7 text-white/72">{t(item.textKey)}</p>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section className="relative z-10 mx-auto grid max-w-6xl gap-3 px-5 pb-16 sm:px-8 md:grid-cols-2">
         {steps.map((step, index) => (
           <article className="product-card animate-rise" key={step.titleKey} style={{ animationDelay: `${index * 90}ms` }}>
             <span className="text-sm font-black text-[var(--color-red)]">{String(index + 1).padStart(2, "0")}</span>

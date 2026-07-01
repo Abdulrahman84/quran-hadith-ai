@@ -1,12 +1,13 @@
 "use client";
 
 import Image from "next/image";
-import Link from "next/link";
 import { FormEvent, KeyboardEvent, useEffect, useMemo, useRef, useState } from "react";
 
-import { LanguageSwitcher } from "@/components/language-switcher";
 import { useI18n } from "@/components/i18n-provider";
+import { SiteHeader } from "@/components/site-header";
 import type { TranslationKey } from "@/lib/i18n";
+import { formatHadithGrade, formatSourceRecordTitle } from "@/lib/retrieval/source-display";
+import { tafsirSources, type TafsirSourceSelection } from "@/lib/retrieval/tafsir-sources";
 import type { RetrievalResponse, RetrievalWarning } from "@/lib/retrieval/types";
 
 const suggestionKeys: TranslationKey[] = [
@@ -21,6 +22,7 @@ const sourceRoutes: Array<{ id: "Quran" | "Tafsir" | "Hadith"; labelKey: Transla
   { id: "Hadith", labelKey: "routes.hadith" },
 ];
 const minimumLoadingMs = 5000;
+const sourcePageSize = 5;
 
 function resizeQuestionField(element: HTMLTextAreaElement) {
   const maxHeight = 128;
@@ -92,13 +94,9 @@ function sourceTextForLanguage(
   };
 }
 
-function recordTitle(record: RetrievalResponse["records"][number]) {
-  return `${record.displayName} ${record.reference}`.trim();
-}
-
-function recordBadge(record: RetrievalResponse["records"][number], t: (key: TranslationKey) => string) {
+function recordBadge(record: RetrievalResponse["records"][number], language: "ar" | "en", t: (key: TranslationKey) => string) {
   if (record.sourceKind === "hadith") {
-    return record.grade ? record.grade.value : t("result.gradeUnavailable");
+    return record.grade ? formatHadithGrade(record.grade.value, language) : t("result.gradeUnavailable");
   }
 
   if (record.sourceKind === "tafsir") {
@@ -141,6 +139,8 @@ export default function Home() {
   const [isRetrieving, setIsRetrieving] = useState(false);
   const [retrieval, setRetrieval] = useState<RetrievalResponse | null>(null);
   const [requestError, setRequestError] = useState("");
+  const [tafsirSource, setTafsirSource] = useState<TafsirSourceSelection>("all");
+  const [sourcePage, setSourcePage] = useState(1);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const hasScenario = isRetrieving || Boolean(submittedQuestion) || retrieval !== null || requestError.length > 0;
@@ -154,6 +154,10 @@ export default function Home() {
       Hadith: kinds.has("hadith"),
     };
   }, [retrieval]);
+  const sourceRecords = retrieval?.records ?? [];
+  const totalSourcePages = Math.max(1, Math.ceil(sourceRecords.length / sourcePageSize));
+  const currentSourcePage = Math.min(sourcePage, totalSourcePages);
+  const visibleSourceRecords = sourceRecords.slice((currentSourcePage - 1) * sourcePageSize, currentSourcePage * sourcePageSize);
 
   useEffect(() => {
     if (textareaRef.current) {
@@ -161,7 +165,7 @@ export default function Home() {
     }
   }, [question]);
 
-  async function runSearch(nextQuestion: string) {
+  async function runSearch(nextQuestion: string, selectedTafsirSource = tafsirSource) {
     const trimmed = nextQuestion.trim();
 
     if (!trimmed) {
@@ -172,6 +176,7 @@ export default function Home() {
     setSubmittedQuestion(trimmed);
     setRetrieval(null);
     setRequestError("");
+    setSourcePage(1);
     setIsRetrieving(true);
 
     try {
@@ -179,7 +184,7 @@ export default function Home() {
         fetch("/api/search", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ language: language === "ar" ? "arabic" : "english", question: trimmed }),
+          body: JSON.stringify({ language: language === "ar" ? "arabic" : "english", question: trimmed, tafsirSource: selectedTafsirSource }),
         }),
         new Promise((resolve) => window.setTimeout(resolve, minimumLoadingMs)),
       ]);
@@ -192,7 +197,7 @@ export default function Home() {
 
       setRetrieval(payload);
     } catch (error) {
-      setRequestError(error instanceof Error ? error.message : "The local retrieval request failed.");
+      setRequestError(error instanceof Error ? error.message : "The source retrieval request failed.");
     } finally {
       setIsRetrieving(false);
     }
@@ -212,34 +217,19 @@ export default function Home() {
     void runSearch(question);
   }
 
+  function handleTafsirSourceChange(nextSource: TafsirSourceSelection) {
+    setTafsirSource(nextSource);
+
+    if (submittedQuestion.trim()) {
+      void runSearch(submittedQuestion, nextSource);
+    }
+  }
+
   return (
     <main className="relative min-h-screen bg-[var(--color-sand)] pt-20 text-[var(--color-ink)] sm:pt-24">
       <div className="source-grid" aria-hidden="true" />
 
-      <header className="fixed inset-x-0 top-0 z-50 border-b border-[var(--color-green)]/10 bg-[var(--color-sand)]/88 backdrop-blur">
-        <div className="mx-auto flex w-full max-w-6xl items-center justify-between px-5 py-4 sm:px-8">
-          <Link className="group flex items-center" href="/" aria-label="Sanad AI">
-            <Image
-              alt="Sanad AI"
-              className="h-10 w-auto shrink-0 object-contain transition-transform duration-300 group-hover:-translate-y-0.5 sm:h-14"
-              height={56}
-              priority
-              src="/brand/sanad-logo.png"
-              width={201}
-            />
-          </Link>
-
-          <nav className="flex items-center gap-2 text-sm font-black">
-            <Link className="nav-link" href="/how-it-works">
-              {t("nav.howItWorks")}
-            </Link>
-            <Link className="nav-link nav-link-mobile-hidden" href="/source-policy">
-              {t("nav.policy")}
-            </Link>
-            <LanguageSwitcher />
-          </nav>
-        </div>
-      </header>
+      <SiteHeader />
 
       <section
         className={`relative z-10 mx-auto flex w-full max-w-5xl flex-col items-center px-5 text-center sm:px-8 ${
@@ -277,6 +267,23 @@ export default function Home() {
               rows={1}
               value={question}
             />
+            <label className="sr-only" htmlFor="tafsir-source">
+              {t("home.tafsirSourceLabel")}
+            </label>
+            <select
+              className="min-h-14 rounded-[1.5rem] border border-[var(--color-green)]/18 bg-white px-4 text-sm font-black text-[var(--color-green)] outline-none"
+              id="tafsir-source"
+              disabled={isRetrieving}
+              onChange={(event) => handleTafsirSourceChange(event.target.value as TafsirSourceSelection)}
+              value={tafsirSource}
+            >
+              <option value="all">{t("home.tafsirSourceAll")}</option>
+              {tafsirSources.map((source) => (
+                <option key={source.id} value={source.id}>
+                  {language === "ar" ? source.labelAr : source.labelEn}
+                </option>
+              ))}
+            </select>
             <button
               className="min-h-14 rounded-[1.5rem] border border-[var(--color-green)] bg-[var(--color-green)] px-6 text-sm font-black uppercase tracking-[0.16em] text-[var(--color-sand)] transition duration-300 hover:-translate-y-0.5 hover:bg-[var(--color-ink)] disabled:cursor-wait disabled:opacity-75"
               disabled={isRetrieving}
@@ -405,7 +412,7 @@ export default function Home() {
                     )}
 
                     <div className="mt-4 grid gap-2">
-                      {retrieval?.records.map((record) => (
+                      {visibleSourceRecords.map((record) => (
                         (() => {
                           const sourceText = sourceTextForLanguage(record, language, {
                             arabic: t("result.arabicUnavailable"),
@@ -420,10 +427,10 @@ export default function Home() {
                             >
                               <div className="flex flex-wrap items-center justify-between gap-2">
                                 <strong className="text-sm text-[var(--color-green)]">
-                                  {recordTitle(record)}
+                                  {formatSourceRecordTitle(record, language)}
                                 </strong>
                                 <span className="rounded-full border border-[var(--color-gold)]/60 px-2.5 py-1 text-[0.68rem] font-black uppercase tracking-[0.12em] text-[var(--color-red)]">
-                                  {recordBadge(record, t)}
+                                  {recordBadge(record, language, t)}
                                 </span>
                               </div>
                               {metadata ? (
@@ -443,6 +450,30 @@ export default function Home() {
                         })()
                       ))}
                     </div>
+
+                    {sourceRecords.length > sourcePageSize ? (
+                      <div className="mt-4 flex items-center justify-between gap-3 rounded-2xl border border-[var(--color-green)]/14 bg-white/60 p-3">
+                        <button
+                          className="rounded-full border border-[var(--color-gold)]/60 px-4 py-2 text-xs font-black text-[var(--color-green)] disabled:opacity-40"
+                          disabled={currentSourcePage === 1}
+                          onClick={() => setSourcePage((page) => Math.max(1, page - 1))}
+                          type="button"
+                        >
+                          {t("result.previousPage")}
+                        </button>
+                        <span className="text-xs font-black text-[var(--color-muted)]">
+                          {t("result.pageLabel")} {currentSourcePage} / {totalSourcePages}
+                        </span>
+                        <button
+                          className="rounded-full border border-[var(--color-gold)]/60 px-4 py-2 text-xs font-black text-[var(--color-green)] disabled:opacity-40"
+                          disabled={currentSourcePage === totalSourcePages}
+                          onClick={() => setSourcePage((page) => Math.min(totalSourcePages, page + 1))}
+                          type="button"
+                        >
+                          {t("result.nextPage")}
+                        </button>
+                      </div>
+                    ) : null}
 
                     {retrieval?.warnings.length ? (
                       <div className="mt-4 rounded-2xl border border-[var(--color-red)]/18 bg-white/60 p-3">

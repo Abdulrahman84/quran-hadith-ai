@@ -362,7 +362,7 @@ html[dir="rtl"] body {
 }
 
 .product-card {
-  border-radius: 1.75rem;
+  border-radius: 0.5rem;
   border: 1px solid color-mix(in srgb, var(--color-green) 16%, transparent);
   background: color-mix(in srgb, white 72%, transparent);
   padding: 1.4rem;

@@ -1,9 +1,7 @@
 "use client";
 
-import Link from "next/link";
-
-import { LanguageSwitcher } from "@/components/language-switcher";
 import { useI18n } from "@/components/i18n-provider";
+import { SiteHeader } from "@/components/site-header";
 import type { TranslationKey } from "@/lib/i18n";
 
 const ruleKeys: TranslationKey[] = [
@@ -14,48 +12,178 @@ const ruleKeys: TranslationKey[] = [
   "policy.rule.five",
 ];
 
+const sourceGroups: Array<{ titleKey: TranslationKey; textKey: TranslationKey; itemKeys: TranslationKey[] }> = [
+  {
+    titleKey: "policy.sources.quran.title",
+    textKey: "policy.sources.quran.text",
+    itemKeys: ["policy.sources.quran.item"],
+  },
+  {
+    titleKey: "policy.sources.tafsir.title",
+    textKey: "policy.sources.tafsir.text",
+    itemKeys: [
+      "policy.sources.tafsir.tabari",
+      "policy.sources.tafsir.kathir",
+      "policy.sources.tafsir.baghawi",
+      "policy.sources.tafsir.saadi",
+      "policy.sources.tafsir.muyassar",
+      "policy.sources.tafsir.mukhtasar",
+    ],
+  },
+  {
+    titleKey: "policy.sources.hadith.title",
+    textKey: "policy.sources.hadith.text",
+    itemKeys: [
+      "policy.sources.hadith.bukhari",
+      "policy.sources.hadith.muslim",
+      "policy.sources.hadith.abudawud",
+      "policy.sources.hadith.tirmidhi",
+      "policy.sources.hadith.nasai",
+      "policy.sources.hadith.majah",
+    ],
+  },
+];
+
+const trustFlowItems: Array<{ icon: "source" | "arrange" | "answer"; titleKey: TranslationKey; textKey: TranslationKey }> = [
+  {
+    icon: "source",
+    titleKey: "policy.flow.sources.title",
+    textKey: "policy.flow.sources.text",
+  },
+  {
+    icon: "arrange",
+    titleKey: "policy.flow.arrange.title",
+    textKey: "policy.flow.arrange.text",
+  },
+  {
+    icon: "answer",
+    titleKey: "policy.flow.answer.title",
+    textKey: "policy.flow.answer.text",
+  },
+];
+
+function FlowIcon({ type }: { type: "source" | "arrange" | "answer" }) {
+  if (type === "source") {
+    return (
+      <svg aria-hidden="true" className="h-6 w-6" fill="none" viewBox="0 0 24 24">
+        <path d="M5 5.5c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2v13l-3-1.8-3 1.8-3-1.8-3 1.8v-13Z" stroke="currentColor" strokeLinejoin="round" strokeWidth="2" />
+        <path d="M8.5 8h7M8.5 11h7M8.5 14h4" stroke="currentColor" strokeLinecap="round" strokeWidth="2" />
+      </svg>
+    );
+  }
+
+  if (type === "arrange") {
+    return (
+      <svg aria-hidden="true" className="h-6 w-6" fill="none" viewBox="0 0 24 24">
+        <path d="M7 5h10M7 12h10M7 19h10" stroke="currentColor" strokeLinecap="round" strokeWidth="2" />
+        <path d="M4 5h.01M4 12h.01M4 19h.01" stroke="currentColor" strokeLinecap="round" strokeWidth="3" />
+      </svg>
+    );
+  }
+
+  return (
+    <svg aria-hidden="true" className="h-6 w-6" fill="none" viewBox="0 0 24 24">
+      <path d="M5 6.5A2.5 2.5 0 0 1 7.5 4h9A2.5 2.5 0 0 1 19 6.5v7A2.5 2.5 0 0 1 16.5 16H11l-4.5 4v-4A2.5 2.5 0 0 1 4 13.5v-7Z" stroke="currentColor" strokeLinejoin="round" strokeWidth="2" />
+      <path d="M8 8.5h8M8 11.5h5" stroke="currentColor" strokeLinecap="round" strokeWidth="2" />
+    </svg>
+  );
+}
+
 export default function SourcePolicy() {
   const { t } = useI18n();
 
   return (
-    <main className="min-h-screen bg-[var(--color-sand)] pt-20 text-[var(--color-ink)] sm:pt-24">
-      <header className="fixed inset-x-0 top-0 z-50 border-b border-[var(--color-green)]/10 bg-[var(--color-sand)]/88 backdrop-blur">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-5 py-6">
-          <Link className="text-sm font-black uppercase tracking-[0.2em] text-[var(--color-green)]" href="/">
-            Sanad AI
-          </Link>
-          <nav className="flex items-center gap-2 text-sm font-black">
-            <Link className="nav-link" href="/how-it-works">
-              {t("nav.howItWorks")}
-            </Link>
-            <LanguageSwitcher />
-          </nav>
-        </div>
-      </header>
+    <main className="relative min-h-screen overflow-hidden bg-[var(--color-sand)] pt-20 text-[var(--color-ink)] sm:pt-24">
+      <div className="source-grid" aria-hidden="true" />
+      <SiteHeader />
 
-      <section className="mx-auto grid max-w-6xl gap-10 px-5 py-12 lg:grid-cols-[minmax(0,1fr)_360px]">
-        <div>
-          <p className="text-xs font-black uppercase tracking-[0.28em] text-[var(--color-red)]">{t("policy.eyebrow")}</p>
-          <h1 className="mt-5 max-w-4xl text-balance text-5xl font-black leading-tight text-[var(--color-green)]">
-            {t("policy.title")}
-          </h1>
-          <p className="mt-6 max-w-2xl text-lg font-bold leading-8 text-[var(--color-muted)]">{t("policy.intro")}</p>
-        </div>
-
-        <aside className="rounded-[2rem] border border-[var(--color-green)] bg-[var(--color-green)] p-6 text-[var(--color-sand)]">
-          <p className="text-xs font-black uppercase tracking-[0.22em] text-[var(--color-gold)]">
-            {t("policy.statusLabel")}
-          </p>
-          <h2 className="mt-4 text-3xl font-black">{t("policy.statusTitle")}</h2>
-          <p className="mt-4 text-sm font-bold leading-7 text-white/72">{t("policy.statusText")}</p>
-        </aside>
+      <section className="relative z-10 mx-auto max-w-6xl px-5 py-8 sm:px-8 sm:py-10">
+        <p className="text-xs font-black uppercase tracking-[0.28em] text-[var(--color-red)]">{t("policy.eyebrow")}</p>
+        <h1 className="mt-4 max-w-4xl text-balance text-3xl font-black leading-tight text-[var(--color-green)] sm:text-5xl">
+          {t("policy.title")}
+        </h1>
+        <p className="mt-4 max-w-3xl text-base font-bold leading-7 text-[var(--color-muted)] sm:text-lg sm:leading-8">
+          {t("policy.intro")}
+        </p>
       </section>
 
-      <section className="mx-auto max-w-6xl px-5 pb-16">
+      <section className="relative z-10 mx-auto max-w-6xl px-5 pb-10 sm:px-8">
+        <div className="mb-4">
+          <p className="text-xs font-black uppercase tracking-[0.22em] text-[var(--color-red)]">
+            {t("policy.flow.eyebrow")}
+          </p>
+          <h2 className="mt-3 text-2xl font-black leading-tight text-[var(--color-green)] sm:text-3xl">
+            {t("policy.flow.title")}
+          </h2>
+          <p className="mt-3 max-w-3xl text-sm font-bold leading-7 text-[var(--color-muted)]">{t("policy.flow.text")}</p>
+        </div>
+
+        <div className="grid gap-3 lg:grid-cols-3">
+          {trustFlowItems.map((item, index) => (
+            <article
+              className="animate-rise rounded-lg border border-[var(--color-green)]/16 bg-[var(--color-green)] p-5 text-[var(--color-sand)] shadow-[0_18px_42px_rgba(18,63,57,0.12)]"
+              key={item.titleKey}
+              style={{ animationDelay: `${index * 80}ms` }}
+            >
+              <div className="grid h-12 w-12 place-items-center rounded-full border border-[var(--color-gold)]/60 bg-white/8 text-[var(--color-gold)]">
+                <FlowIcon type={item.icon} />
+              </div>
+              <h3 className="mt-4 text-xl font-black text-white">{t(item.titleKey)}</h3>
+              <p className="mt-3 text-sm font-bold leading-7 text-white/72">{t(item.textKey)}</p>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section className="relative z-10 mx-auto max-w-6xl px-5 pb-10 sm:px-8">
+        <div className="mb-4">
+          <p className="text-xs font-black uppercase tracking-[0.22em] text-[var(--color-red)]">
+            {t("policy.sources.eyebrow")}
+          </p>
+          <h2 className="mt-3 text-2xl font-black leading-tight text-[var(--color-green)] sm:text-3xl">
+            {t("policy.sources.title")}
+          </h2>
+          <p className="mt-3 max-w-3xl text-sm font-bold leading-7 text-[var(--color-muted)]">{t("policy.sources.text")}</p>
+        </div>
+
+        <div className="grid gap-3 lg:grid-cols-3">
+          {sourceGroups.map((group, index) => (
+            <article
+              className="animate-rise rounded-lg border border-[var(--color-green)]/16 bg-white/76 p-5"
+              key={group.titleKey}
+              style={{ animationDelay: `${index * 80}ms` }}
+            >
+              <h3 className="text-xl font-black text-[var(--color-green)]">{t(group.titleKey)}</h3>
+              <p className="mt-2 text-sm font-bold leading-7 text-[var(--color-muted)]">{t(group.textKey)}</p>
+              <div className="mt-4 flex flex-wrap gap-2">
+                {group.itemKeys.map((itemKey) => (
+                  <span
+                    className="rounded-full border border-[var(--color-gold)]/55 bg-[var(--color-sand)] px-3 py-1.5 text-xs font-black text-[var(--color-green)]"
+                    key={itemKey}
+                  >
+                    {t(itemKey)}
+                  </span>
+                ))}
+              </div>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section className="relative z-10 mx-auto grid max-w-6xl gap-6 px-5 pb-16 sm:px-8 lg:grid-cols-[320px_minmax(0,1fr)]">
+        <div>
+          <p className="text-xs font-black uppercase tracking-[0.22em] text-[var(--color-red)]">
+            {t("policy.boundary.title")}
+          </p>
+          <h2 className="mt-4 text-3xl font-black leading-tight text-[var(--color-green)]">
+            {t("policy.guardrails.title")}
+          </h2>
+          <p className="mt-4 text-sm font-bold leading-7 text-[var(--color-muted)]">{t("policy.guardrails.text")}</p>
+        </div>
         <div className="grid gap-3">
           {ruleKeys.map((ruleKey, index) => (
             <article
-              className="animate-rise rounded-[1.75rem] border border-[var(--color-green)]/16 bg-white/72 p-5"
+              className="animate-rise rounded-lg border border-[var(--color-green)]/16 bg-white/76 p-5"
               key={ruleKey}
               style={{ animationDelay: `${index * 80}ms` }}
             >
