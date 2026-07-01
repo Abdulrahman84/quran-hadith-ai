@@ -29,8 +29,8 @@ export default function HowItWorks() {
   const { t } = useI18n();
 
   return (
-    <main className="min-h-screen bg-[var(--color-sand)] text-[var(--color-ink)]">
-      <header className="sticky top-0 z-30 border-b border-[var(--color-green)]/10 bg-[var(--color-sand)]/88 backdrop-blur">
+    <main className="min-h-screen bg-[var(--color-sand)] pt-20 text-[var(--color-ink)] sm:pt-24">
+      <header className="fixed inset-x-0 top-0 z-50 border-b border-[var(--color-green)]/10 bg-[var(--color-sand)]/88 backdrop-blur">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-5 py-6">
           <Link className="text-sm font-black uppercase tracking-[0.2em] text-[var(--color-green)]" href="/">
             Sanad AI
