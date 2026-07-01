@@ -77,7 +77,7 @@ function tafsirRecord(overrides = {}) {
     chapter: null,
     hadithNumber: null,
     surahNumber: 1,
-    surahName: null,
+    surahName: "الفاتحة",
     ayahNumber: 1,
     verseKey: "1:1",
     translationEdition: null,
@@ -149,5 +149,54 @@ test("fallback answer can cite tafsir records", () => {
   });
 
   assert.match(answer.text, /^For your question, the retrieved records/);
-  assert.deepEqual(answer.citations, ["[1] Tafsir 1:1 1:1"]);
+  assert.deepEqual(Array.from(answer.citations), ["[1] Tafsir 1:1 1:1"]);
+});
+
+test("fallback Arabic Quran summary mentions the verse and exact ayah text without English labels", () => {
+  const { fallbackGroundedSummary } = loadOllamaModule();
+
+  const answer = fallbackGroundedSummary({
+    question: "تفسير آية كل من عليها فان",
+    language: "arabic",
+    records: [
+      tafsirRecord({
+        sourceKind: "quran",
+        collection: "quran",
+        displayName: "Quran 55:26",
+        reference: "55:26",
+        surahNumber: 55,
+        ayahNumber: 26,
+        surahName: "الرحمن",
+        verseKey: "55:26",
+        arabicText: "كُلُّ مَنْ عَلَيْهَا فَانٍ",
+        tafsirText: null,
+      }),
+      tafsirRecord({
+        collection: "moyassar",
+        displayName: "Tafsir 55:26",
+        reference: "55:26",
+        surahNumber: 55,
+        ayahNumber: 26,
+        surahName: "الرحمن",
+        verseKey: "55:26",
+        arabicText: "كُلُّ مَنْ عَلَيْهَا فَانٍ",
+        tafsirSource: "التفسير الميسر، مجمع الملك فهد لطباعة المصحف الشريف",
+        tafsirText: "كل مَن على وجه الأرض مِن الخلق هالك.",
+      }),
+      sourceRecord({
+        id: "bukhari-unused",
+        sourceKind: "hadith",
+        collection: "bukhari",
+        displayName: "Sahih al-Bukhari",
+        reference: "1",
+      }),
+    ],
+  });
+
+  assert.match(answer.text, /في القرآن الكريم، سورة الرحمن، الآية 55:26: كُلُّ مَنْ عَلَيْهَا فَانٍ \[1\]/);
+  assert.match(answer.text, /الخلاصة من كتب التفسير/);
+  assert.match(answer.text, /يذكر التفسير الميسر: كل مَن على وجه الأرض مِن الخلق هالك\. \[2\]/);
+  assert.doesNotMatch(answer.text, /\b(?:Quran|Tafsir)\b/);
+  assert.deepEqual(Array.from(answer.citations), ["[1] القرآن - سورة الرحمن 55:26", "[2] التفسير الميسر - سورة الرحمن 55:26"]);
+  assert.equal(answer.citations.length, 2);
 });

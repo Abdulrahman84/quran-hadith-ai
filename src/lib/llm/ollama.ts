@@ -61,20 +61,22 @@ function buildCitationPack(records: SourceRecord[], language: RetrievalLanguage)
       const citation = `[${index + 1}]`;
       const text = getRecordText(record, language).trim();
       const metadata =
-        record.sourceKind === "hadith"
-          ? [
-              `${record.displayName} ${record.reference}`,
-              record.book ? `book: ${record.book}` : null,
-              record.chapter ? `chapter: ${record.chapter}` : null,
-              record.grade?.value ? `grade: ${record.grade.value}` : "grade: unavailable",
-              `source: ${record.sourceReference}`,
-            ]
-          : [
-              `${record.displayName} ${record.reference}`,
-              record.translationEdition ? `translation: ${record.translationEdition}` : null,
-              record.tafsirSource ? `tafsir: ${record.tafsirSource}` : null,
-              `source: ${record.sourceReference}`,
-            ];
+        language === "arabic"
+          ? arabicRecordMetadata(record)
+          : record.sourceKind === "hadith"
+            ? [
+                `${record.displayName} ${record.reference}`,
+                record.book ? `book: ${record.book}` : null,
+                record.chapter ? `chapter: ${record.chapter}` : null,
+                record.grade?.value ? `grade: ${record.grade.value}` : "grade: unavailable",
+                `source: ${record.sourceReference}`,
+              ]
+            : [
+                `${record.displayName} ${record.reference}`,
+                record.translationEdition ? `translation: ${record.translationEdition}` : null,
+                record.tafsirSource ? `tafsir: ${record.tafsirSource}` : null,
+                `source: ${record.sourceReference}`,
+              ];
       const metadataText = metadata
         .filter(Boolean)
         .join("; ");
@@ -88,8 +90,115 @@ function stripThinkingBlocks(value: string) {
   return value.replace(/<think>[\s\S]*?<\/think>/gi, "").trim();
 }
 
-function citationLabels(records: SourceRecord[]) {
-  return records.map((record, index) => `[${index + 1}] ${record.displayName} ${record.reference}`);
+function arabicRecordTitle(record: SourceRecord) {
+  if (record.sourceKind === "quran") {
+    return `القرآن - ${arabicReferenceSuffix(record)}`;
+  }
+
+  if (record.sourceKind === "tafsir") {
+    return `${arabicTafsirSourceName(record)} - ${arabicReferenceSuffix(record)}`;
+  }
+
+  return `${arabicHadithCollectionName(record)} ${record.reference}`.trim();
+}
+
+const arabicTafsirSourceLabels = new Map<string, string>([
+  ["tabary", "تفسير الطبري"],
+  ["tabari", "تفسير الطبري"],
+  ["katheer", "تفسير ابن كثير"],
+  ["ibn-kathir", "تفسير ابن كثير"],
+  ["baghawy", "تفسير البغوي"],
+  ["baghawi", "تفسير البغوي"],
+  ["saady", "تفسير السعدي"],
+  ["saadi", "تفسير السعدي"],
+  ["moyassar", "التفسير الميسر"],
+  ["muyassar", "التفسير الميسر"],
+  ["mokhtasar", "المختصر في التفسير"],
+  ["mukhtasar", "المختصر في التفسير"],
+]);
+
+function arabicTafsirSourceName(record: SourceRecord) {
+  const collectionLabel = arabicTafsirSourceLabels.get(record.collection.toLowerCase());
+
+  if (collectionLabel) {
+    return collectionLabel;
+  }
+
+  if (record.tafsirSource && !/[A-Za-z]/.test(record.tafsirSource)) {
+    return record.tafsirSource.split(/[،,]/)[0]?.trim() || "التفسير";
+  }
+
+  return "التفسير";
+}
+
+function arabicReferenceSuffix(record: SourceRecord) {
+  return record.surahName ? `سورة ${record.surahName} ${record.reference}` : record.reference;
+}
+
+function arabicHadithCollectionName(record: SourceRecord) {
+  const collection = record.collection.toLowerCase();
+  const displayName = record.displayName.toLowerCase();
+
+  if (collection.includes("bukhari") || displayName.includes("bukhari")) {
+    return "صحيح البخاري";
+  }
+
+  if (collection.includes("muslim") || displayName.includes("muslim")) {
+    return "صحيح مسلم";
+  }
+
+  if (collection.includes("abudawud") || collection.includes("abu-dawud") || displayName.includes("abu dawud")) {
+    return "سنن أبي داود";
+  }
+
+  if (collection.includes("tirmidhi") || displayName.includes("tirmidhi")) {
+    return "جامع الترمذي";
+  }
+
+  if (collection.includes("nasai") || collection.includes("nasa") || displayName.includes("nasa")) {
+    return "سنن النسائي";
+  }
+
+  if (collection.includes("majah") || displayName.includes("majah")) {
+    return "سنن ابن ماجه";
+  }
+
+  return "كتاب الحديث";
+}
+
+function arabicRecordMetadata(record: SourceRecord) {
+  if (record.sourceKind === "hadith") {
+    return [
+      arabicRecordTitle(record),
+      record.book ? `الكتاب: ${record.book}` : null,
+      record.chapter ? `الباب: ${record.chapter}` : null,
+      record.grade?.value ? `الدرجة: ${record.grade.value}` : "الدرجة: غير متاحة",
+      `المصدر: ${record.sourceReference}`,
+    ];
+  }
+
+  return [
+    arabicRecordTitle(record),
+    record.sourceKind === "tafsir" ? "النوع: تفسير" : "النوع: قرآن",
+  ];
+}
+
+function citationLabels(records: SourceRecord[], language: RetrievalLanguage) {
+  return records.map((record, index) => {
+    const title = language === "arabic" ? arabicRecordTitle(record) : `${record.displayName} ${record.reference}`.trim();
+
+    return `[${index + 1}] ${title}`;
+  });
+}
+
+function citationLabelsForText(records: SourceRecord[], language: RetrievalLanguage, text: string) {
+  const allLabels = citationLabels(records, language);
+  const usedIndexes = [...text.matchAll(/\[(\d+)\]/g)]
+    .map((match) => Number.parseInt(match[1] || "", 10))
+    .filter((index) => Number.isInteger(index) && index >= 1 && index <= records.length);
+  const uniqueUsedIndexes = [...new Set(usedIndexes)];
+
+  return uniqueUsedIndexes.map((index) => allLabels[index - 1]).filter((label): label is string => Boolean(label));
 }
 
 function cleanWhitespace(value: string) {
@@ -209,7 +318,6 @@ function summarizeExcerpt(excerpt: string, language: RetrievalLanguage) {
 }
 
 export function fallbackGroundedSummary(input: GenerateGroundedAnswerInput): GroundedAnswer {
-  const citations = citationLabels(input.records);
   const seenExcerpts = new Set<string>();
   const featuredRecords = input.records
     .map((record, index) => ({
@@ -230,17 +338,27 @@ export function fallbackGroundedSummary(input: GenerateGroundedAnswerInput): Gro
     .slice(0, 3);
 
   if (input.language === "arabic") {
-    const lines = featuredRecords
+    const quranLines = exactArabicQuranLines(input.records);
+    const tafsirSummaryLines = exactArabicTafsirSummaryLines(input.records);
+    const genericLines = featuredRecords
       .map((record) => {
         const grade = record.grade ? ` درجة السجل: ${record.grade}.` : "";
         return `- يلخص أحد السجلات ${summarizeExcerpt(record.excerpt, input.language)} ${record.citation}.${grade}`;
       })
       .join("\n");
+    const lines =
+      quranLines.length > 0
+        ? [`النص المسترجع:`, quranLines.join("\n"), tafsirSummaryLines.length > 0 ? `الخلاصة من كتب التفسير:\n${tafsirSummaryLines.join("\n")}` : null]
+            .filter(Boolean)
+            .join("\n")
+        : genericLines;
+
+    const text = `بالنسبة إلى سؤالك، تعرض السجلات المسترجعة ما يلي:\n${lines}\nهذه صياغة تلخص النصوص المسترجعة فقط، وليست فتوى أو حكما شرعيا مستقلا.`;
 
     return {
       status: "ready",
-      text: `بالنسبة إلى سؤالك، تعرض السجلات المسترجعة مقاطع مرتبطة بما سألت عنه، وأبرز ما يظهر في النصوص:\n${lines}\nهذه صياغة تلخص النصوص المسترجعة فقط، وليست فتوى أو حكما شرعيا مستقلا.`,
-      citations,
+      text,
+      citations: citationLabelsForText(input.records, input.language, text),
       warnings: [{ code: "ollama_guardrail_fallback", message: "The model output was replaced by a guarded source summary." }],
     };
   }
@@ -252,16 +370,87 @@ export function fallbackGroundedSummary(input: GenerateGroundedAnswerInput): Gro
     })
     .join("\n");
 
+  const text = `For your question, the retrieved records contain passages related to what you asked:\n${lines}\nThis summarizes only the retrieved text and is not an independent religious ruling.`;
+
   return {
     status: "ready",
-    text: `For your question, the retrieved records contain passages related to what you asked:\n${lines}\nThis summarizes only the retrieved text and is not an independent religious ruling.`,
-    citations,
+    text,
+    citations: citationLabelsForText(input.records, input.language, text),
     warnings: [{ code: "ollama_guardrail_fallback", message: "The model output was replaced by a guarded source summary." }],
   };
 }
 
+function exactArabicQuranLines(records: SourceRecord[]) {
+  const seen = new Set<string>();
+  const lines: string[] = [];
+
+  records.forEach((record, index) => {
+    if (record.sourceKind !== "quran" && record.sourceKind !== "tafsir") {
+      return;
+    }
+
+    const ayahText = cleanWhitespace(record.arabicText);
+
+    if (!ayahText) {
+      return;
+    }
+
+    const reference = record.verseKey || record.reference;
+    const key = `${reference}:${ayahText}`;
+
+    if (seen.has(key)) {
+      return;
+    }
+
+    seen.add(key);
+    const surahPrefix = record.surahName ? `سورة ${record.surahName}، ` : "";
+    const sourceName = record.sourceKind === "quran" ? "القرآن الكريم" : arabicTafsirSourceName(record);
+
+    lines.push(`- في ${sourceName}، ${surahPrefix}الآية ${reference}: ${ayahText} [${index + 1}].`);
+  });
+
+  return lines.slice(0, 3);
+}
+
+function exactArabicTafsirSummaryLines(records: SourceRecord[]) {
+  const seen = new Set<string>();
+  const lines: string[] = [];
+
+  records.forEach((record, index) => {
+    if (record.sourceKind !== "tafsir" || !record.tafsirText) {
+      return;
+    }
+
+    const sourceName = arabicTafsirSourceName(record);
+    const tafsirText = cleanWhitespace(record.tafsirText);
+
+    if (!tafsirText || /[A-Za-z]/.test(tafsirText)) {
+      return;
+    }
+
+    const key = `${sourceName}:${tafsirText.slice(0, 100)}`;
+
+    if (seen.has(key)) {
+      return;
+    }
+
+    seen.add(key);
+    lines.push(`- يذكر ${sourceName}: ${tafsirText.slice(0, 220)} [${index + 1}].`);
+  });
+
+  return lines.slice(0, 2);
+}
+
 function passesGroundingGuardrails(text: string, language: RetrievalLanguage) {
   if (!/\[\d+\]/.test(text)) {
+    return false;
+  }
+
+  if (language === "arabic" && /[A-Za-z]/.test(text)) {
+    return false;
+  }
+
+  if (language === "arabic" && /(?:^|\s)(?:حدثنا|حدثني|أخبرنا|اخبرنا|أنبأنا|انبانا|سمعت)(?:\s|،|,)/.test(text)) {
     return false;
   }
 
@@ -369,6 +558,27 @@ function passesLexicalGrounding(text: string, input: GenerateGroundedAnswerInput
   return unsupportedTokens.length <= 4;
 }
 
+function passesExactQuranGuardrail(text: string, input: GenerateGroundedAnswerInput) {
+  if (input.language !== "arabic") {
+    return true;
+  }
+
+  const quranRecords = input.records.filter((record) => {
+    return (record.sourceKind === "quran" || record.sourceKind === "tafsir") && cleanWhitespace(record.arabicText).length > 0;
+  });
+
+  if (quranRecords.length === 0) {
+    return true;
+  }
+
+  return quranRecords.some((record) => {
+    const reference = record.verseKey || record.reference;
+    const ayahText = cleanWhitespace(record.arabicText);
+
+    return text.includes(reference) && text.includes(ayahText);
+  });
+}
+
 function systemPrompt(language: RetrievalLanguage) {
   if (language === "arabic") {
     return [
@@ -377,7 +587,9 @@ function systemPrompt(language: RetrievalLanguage) {
       "لا تصدر فتوى ولا تقدم حكما شرعيا مستقلا. إن كانت السجلات غير كافية فاذكر ذلك بوضوح.",
       "لا تعتبر عناوين الكتب أو الأبواب حكما شرعيا؛ هي بيانات وصفية فقط.",
       "اكتب إجابة عربية قصيرة تصف ما تحتويه السجلات، لا تجب بصيغة حكم عام.",
+      "لا تستخدم أي كلمة إنجليزية في الإجابة العربية، بما في ذلك أسماء الأنواع مثل Quran أو Tafsir.",
       "خاطب السائل مباشرة بصيغة المخاطب مثل: بالنسبة إلى سؤالك.",
+      "إذا كان في السجلات آية قرآنية، فاذكر مرجع الآية ونصها العربي كما هو حرفيا من السجل، ولا تعد صياغة النص القرآني ولا تكمله من الذاكرة.",
       "لخّص المعنى والمضمون المشترك للنصوص المسترجعة، ولا تنقل أسانيد الرواة في الحديث إلا إذا كان السؤال عنها.",
       "لا تعرض قائمة بأسماء المصادر فقط؛ لخّص مضمون النصوص المسترجعة.",
       "ضع أرقام الاقتباس مثل [1] بجانب كل معلومة مستندة إلى سجل.",
@@ -403,7 +615,7 @@ function userPrompt(input: GenerateGroundedAnswerInput) {
   const citationPack = buildCitationPack(input.records, input.language);
 
   if (input.language === "arabic") {
-    return `السؤال:\n${input.question}\n\nسجلات المصادر المسترجعة:\n${citationPack}\n\nاكتب جملتين أو ثلاثا فقط. خاطب السائل مباشرة وابدأ بعبارة مثل: "بالنسبة إلى سؤالك، تعرض السجلات المسترجعة..." ولخّص المعنى العام للنصوص لا أسماء الكتب ولا أسانيد الرواة في الحديث. لا تضف تفصيلا غير ظاهر في النصوص.`;
+    return `السؤال:\n${input.question}\n\nسجلات المصادر المسترجعة:\n${citationPack}\n\nاكتب جملتين أو ثلاثا فقط. خاطب السائل مباشرة وابدأ بعبارة مثل: "بالنسبة إلى سؤالك، تعرض السجلات المسترجعة..." إذا وجدت آية فاذكر رقمها ونصها العربي حرفيا كما ورد في السجل، ولا تكتب أي كلمة إنجليزية. لا تضف تفصيلا غير ظاهر في النصوص.`;
   }
 
   return `Question:\n${input.question}\n\nRetrieved source records:\n${citationPack}\n\nWrite only two or three sentences. Address the asker directly and start with a phrase like: "For your question, the retrieved records show..." Summarize the overall meaning of the retrieved texts, not only the source names and not hadith narrator chains. Do not add details that are not visible in the records.`;
@@ -474,14 +686,14 @@ export async function generateGroundedAnswer(input: GenerateGroundedAnswerInput)
       };
     }
 
-    if (!passesGroundingGuardrails(text, input.language) || !passesLexicalGrounding(text, input)) {
+    if (!passesGroundingGuardrails(text, input.language) || !passesLexicalGrounding(text, input) || !passesExactQuranGuardrail(text, input)) {
       return fallbackGroundedSummary(input);
     }
 
     return {
       status: "ready",
       text,
-      citations: citationLabels(input.records),
+      citations: citationLabelsForText(input.records, input.language, text),
       warnings: [],
     };
   } catch (error) {

@@ -33,9 +33,12 @@ function loadSourceDisplay() {
 
 function sourceRecord(overrides = {}) {
   return {
+    collection: "quran",
     sourceKind: "quran",
     displayName: "Quran 55:26",
     reference: "55:26",
+    surahName: "الرحمن",
+    tafsirSource: null,
     grade: null,
     ...overrides,
   };
@@ -44,8 +47,11 @@ function sourceRecord(overrides = {}) {
 test("formats Quran and tafsir titles in Arabic UI", () => {
   const { formatSourceRecordTitle } = loadSourceDisplay();
 
-  assert.equal(formatSourceRecordTitle(sourceRecord(), "ar"), "القرآن 55:26");
-  assert.equal(formatSourceRecordTitle(sourceRecord({ sourceKind: "tafsir", displayName: "Tafsir 55:26" }), "ar"), "التفسير 55:26");
+  assert.equal(formatSourceRecordTitle(sourceRecord(), "ar"), "القرآن - سورة الرحمن 55:26");
+  assert.equal(
+    formatSourceRecordTitle(sourceRecord({ collection: "moyassar", sourceKind: "tafsir", displayName: "Tafsir 55:26" }), "ar"),
+    "التفسير الميسر - سورة الرحمن 55:26",
+  );
 });
 
 test("preserves Quran and tafsir titles in English UI", () => {

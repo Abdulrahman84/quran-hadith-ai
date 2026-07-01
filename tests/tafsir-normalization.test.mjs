@@ -47,6 +47,7 @@ test("normalizes search_quran_text results into Quran source records", () => {
 
   assert.equal(record.sourceKind, "quran");
   assert.equal(record.reference, "2:255");
+  assert.equal(record.surahName, "البقرة");
   assert.equal(record.displayName, "Quran 2:255");
   assert.equal(record.arabicText, "اللَّهُ لَا إِلَٰهَ إِلَّا هُوَ الْحَيُّ الْقَيُّومُ");
   assert.equal(record.tafsirText, null);
@@ -121,6 +122,7 @@ test("normalizes fetch_ayah and fetch_tafsir results together", () => {
   assert.equal(records.length, 2);
   assert.equal(records[0].sourceKind, "quran");
   assert.equal(records[0].reference, "112:1");
+  assert.equal(records[0].surahName, "الإخلاص");
   assert.equal(records[1].sourceKind, "tafsir");
   assert.equal(records[1].arabicText, "قُلْ هُوَ اللَّهُ أَحَدٌ");
   assert.equal(records[1].tafsirText, "Say, O Messenger: He is Allah, the One.");
