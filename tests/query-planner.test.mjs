@@ -47,10 +47,22 @@ test("Arabic hadith planning expands Prophet trait questions before raw tokens",
   const { planHadithSearchQueries } = loadQueryPlanner();
 
   assert.deepEqual(Array.from(planHadithSearchQueries("صفات سيدنا محمد", "arabic")), [
+    "ليس بالطويل",
+    "ربعة من القوم",
+    "كان رسول الله ربعة",
+    "صفة رسول الله",
     "خلق رسول الله",
-    "كان رسول الله",
     "كان النبي",
-    "صفة النبي",
     "صفات سيدنا محمد",
+  ]);
+});
+
+test("Arabic hadith planning expands common broad topics", () => {
+  const { planHadithSearchQueries } = loadQueryPlanner();
+
+  assert.deepEqual(Array.from(planHadithSearchQueries("ما المصادر عن الصبر", "arabic")).slice(0, 3), [
+    "الصبر عند الصدمة الأولى",
+    "ومن يتصبر يصبره الله",
+    "عجبا لأمر المؤمن",
   ]);
 });

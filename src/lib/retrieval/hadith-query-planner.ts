@@ -15,7 +15,7 @@ type OllamaQueryResponse = {
 };
 
 const defaultOllamaBaseUrl = "http://127.0.0.1:11434";
-const defaultOllamaModel = "qwen2.5-coder:7b";
+const defaultOllamaModel = "qwen3:30b";
 
 function getHadithQueryPlannerConfig() {
   const ollamaEnabled = process.env.OLLAMA_ENABLED?.trim() !== "false";
@@ -186,7 +186,7 @@ export async function planHadithRetrievalQueries(
   }
 
   return {
-    queries: [...new Set([...aiPlan.queries, ...fallbackQueries])],
+    queries: [...new Set([...fallbackQueries, ...aiPlan.queries])],
     planner: aiPlan.planner,
     warning: aiPlan.warning,
   };

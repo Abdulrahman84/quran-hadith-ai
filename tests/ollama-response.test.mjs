@@ -139,6 +139,24 @@ test("fallback Arabic summary omits narrator-chain openings", () => {
   assert.match(answer.text, /انما الاعمال بالنيات/);
 });
 
+test("fallback Arabic summary prefers hadith matn over trailing notes", () => {
+  const { fallbackGroundedSummary } = loadOllamaModule();
+
+  const answer = fallbackGroundedSummary({
+    question: "صفات سيدنا محمد",
+    language: "arabic",
+    records: [
+      sourceRecord({
+        arabicText:
+          "حدثنا عمرو الناقد، عن البراء قال كان رسول الله صلى الله عليه وسلم أحسن الناس وجها وأحسنهم خلقا ليس بالطويل ولا بالقصير. قال أبو كريب له شعر.",
+      }),
+    ],
+  });
+
+  assert.match(answer.text, /ان رسول الله صلي الله عليه وسلم احسن الناس وجها/);
+  assert.doesNotMatch(answer.text, /ابو كريب له شعر/);
+});
+
 test("fallback answer can cite tafsir records", () => {
   const { fallbackGroundedSummary } = loadOllamaModule();
 
@@ -199,4 +217,41 @@ test("fallback Arabic Quran summary mentions the verse and exact ayah text witho
   assert.doesNotMatch(answer.text, /\b(?:Quran|Tafsir)\b/);
   assert.deepEqual(Array.from(answer.citations), ["[1] القرآن - سورة الرحمن 55:26", "[2] التفسير الميسر - سورة الرحمن 55:26"]);
   assert.equal(answer.citations.length, 2);
+});
+
+test("fallback Arabic broad-topic summary includes hadith alongside Quran records", () => {
+  const { fallbackGroundedSummary } = loadOllamaModule();
+
+  const answer = fallbackGroundedSummary({
+    question: "ما المصادر عن الصبر؟",
+    language: "arabic",
+    records: [
+      tafsirRecord({
+        sourceKind: "quran",
+        collection: "quran",
+        displayName: "Quran 2:153",
+        reference: "2:153",
+        surahNumber: 2,
+        ayahNumber: 153,
+        surahName: "البقرة",
+        verseKey: "2:153",
+        arabicText: "يَا أَيُّهَا الَّذِينَ آمَنُوا اسْتَعِينُوا بِالصَّبْرِ وَالصَّلَاةِ",
+        tafsirText: null,
+      }),
+      sourceRecord({
+        id: "bukhari-sabr",
+        sourceKind: "hadith",
+        collection: "bukhari",
+        displayName: "Sahih al-Bukhari",
+        reference: "2:35",
+        arabicText: "قال رسول الله صلى الله عليه وسلم ومن يتصبر يصبره الله",
+      }),
+    ],
+  });
+
+  assert.match(answer.text, /ومن سجلات الحديث/);
+  assert.match(answer.text, /ومن النص القرآني/);
+  assert.match(answer.text, /ومن يتصبر يصبره الله/);
+  assert.ok(answer.text.indexOf("ومن سجلات الحديث") < answer.text.indexOf("ومن النص القرآني"));
+  assert.deepEqual(Array.from(answer.citations), ["[2] صحيح البخاري 2:35", "[1] القرآن - سورة البقرة 2:153"]);
 });

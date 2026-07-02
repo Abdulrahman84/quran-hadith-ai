@@ -70,6 +70,52 @@ test("lets the AI router choose source tools from the approved MCP set", async (
   assert.equal(decision.warning, null);
 });
 
+test("adds both routes for broad Islamic topics when the model is too narrow", async () => {
+  const { planSourceRouteDecision } = loadSourceIntent({
+    fetch: async () => ({
+      ok: true,
+      json: async () => ({
+        message: {
+          content: '{"routes":["tafsir"],"reason":"The model chose Quran evidence."}',
+        },
+      }),
+    }),
+    process: {
+      env: {
+        OLLAMA_ENABLED: "true",
+        MCP_TOOL_ROUTER_ENABLED: "true",
+      },
+    },
+  });
+
+  const decision = await planSourceRouteDecision("ما المصادر عن الصبر؟");
+
+  assert.deepEqual(Array.from(decision.routes), ["tafsir", "hadith"]);
+});
+
+test("keeps explicitly Quran-only questions on the tafsir route", async () => {
+  const { planSourceRouteDecision } = loadSourceIntent({
+    fetch: async () => ({
+      ok: true,
+      json: async () => ({
+        message: {
+          content: '{"routes":["tafsir"],"reason":"The question asks for tafsir."}',
+        },
+      }),
+    }),
+    process: {
+      env: {
+        OLLAMA_ENABLED: "true",
+        MCP_TOOL_ROUTER_ENABLED: "true",
+      },
+    },
+  });
+
+  const decision = await planSourceRouteDecision("تفسير آية كل من عليها فان");
+
+  assert.deepEqual(Array.from(decision.routes), ["tafsir"]);
+});
+
 test("does not call MCP tools when the AI router returns invalid tools", async () => {
   const { planSourceRouteDecision } = loadSourceIntent({
     fetch: async () => ({

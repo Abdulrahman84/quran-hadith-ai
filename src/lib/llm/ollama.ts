@@ -14,7 +14,7 @@ type OllamaChatResponse = {
 };
 
 const defaultOllamaBaseUrl = "http://127.0.0.1:11434";
-const defaultOllamaModel = "qwen2.5-coder:7b";
+const defaultOllamaModel = "qwen3:30b";
 
 function disabledAnswer(): GroundedAnswer {
   return {
@@ -243,16 +243,36 @@ function stripArabicNarratorOpening(value: string) {
   return text;
 }
 
+function stripArabicHadithTrailingNotes(value: string) {
+  return value
+    .replace(/\s*قال ابو كريب[\s\S]*$/u, "")
+    .replace(/\s*قال ابو عيسي[\s\S]*$/u, "")
+    .replace(/\s*قال الترمذي[\s\S]*$/u, "")
+    .replace(/\s*وفي الباب[\s\S]*$/u, "")
+    .replace(/\s*قال\s*$/u, "")
+    .trim();
+}
+
 function excerptArabicText(value: string) {
   const text = stripArabicNarratorOpening(normalizeArabicForExcerpt(value));
-  const markers = ["قال رسول الله", "سمعت رسول الله", "ان رسول الله", "عن النبي", "قال النبي", " ثم قال ", " قال "];
-  const markerIndex = markers
+  const strongMarkers = ["قال رسول الله", "سمعت رسول الله", "ان رسول الله", "كان رسول الله", "يصف النبي", "عن النبي", "قال النبي"];
+  const strongMarkerIndex = strongMarkers
     .map((marker) => text.lastIndexOf(marker))
     .filter((index) => index >= 0)
     .sort((a, b) => b - a)[0];
-  const excerpt = markerIndex === undefined ? text : text.slice(markerIndex);
 
-  return excerpt.slice(0, 260);
+  if (strongMarkerIndex !== undefined) {
+    return stripArabicHadithTrailingNotes(text.slice(strongMarkerIndex)).slice(0, 260);
+  }
+
+  const fallbackMarkers = [" ثم قال ", " قال "];
+  const fallbackMarkerIndex = fallbackMarkers
+    .map((marker) => text.lastIndexOf(marker))
+    .filter((index) => index >= 0)
+    .sort((a, b) => b - a)[0];
+  const excerpt = fallbackMarkerIndex === undefined ? text : text.slice(fallbackMarkerIndex);
+
+  return stripArabicHadithTrailingNotes(excerpt).slice(0, 260);
 }
 
 function excerptEnglishText(value: string) {
@@ -317,6 +337,76 @@ function summarizeExcerpt(excerpt: string, language: RetrievalLanguage) {
   return language === "arabic" ? summarizeArabicExcerpt(excerpt) : summarizeEnglishExcerpt(excerpt);
 }
 
+function formatArabicHadithGrade(value: string) {
+  const normalized = value
+    .toLowerCase()
+    .replace(/[_-]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  if (normalized.includes("hasan sahih")) {
+    return "حسن صحيح";
+  }
+
+  if (normalized.includes("sahih")) {
+    return "صحيح";
+  }
+
+  if (normalized.includes("hasan")) {
+    return "حسن";
+  }
+
+  if (normalized.includes("daif") || normalized.includes("daeef") || normalized.includes("da'if")) {
+    return "ضعيف";
+  }
+
+  return value;
+}
+
+function isArabicQuranOnlyQuestion(question: string) {
+  const normalized = normalizeArabicForExcerpt(question.toLowerCase());
+  const tokens = new Set(normalized.replace(/[^\p{L}\p{N}\s]/gu, " ").split(/\s+/).filter(Boolean));
+  const quranTerms = ["قران", "القران", "اية", "الاية", "ايه", "الايه", "سوره", "السوره", "تفسير", "التفسير"];
+  const hadithTerms = ["حديث", "احاديث", "سنه", "السنه"];
+  const mentionsQuran = quranTerms.some((term) => tokens.has(term));
+  const mentionsHadith = hadithTerms.some((term) => tokens.has(term));
+
+  return mentionsQuran && !mentionsHadith;
+}
+
+function exactArabicHadithSummaryLines(records: SourceRecord[], question: string) {
+  if (isArabicQuranOnlyQuestion(question)) {
+    return [];
+  }
+
+  const seen = new Set<string>();
+  const lines: string[] = [];
+
+  records.forEach((record, index) => {
+    if (record.sourceKind !== "hadith") {
+      return;
+    }
+
+    const excerpt = contentExcerpt(record, "arabic");
+    const summary = summarizeArabicExcerpt(excerpt);
+    const key = summary.slice(0, 90);
+
+    if (summary.length < 12) {
+      return;
+    }
+
+    if (seen.has(key)) {
+      return;
+    }
+
+    seen.add(key);
+    const grade = record.grade ? ` درجة السجل: ${formatArabicHadithGrade(record.grade.value)}.` : "";
+    lines.push(`- يذكر ${arabicHadithCollectionName(record)}: ${summary} [${index + 1}].${grade}`);
+  });
+
+  return lines.slice(0, 3);
+}
+
 export function fallbackGroundedSummary(input: GenerateGroundedAnswerInput): GroundedAnswer {
   const seenExcerpts = new Set<string>();
   const featuredRecords = input.records
@@ -340,6 +430,7 @@ export function fallbackGroundedSummary(input: GenerateGroundedAnswerInput): Gro
   if (input.language === "arabic") {
     const quranLines = exactArabicQuranLines(input.records);
     const tafsirSummaryLines = exactArabicTafsirSummaryLines(input.records);
+    const hadithSummaryLines = exactArabicHadithSummaryLines(input.records, input.question);
     const genericLines = featuredRecords
       .map((record) => {
         const grade = record.grade ? ` درجة السجل: ${record.grade}.` : "";
@@ -347,11 +438,24 @@ export function fallbackGroundedSummary(input: GenerateGroundedAnswerInput): Gro
       })
       .join("\n");
     const lines =
-      quranLines.length > 0
-        ? [`النص المسترجع:`, quranLines.join("\n"), tafsirSummaryLines.length > 0 ? `الخلاصة من كتب التفسير:\n${tafsirSummaryLines.join("\n")}` : null]
+      hadithSummaryLines.length > 0
+        ? [
+            `ومن سجلات الحديث:`,
+            hadithSummaryLines.join("\n"),
+            quranLines.length > 0 ? `ومن النص القرآني:\n${quranLines.join("\n")}` : null,
+            tafsirSummaryLines.length > 0 ? `الخلاصة من كتب التفسير:\n${tafsirSummaryLines.join("\n")}` : null,
+          ]
             .filter(Boolean)
             .join("\n")
-        : genericLines;
+        : quranLines.length > 0
+          ? [
+              `النص المسترجع:`,
+              quranLines.join("\n"),
+              tafsirSummaryLines.length > 0 ? `الخلاصة من كتب التفسير:\n${tafsirSummaryLines.join("\n")}` : null,
+            ]
+            .filter(Boolean)
+            .join("\n")
+          : genericLines;
 
     const text = `بالنسبة إلى سؤالك، تعرض السجلات المسترجعة ما يلي:\n${lines}\nهذه صياغة تلخص النصوص المسترجعة فقط، وليست فتوى أو حكما شرعيا مستقلا.`;
 

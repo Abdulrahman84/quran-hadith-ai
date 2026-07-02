@@ -39,7 +39,7 @@ The default local model path uses Ollama. Start Ollama and set `OLLAMA_MODEL` to
 
 ```bash
 ollama list
-OLLAMA_MODEL=qwen2.5-coder:7b
+OLLAMA_MODEL=qwen3:30b
 ```
 
 ```bash

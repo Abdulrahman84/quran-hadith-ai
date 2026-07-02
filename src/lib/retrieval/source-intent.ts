@@ -16,10 +16,104 @@ type OllamaRouteResponse = {
 
 const allowedRoutes = new Set<SourceRoute>(["tafsir", "hadith"]);
 const defaultOllamaBaseUrl = "http://127.0.0.1:11434";
-const defaultOllamaModel = "qwen2.5-coder:7b";
+const defaultOllamaModel = "qwen3:30b";
 
 function uniqueRoutes(routes: SourceRoute[]) {
   return [...new Set(routes)];
+}
+
+function normalizeArabic(value: string) {
+  return value
+    .replace(/[\u064B-\u065F\u0670]/g, "")
+    .replace(/\u0640/g, "")
+    .replace(/[إأآٱ]/g, "ا")
+    .replace(/ى/g, "ي")
+    .replace(/ة/g, "ه");
+}
+
+function tokenize(value: string) {
+  return value
+    .replace(/[^\p{L}\p{N}\s]/gu, " ")
+    .split(/\s+/)
+    .map((token) => token.trim().toLowerCase())
+    .filter(Boolean);
+}
+
+function hasAnyToken(tokens: Set<string>, values: string[]) {
+  return values.some((value) => tokens.has(value));
+}
+
+function isExplicitQuranOnlyRequest(query: string) {
+  const normalized = normalizeArabic(query.toLowerCase());
+  const tokens = new Set(tokenize(normalized));
+  const mentionsQuranOnlySource =
+    hasAnyToken(tokens, ["قران", "القران", "ايه", "الايه", "آيه", "الآيه", "سوره", "السوره", "تفسير", "التفسير", "tafsir", "ayah", "verse", "quran", "surah"]) ||
+    normalized.includes("في القران");
+  const mentionsHadithSource = hasAnyToken(tokens, ["حديث", "احاديث", "السنه", "سنه", "hadith", "hadeeth", "sunnah"]);
+
+  return mentionsQuranOnlySource && !mentionsHadithSource;
+}
+
+function isExplicitHadithOnlyRequest(query: string) {
+  const normalized = normalizeArabic(query.toLowerCase());
+  const tokens = new Set(tokenize(normalized));
+  const mentionsHadithSource = hasAnyToken(tokens, ["حديث", "احاديث", "السنه", "سنه", "hadith", "hadeeth", "sunnah"]);
+  const mentionsQuranSource = hasAnyToken(tokens, ["قران", "القران", "ايه", "الايه", "آيه", "الآيه", "تفسير", "التفسير", "tafsir", "ayah", "verse", "quran"]);
+
+  return mentionsHadithSource && !mentionsQuranSource;
+}
+
+function looksLikeOpenEndedIslamicTopic(query: string) {
+  const normalized = normalizeArabic(query.toLowerCase());
+  const tokens = new Set(tokenize(normalized));
+  const islamicTerms = [
+    "الله",
+    "النبي",
+    "رسول",
+    "الرسول",
+    "محمد",
+    "صلاه",
+    "الصلاه",
+    "صيام",
+    "الصيام",
+    "زكاه",
+    "الزكاه",
+    "صبر",
+    "الصبر",
+    "رحمه",
+    "الرحمه",
+    "اخلاق",
+    "خلق",
+    "صفات",
+    "شمائل",
+    "ايمان",
+    "الايمان",
+    "تقوي",
+    "الجنه",
+    "النار",
+    "prophet",
+    "messenger",
+    "muhammad",
+    "allah",
+    "prayer",
+    "fasting",
+    "patience",
+    "mercy",
+    "character",
+    "manners",
+    "faith",
+    "paradise",
+  ];
+
+  return hasAnyToken(tokens, islamicTerms) || normalized.includes("سيدنا محمد");
+}
+
+function applyRouteSafetyNet(query: string, routes: SourceRoute[]) {
+  if (isExplicitQuranOnlyRequest(query) || isExplicitHadithOnlyRequest(query) || !looksLikeOpenEndedIslamicTopic(query)) {
+    return routes;
+  }
+
+  return uniqueRoutes([...routes, "tafsir", "hadith"]);
 }
 
 function getOllamaRouterConfig() {
@@ -166,7 +260,7 @@ async function planSourceRoutesWithOllama(query: string): Promise<SourceRoutePla
     }
 
     return {
-      routes: normalized.routes,
+      routes: applyRouteSafetyNet(query, normalized.routes),
       planner: "ollama",
       reason: normalized.reason,
       warning: null,

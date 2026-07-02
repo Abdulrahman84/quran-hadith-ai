@@ -126,14 +126,38 @@ export function planHadithSearchQueries(query: string, language: RetrievalLangua
     const asksAboutTraits = ["صفات", "صفه", "اخلاق", "خلق", "شمائل", "وصف", "هيئه"].some((term) => tokens.has(term));
 
     if (asksAboutProphet && asksAboutTraits) {
-      expansions.push("خلق رسول الله", "كان رسول الله", "كان النبي", "صفة النبي");
+      expansions.push("ليس بالطويل", "ربعة من القوم", "كان رسول الله ربعة", "صفة رسول الله", "خلق رسول الله", "كان النبي");
+    }
+
+    if (tokens.has("صبر") || tokens.has("الصبر")) {
+      expansions.push("الصبر عند الصدمة الأولى", "ومن يتصبر يصبره الله", "عجبا لأمر المؤمن");
+    }
+
+    if (tokens.has("رحمه") || tokens.has("الرحمه") || tokens.has("رحمة") || tokens.has("الرحمة")) {
+      expansions.push("الراحمون يرحمهم الرحمن", "من لا يرحم لا يرحم", "ارحموا من في الأرض");
+    }
+
+    if (tokens.has("صلاه") || tokens.has("الصلاه") || tokens.has("صلاة") || tokens.has("الصلاة")) {
+      expansions.push("صلوا كما رأيتموني أصلي", "لا صلاة لمن لم يقرأ", "أفضل الصلاة بعد الفريضة");
     }
   } else {
     const asksAboutProphet = /\b(?:prophet|messenger|muhammad)\b/.test(normalizedQuery);
     const asksAboutTraits = /\b(?:trait|traits|character|description|appearance|manners|qualities)\b/.test(normalizedQuery);
 
     if (asksAboutProphet && asksAboutTraits) {
-      expansions.push("character of the prophet", "messenger of allah character", "description of the prophet");
+      expansions.push("not tall nor short", "messenger of allah was of medium height", "description of the prophet", "character of the prophet");
+    }
+
+    if (/\b(?:patience|patient)\b/.test(normalizedQuery)) {
+      expansions.push("patience at the first shock", "whoever seeks patience", "wondrous is the affair");
+    }
+
+    if (/\b(?:mercy|merciful)\b/.test(normalizedQuery)) {
+      expansions.push("those who are merciful", "whoever does not show mercy", "show mercy to those");
+    }
+
+    if (/\b(?:prayer|salah|salat)\b/.test(normalizedQuery)) {
+      expansions.push("pray as you have seen me pray", "no prayer for whoever does not recite", "best prayer after the obligatory");
     }
   }
 

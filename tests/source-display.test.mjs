@@ -66,6 +66,7 @@ test("formats common romanized hadith grades in Arabic UI", () => {
 
   assert.equal(formatHadithGrade("SAHIH LI GHAIRIHI", "ar"), "صحيح لغيره");
   assert.equal(formatHadithGrade("hasan", "ar"), "حسن");
+  assert.equal(formatHadithGrade("Abu Eisa said: This Hadith is Hasan Sahih", "ar"), "حسن صحيح");
   assert.equal(formatHadithGrade("daif", "ar"), "ضعيف");
 });
 

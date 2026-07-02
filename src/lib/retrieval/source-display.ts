@@ -5,6 +5,7 @@ const arabicGradeLabels = new Map<string, string>([
   ["sahih", "صحيح"],
   ["sahih li ghairihi", "صحيح لغيره"],
   ["hasan", "حسن"],
+  ["hasan sahih", "حسن صحيح"],
   ["hasan li ghairihi", "حسن لغيره"],
   ["daif", "ضعيف"],
   ["daeef", "ضعيف"],
@@ -67,7 +68,7 @@ function arabicHadithCollectionName(record: Pick<SourceRecord, "collection" | "d
     return "صحيح مسلم";
   }
 
-  if (collection.includes("abudawud") || collection.includes("abu-dawud") || displayName.includes("abu dawud")) {
+  if (collection.includes("abudawud") || collection.includes("abu-dawud") || collection.includes("abu_dawud") || displayName.includes("abu dawud")) {
     return "سنن أبي داود";
   }
 
@@ -91,7 +92,26 @@ export function formatHadithGrade(value: string, language: Language) {
     return value;
   }
 
-  return arabicGradeLabels.get(normalizeGrade(value)) || value;
+  const normalized = normalizeGrade(value);
+  const exactLabel = arabicGradeLabels.get(normalized);
+
+  if (exactLabel) {
+    return exactLabel;
+  }
+
+  if (normalized.includes("hasan sahih")) {
+    return "حسن صحيح";
+  }
+
+  if (normalized.includes("sahih")) {
+    return "صحيح";
+  }
+
+  if (normalized.includes("hasan")) {
+    return "حسن";
+  }
+
+  return value;
 }
 
 export function formatSourceRecordTitle(

@@ -1,6 +1,8 @@
 import type { Client } from "@modelcontextprotocol/sdk/client/index.js";
 
+import type { HadithCollectionSelection } from "./hadith-collections";
 import { planHadithRetrievalQueries } from "./hadith-query-planner";
+import { rerankHadithRecords, type HadithRerankCandidate } from "./hadith-reranker";
 import { getMcpPayload, withStdioMcpClient, type McpCallResult } from "./mcp-stdio";
 import { planRetrievalQuery, splitFallbackQueries } from "./query-planner";
 import type { RetrievalLanguage, RetrievalResponse, SourceGrade, SourceRecord } from "./types";
@@ -47,6 +49,8 @@ type SearchAttempt = {
 const DEFAULT_HADITH_MCP_ROOT = "/Users/abdulrahman/Projects/hadith-mcp";
 const DEFAULT_HADITH_MCP_DB_PATH = `${DEFAULT_HADITH_MCP_ROOT}/data/generated/hadith-meeatif.sqlite`;
 const DEFAULT_HADITH_MCP_CLI = `${DEFAULT_HADITH_MCP_ROOT}/packages/hadith-mcp/dist/cli.js`;
+const HADITH_SEARCH_LIMIT = 20;
+const HADITH_RESULT_LIMIT = 5;
 
 function getHadithMcpConfig() {
   const command = process.env.HADITH_MCP_COMMAND?.trim() || "node";
@@ -112,13 +116,19 @@ function normalizeRecord(record: HadithSearchResult): SourceRecord {
   };
 }
 
-async function callSearchHadith(client: Client, query: string, language: RetrievalLanguage): Promise<SearchAttempt | null> {
+async function callSearchHadith(
+  client: Client,
+  query: string,
+  language: RetrievalLanguage,
+  collection: HadithCollectionSelection,
+): Promise<SearchAttempt | null> {
   const result = (await client.callTool({
     name: "search_hadith",
     arguments: {
       query,
+      ...(collection === "all" ? {} : { collection }),
       language,
-      limit: 5,
+      limit: HADITH_SEARCH_LIMIT,
       offset: 0,
     },
   })) as McpCallResult;
@@ -135,8 +145,46 @@ async function callSearchHadith(client: Client, query: string, language: Retriev
   };
 }
 
-export async function searchHadithSources(query: string, language: RetrievalLanguage): Promise<RetrievalResponse> {
+function candidateKey(record: SourceRecord) {
+  return `${record.collection}:${record.hadithNumber || record.reference}`;
+}
+
+function addSearchAttemptCandidates(
+  candidates: Map<string, HadithRerankCandidate>,
+  attempt: SearchAttempt,
+  searchOrder: number,
+) {
+  attempt.output.results.forEach((result) => {
+    const record = normalizeRecord(result);
+    const key = candidateKey(record);
+    const existing = candidates.get(key);
+
+    if (!existing) {
+      candidates.set(key, {
+        record,
+        searchQueries: [attempt.query],
+        bestSearchRank: result.rank,
+        firstSearchOrder: searchOrder,
+      });
+      return;
+    }
+
+    if (!existing.searchQueries.includes(attempt.query)) {
+      existing.searchQueries.push(attempt.query);
+    }
+
+    existing.bestSearchRank = Math.min(existing.bestSearchRank, result.rank);
+    existing.firstSearchOrder = Math.min(existing.firstSearchOrder, searchOrder);
+  });
+}
+
+export async function searchHadithSources(
+  query: string,
+  language: RetrievalLanguage,
+  options: { collection?: HadithCollectionSelection } = {},
+): Promise<RetrievalResponse> {
   const planned = planRetrievalQuery(query, language);
+  const collection = options.collection ?? "all";
   const config = getHadithMcpConfig();
   const stderrChunks: string[] = [];
 
@@ -151,37 +199,37 @@ export async function searchHadithSources(query: string, language: RetrievalLang
         },
       },
       async ({ client, stderr }) => {
-        let searchAttempt: SearchAttempt | null = null;
+        const candidates = new Map<string, HadithRerankCandidate>();
+        const successfulQueries: string[] = [];
         const hadithQueryPlan = await planHadithRetrievalQueries(query, language, planned.retrievalQuery);
 
-        for (const searchQuery of hadithQueryPlan.queries) {
-          const attempt = await callSearchHadith(client, searchQuery, language);
+        for (const [searchOrder, searchQuery] of hadithQueryPlan.queries.entries()) {
+          const attempt = await callSearchHadith(client, searchQuery, language, collection);
 
-          if (!searchAttempt || (attempt && attempt.output.results.length > 0)) {
-            searchAttempt = attempt;
-          }
-
-          if (searchAttempt && searchAttempt.output.results.length > 0) {
-            break;
+          if (attempt) {
+            successfulQueries.push(attempt.query);
+            addSearchAttemptCandidates(candidates, attempt, searchOrder);
           }
         }
 
-        if (searchAttempt?.output.results.length === 0) {
-          for (const fallbackQuery of splitFallbackQueries(query, language)) {
+        if (candidates.size === 0) {
+          const fallbackQueries = splitFallbackQueries(query, language);
+
+          for (const [fallbackIndex, fallbackQuery] of fallbackQueries.entries()) {
             if (fallbackQuery === planned.retrievalQuery) {
               continue;
             }
 
-            const fallbackAttempt = await callSearchHadith(client, fallbackQuery, language);
+            const fallbackAttempt = await callSearchHadith(client, fallbackQuery, language, collection);
 
-            if (fallbackAttempt && fallbackAttempt.output.results.length > 0) {
-              searchAttempt = fallbackAttempt;
-              break;
+            if (fallbackAttempt) {
+              successfulQueries.push(fallbackAttempt.query);
+              addSearchAttemptCandidates(candidates, fallbackAttempt, hadithQueryPlan.queries.length + fallbackIndex);
             }
           }
         }
 
-        if (!searchAttempt) {
+        if (successfulQueries.length === 0) {
           return {
             status: "error",
             query,
@@ -198,20 +246,24 @@ export async function searchHadithSources(query: string, language: RetrievalLang
           };
         }
 
-        const records = searchAttempt.output.results.map(normalizeRecord);
+        const records = rerankHadithRecords([...candidates.values()], query, language).slice(0, HADITH_RESULT_LIMIT);
 
         return {
           status: records.length > 0 ? "ok" : "empty",
           query,
-          retrievalQuery: searchAttempt.query,
+          retrievalQuery: successfulQueries.slice(0, 5).join(" | ") || planned.retrievalQuery,
           sourceMode: "hadith-only",
           records,
           warnings: records.length > 0 ? [] : [{ code: "no_hadith_results", message: "No hadith records matched this query." }],
           provenanceNotes: [
-            ...searchAttempt.output.provenance_notes,
+            `Hadith candidates collected: ${candidates.size}.`,
+            "Hadith reranker: matn-aware lexical rerank.",
+            ...(collection === "all" ? [] : [`Hadith collection filter: ${collection}.`]),
             `Hadith query planner: ${hadithQueryPlan.planner}.`,
             ...(hadithQueryPlan.warning ? [`Hadith query planner warning: ${hadithQueryPlan.warning}`] : []),
-            ...(planned.changed || searchAttempt.query !== query ? [`Product query planner searched Hadith MCP for: ${searchAttempt.query}`] : []),
+            ...(planned.changed || successfulQueries.some((searchQuery) => searchQuery !== query)
+              ? [`Product query planner searched Hadith MCP for: ${successfulQueries.slice(0, 5).join(" | ")}`]
+              : []),
           ],
         };
       },
