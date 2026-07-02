@@ -21,6 +21,13 @@ test("main and information pages share the same site header", () => {
   }
 });
 
+test("source policy stays visible in the shared mobile header", () => {
+  const headerSource = readProjectFile("src/components/site-header.tsx");
+
+  assert.match(headerSource, /href="\/source-policy"/);
+  assert.doesNotMatch(headerSource, /nav-link-mobile-hidden/);
+});
+
 test("information pages have copy for the retrieval pipeline and source boundary", () => {
   const dictionarySource = readProjectFile("src/lib/i18n.ts");
 

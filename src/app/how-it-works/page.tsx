@@ -23,25 +23,7 @@ const steps: Array<{ titleKey: TranslationKey; textKey: TranslationKey }> = [
   },
 ];
 
-const pipeline: Array<{ icon: "question" | "sources" | "answer"; labelKey: TranslationKey; textKey: TranslationKey }> = [
-  {
-    icon: "question",
-    labelKey: "how.pipeline.query",
-    textKey: "how.pipeline.queryText",
-  },
-  {
-    icon: "sources",
-    labelKey: "how.pipeline.sources",
-    textKey: "how.pipeline.sourcesText",
-  },
-  {
-    icon: "answer",
-    labelKey: "how.pipeline.answer",
-    textKey: "how.pipeline.answerText",
-  },
-];
-
-function PageIcon({ type }: { type: "question" | "sources" | "answer" | "risk" | "solve" }) {
+function PageIcon({ type }: { type: "risk" | "solve" }) {
   if (type === "risk") {
     return (
       <svg aria-hidden="true" className="h-6 w-6" fill="none" viewBox="0 0 24 24">
@@ -75,49 +57,7 @@ function PageIcon({ type }: { type: "question" | "sources" | "answer" | "risk" |
     );
   }
 
-  if (type === "question") {
-    return (
-      <svg aria-hidden="true" className="h-6 w-6" fill="none" viewBox="0 0 24 24">
-        <path
-          d="M12 18h.01M9.4 9a2.8 2.8 0 1 1 4.6 2.15c-.98.7-1.75 1.18-1.9 2.35"
-          stroke="currentColor"
-          strokeLinecap="round"
-          strokeWidth="2"
-        />
-        <path
-          d="M4 12a8 8 0 1 0 16 0 8 8 0 0 0-16 0Z"
-          stroke="currentColor"
-          strokeWidth="2"
-        />
-      </svg>
-    );
-  }
-
-  if (type === "sources") {
-    return (
-      <svg aria-hidden="true" className="h-6 w-6" fill="none" viewBox="0 0 24 24">
-        <path
-          d="M5 5.5c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2v13l-3-1.8-3 1.8-3-1.8-3 1.8v-13Z"
-          stroke="currentColor"
-          strokeLinejoin="round"
-          strokeWidth="2"
-        />
-        <path d="M8.5 8h7M8.5 11h7M8.5 14h4" stroke="currentColor" strokeLinecap="round" strokeWidth="2" />
-      </svg>
-    );
-  }
-
-  return (
-    <svg aria-hidden="true" className="h-6 w-6" fill="none" viewBox="0 0 24 24">
-      <path
-        d="M5 6.5A2.5 2.5 0 0 1 7.5 4h9A2.5 2.5 0 0 1 19 6.5v7A2.5 2.5 0 0 1 16.5 16H11l-4.5 4v-4A2.5 2.5 0 0 1 4 13.5v-7Z"
-        stroke="currentColor"
-        strokeLinejoin="round"
-        strokeWidth="2"
-      />
-      <path d="M8 8.5h8M8 11.5h5" stroke="currentColor" strokeLinecap="round" strokeWidth="2" />
-    </svg>
-  );
+  return null;
 }
 
 export default function HowItWorks() {
@@ -200,31 +140,15 @@ export default function HowItWorks() {
           <p className="mt-3 max-w-3xl text-sm font-bold leading-7 text-[var(--color-muted)]">{t("how.flow.text")}</p>
         </div>
 
-        <div className="grid gap-3 lg:grid-cols-3">
-          {pipeline.map((item, index) => (
-            <article
-              className="animate-rise rounded-lg border border-[var(--color-green)]/16 bg-[var(--color-green)] p-5 text-[var(--color-sand)] shadow-[0_18px_42px_rgba(18,63,57,0.12)]"
-              key={item.labelKey}
-              style={{ animationDelay: `${index * 80}ms` }}
-            >
-              <div className="grid h-12 w-12 place-items-center rounded-full border border-[var(--color-gold)]/60 bg-white/8 text-[var(--color-gold)]">
-                <PageIcon type={item.icon} />
-              </div>
-              <h3 className="mt-4 text-xl font-black text-white">{t(item.labelKey)}</h3>
-              <p className="mt-3 text-sm font-bold leading-7 text-white/72">{t(item.textKey)}</p>
+        <div className="grid gap-3 md:grid-cols-2">
+          {steps.map((step, index) => (
+            <article className="product-card animate-rise" key={step.titleKey} style={{ animationDelay: `${index * 90}ms` }}>
+              <span className="text-sm font-black text-[var(--color-red)]">{String(index + 1).padStart(2, "0")}</span>
+              <h2 className="mt-5 text-2xl font-black text-[var(--color-green)]">{t(step.titleKey)}</h2>
+              <p className="mt-4 text-sm font-bold leading-7 text-[var(--color-muted)]">{t(step.textKey)}</p>
             </article>
           ))}
         </div>
-      </section>
-
-      <section className="relative z-10 mx-auto grid max-w-6xl gap-3 px-5 pb-16 sm:px-8 md:grid-cols-2">
-        {steps.map((step, index) => (
-          <article className="product-card animate-rise" key={step.titleKey} style={{ animationDelay: `${index * 90}ms` }}>
-            <span className="text-sm font-black text-[var(--color-red)]">{String(index + 1).padStart(2, "0")}</span>
-            <h2 className="mt-5 text-2xl font-black text-[var(--color-green)]">{t(step.titleKey)}</h2>
-            <p className="mt-4 text-sm font-bold leading-7 text-[var(--color-muted)]">{t(step.textKey)}</p>
-          </article>
-        ))}
       </section>
     </main>
   );

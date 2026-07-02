@@ -54,16 +54,6 @@ html[dir="rtl"] body {
   background: white;
 }
 
-.nav-link-mobile-hidden {
-  display: none;
-}
-
-@media (min-width: 40rem) {
-  .nav-link-mobile-hidden {
-    display: inline-flex;
-  }
-}
-
 .source-grid {
   position: absolute;
   inset: 0;
@@ -76,6 +66,25 @@ html[dir="rtl"] body {
   mask-image: linear-gradient(to bottom, black, transparent 80%);
   opacity: 0.55;
   animation: soft-pan 18s linear infinite;
+}
+
+@media (max-width: 480px) {
+  .nav-link {
+    min-height: 2.15rem;
+    padding: 0.42rem 0.5rem;
+    font-size: 0.62rem;
+    line-height: 1;
+    white-space: nowrap;
+  }
+
+  .language-switcher {
+    display: none;
+  }
+
+  .language-select {
+    display: inline-flex;
+    width: 4.65rem;
+  }
 }
 
 .source-aura {
@@ -132,6 +141,21 @@ html[dir="rtl"] body {
   border: 1px solid color-mix(in srgb, var(--color-green) 22%, transparent);
   background: color-mix(in srgb, white 58%, transparent);
   padding: 0.22rem;
+}
+
+.language-select {
+  display: none;
+  min-height: 2.15rem;
+  appearance: none;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--color-green) 22%, transparent);
+  background: color-mix(in srgb, white 58%, transparent);
+  color: var(--color-green);
+  padding: 0.42rem 0.58rem;
+  font-size: 0.66rem;
+  font-weight: 900;
+  line-height: 1;
+  outline: none;
 }
 
 .language-option {

@@ -1,4 +1,5 @@
 import { generateGroundedAnswer } from "@/lib/llm/ollama";
+import { isHadithCollectionSelection } from "@/lib/retrieval/hadith-collections";
 import { searchSources } from "@/lib/retrieval/source-router";
 import { isTafsirSourceSelection } from "@/lib/retrieval/tafsir-sources";
 import type { GroundedAnswer, RetrievalResponse } from "@/lib/retrieval/types";
@@ -8,6 +9,7 @@ export const runtime = "nodejs";
 type SearchRequestBody = {
   language?: unknown;
   question?: unknown;
+  hadithCollection?: unknown;
   tafsirSource?: unknown;
 };
 
@@ -43,6 +45,7 @@ export async function POST(request: Request) {
 
   const question = typeof body.question === "string" ? body.question.trim() : "";
   const language = body.language === "arabic" || body.language === "english" ? body.language : "arabic";
+  const hadithCollection = isHadithCollectionSelection(body.hadithCollection) ? body.hadithCollection : "all";
   const tafsirSource = isTafsirSourceSelection(body.tafsirSource) ? body.tafsirSource : "all";
 
   if (question.length === 0) {
@@ -61,7 +64,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const response = await searchSources(question, language, { tafsirSource });
+  const response = await searchSources(question, language, { tafsirSource, hadithCollection });
   const answer = await generateGroundedAnswer({
     question,
     language,

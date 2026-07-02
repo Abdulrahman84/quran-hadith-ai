@@ -6,6 +6,7 @@ import { FormEvent, KeyboardEvent, useEffect, useMemo, useRef, useState } from "
 import { useI18n } from "@/components/i18n-provider";
 import { SiteHeader } from "@/components/site-header";
 import type { TranslationKey } from "@/lib/i18n";
+import { hadithCollections, type HadithCollectionSelection } from "@/lib/retrieval/hadith-collections";
 import { formatHadithGrade, formatSourceRecordTitle } from "@/lib/retrieval/source-display";
 import { tafsirSources, type TafsirSourceSelection } from "@/lib/retrieval/tafsir-sources";
 import type { RetrievalResponse, RetrievalWarning } from "@/lib/retrieval/types";
@@ -21,6 +22,14 @@ const sourceRoutes: Array<{ id: "Quran" | "Tafsir" | "Hadith"; labelKey: Transla
   { id: "Tafsir", labelKey: "routes.tafsir" },
   { id: "Hadith", labelKey: "routes.hadith" },
 ];
+type ResultSourceFilter = "all" | "quran" | "hadith";
+
+const resultSourceFilters: Array<{ id: ResultSourceFilter; labelKey: TranslationKey }> = [
+  { id: "all", labelKey: "result.filterAll" },
+  { id: "quran", labelKey: "result.filterQuran" },
+  { id: "hadith", labelKey: "result.filterHadith" },
+];
+
 const minimumLoadingMs = 5000;
 const sourcePageSize = 5;
 
@@ -144,6 +153,8 @@ export default function Home() {
   const [retrieval, setRetrieval] = useState<RetrievalResponse | null>(null);
   const [requestError, setRequestError] = useState("");
   const [requestErrorHelp, setRequestErrorHelp] = useState<TranslationKey>("result.checkPaths");
+  const [hadithCollection, setHadithCollection] = useState<HadithCollectionSelection>("all");
+  const [resultSourceFilter, setResultSourceFilter] = useState<ResultSourceFilter>("all");
   const [tafsirSource, setTafsirSource] = useState<TafsirSourceSelection>("all");
   const [sourcePage, setSourcePage] = useState(1);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -159,7 +170,19 @@ export default function Home() {
       Hadith: kinds.has("hadith"),
     };
   }, [retrieval]);
-  const sourceRecords = retrieval?.records ?? [];
+  const sourceRecords = useMemo(() => {
+    const records = retrieval?.records ?? [];
+
+    if (resultSourceFilter === "hadith") {
+      return records.filter((record) => record.sourceKind === "hadith");
+    }
+
+    if (resultSourceFilter === "quran") {
+      return records.filter((record) => record.sourceKind === "quran" || record.sourceKind === "tafsir");
+    }
+
+    return records;
+  }, [retrieval, resultSourceFilter]);
   const totalSourcePages = Math.max(1, Math.ceil(sourceRecords.length / sourcePageSize));
   const currentSourcePage = Math.min(sourcePage, totalSourcePages);
   const visibleSourceRecords = sourceRecords.slice((currentSourcePage - 1) * sourcePageSize, currentSourcePage * sourcePageSize);
@@ -170,7 +193,11 @@ export default function Home() {
     }
   }, [question]);
 
-  async function runSearch(nextQuestion: string, selectedTafsirSource = tafsirSource) {
+  async function runSearch(
+    nextQuestion: string,
+    selectedTafsirSource = tafsirSource,
+    selectedHadithCollection = hadithCollection,
+  ) {
     const trimmed = nextQuestion.trim();
 
     if (!trimmed) {
@@ -190,7 +217,12 @@ export default function Home() {
         fetch("/api/search", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ language: language === "ar" ? "arabic" : "english", question: trimmed, tafsirSource: selectedTafsirSource }),
+          body: JSON.stringify({
+            language: language === "ar" ? "arabic" : "english",
+            question: trimmed,
+            hadithCollection: selectedHadithCollection,
+            tafsirSource: selectedTafsirSource,
+          }),
         }),
         new Promise((resolve) => window.setTimeout(resolve, minimumLoadingMs)),
       ]);
@@ -228,7 +260,15 @@ export default function Home() {
     setTafsirSource(nextSource);
 
     if (submittedQuestion.trim()) {
-      void runSearch(submittedQuestion, nextSource);
+      void runSearch(submittedQuestion, nextSource, hadithCollection);
+    }
+  }
+
+  function handleHadithCollectionChange(nextCollection: HadithCollectionSelection) {
+    setHadithCollection(nextCollection);
+
+    if (submittedQuestion.trim()) {
+      void runSearch(submittedQuestion, tafsirSource, nextCollection);
     }
   }
 
@@ -263,7 +303,7 @@ export default function Home() {
           <label className="sr-only" htmlFor="question">
             {t("home.inputLabel")}
           </label>
-          <div className="grid gap-2.5 lg:grid-cols-[minmax(0,1fr)_190px_auto] lg:items-start">
+          <div className="grid gap-2.5 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-start">
             <div className="flex min-h-14 items-start gap-3 rounded-[1rem] bg-[var(--color-sand)]/70 px-4 py-2.5 ring-1 ring-[var(--color-green)]/10 transition focus-within:bg-white focus-within:ring-[var(--color-gold)]">
               <span className="mt-0.5 grid h-9 w-9 shrink-0 place-items-center rounded-full bg-white text-[var(--color-green)] shadow-sm" aria-hidden="true">
                 <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24">
@@ -287,31 +327,56 @@ export default function Home() {
               />
             </div>
 
-            <div className="relative flex h-14 items-center rounded-[1rem] border border-[var(--color-green)]/14 bg-white px-4 shadow-sm">
-              <label className="sr-only" htmlFor="tafsir-source">
-                {t("home.tafsirSourceLabel")}
-              </label>
-              <select
-                className="w-full appearance-none bg-transparent py-2 pe-8 text-sm font-black text-[var(--color-green)] outline-none disabled:opacity-60"
-                id="tafsir-source"
-                disabled={isRetrieving}
-                onChange={(event) => handleTafsirSourceChange(event.target.value as TafsirSourceSelection)}
-                value={tafsirSource}
-              >
-                <option value="all">{t("home.tafsirSourceAll")}</option>
-                {tafsirSources.map((source) => (
-                  <option key={source.id} value={source.id}>
-                    {language === "ar" ? source.labelAr : source.labelEn}
-                  </option>
-                ))}
-              </select>
-              <svg className="pointer-events-none absolute end-4 h-4 w-4 text-[var(--color-green)]/70" fill="none" viewBox="0 0 24 24" aria-hidden="true">
-                <path d="m6 9 6 6 6-6" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" />
-              </svg>
+            <div className="grid gap-2.5 sm:grid-cols-2 lg:col-span-2 lg:row-start-2">
+              <div className="relative flex h-14 items-center rounded-[1rem] border border-[var(--color-green)]/14 bg-white px-4 shadow-sm">
+                <label className="sr-only" htmlFor="hadith-collection">
+                  {t("home.hadithCollectionLabel")}
+                </label>
+                <select
+                  className="w-full appearance-none bg-transparent py-2 pe-8 text-sm font-black text-[var(--color-green)] outline-none disabled:opacity-60"
+                  id="hadith-collection"
+                  disabled={isRetrieving}
+                  onChange={(event) => handleHadithCollectionChange(event.target.value as HadithCollectionSelection)}
+                  value={hadithCollection}
+                >
+                  <option value="all">{t("home.hadithCollectionAll")}</option>
+                  {hadithCollections.map((collection) => (
+                    <option key={collection.id} value={collection.id}>
+                      {language === "ar" ? collection.labelAr : collection.labelEn}
+                    </option>
+                  ))}
+                </select>
+                <svg className="pointer-events-none absolute end-4 h-4 w-4 text-[var(--color-green)]/70" fill="none" viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="m6 9 6 6 6-6" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" />
+                </svg>
+              </div>
+
+              <div className="relative flex h-14 items-center rounded-[1rem] border border-[var(--color-green)]/14 bg-white px-4 shadow-sm">
+                <label className="sr-only" htmlFor="tafsir-source">
+                  {t("home.tafsirSourceLabel")}
+                </label>
+                <select
+                  className="w-full appearance-none bg-transparent py-2 pe-8 text-sm font-black text-[var(--color-green)] outline-none disabled:opacity-60"
+                  id="tafsir-source"
+                  disabled={isRetrieving}
+                  onChange={(event) => handleTafsirSourceChange(event.target.value as TafsirSourceSelection)}
+                  value={tafsirSource}
+                >
+                  <option value="all">{t("home.tafsirSourceAll")}</option>
+                  {tafsirSources.map((source) => (
+                    <option key={source.id} value={source.id}>
+                      {language === "ar" ? source.labelAr : source.labelEn}
+                    </option>
+                  ))}
+                </select>
+                <svg className="pointer-events-none absolute end-4 h-4 w-4 text-[var(--color-green)]/70" fill="none" viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="m6 9 6 6 6-6" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" />
+                </svg>
+              </div>
             </div>
 
             <button
-              className="inline-flex h-14 items-center justify-center gap-2 rounded-[1rem] border border-[var(--color-green)] bg-[var(--color-green)] px-5 text-sm font-black text-[var(--color-sand)] transition duration-300 hover:-translate-y-0.5 hover:bg-[var(--color-ink)] disabled:cursor-wait disabled:opacity-75"
+              className="inline-flex h-14 items-center justify-center gap-2 rounded-[1rem] border border-[var(--color-green)] bg-[var(--color-green)] px-5 text-sm font-black text-[var(--color-sand)] transition duration-300 hover:-translate-y-0.5 hover:bg-[var(--color-ink)] disabled:cursor-wait disabled:opacity-75 lg:col-start-2 lg:row-start-1"
               disabled={isRetrieving}
               type="submit"
             >
@@ -432,45 +497,70 @@ export default function Home() {
                       <p className="mt-3 text-sm font-bold leading-7">{t(getAnswerStatusKey(retrieval?.answer))}</p>
                     )}
 
-                    <div className="mt-4 grid gap-2">
-                      {visibleSourceRecords.map((record) => (
-                        (() => {
-                          const sourceText = sourceTextForLanguage(record, language, {
-                            arabic: t("result.arabicUnavailable"),
-                            english: t("result.englishUnavailable"),
-                          });
-                          const metadata = recordMetadata(record, language, t);
+                    {retrieval?.records.length ? (
+                      <div className="mt-4 flex flex-wrap gap-1.5 rounded-2xl border border-[var(--color-green)]/14 bg-white/60 p-1.5">
+                        {resultSourceFilters.map((filter) => (
+                          <button
+                            aria-pressed={resultSourceFilter === filter.id}
+                            className="min-h-10 flex-1 rounded-xl px-3 py-2 text-xs font-black text-[var(--color-muted)] transition hover:bg-white hover:text-[var(--color-green)] aria-pressed:bg-[var(--color-green)] aria-pressed:text-[var(--color-sand)]"
+                            key={filter.id}
+                            onClick={() => {
+                              setResultSourceFilter(filter.id);
+                              setSourcePage(1);
+                            }}
+                            type="button"
+                          >
+                            {t(filter.labelKey)}
+                          </button>
+                        ))}
+                      </div>
+                    ) : null}
 
-                          return (
-                            <article
-                              className="rounded-2xl border border-[var(--color-green)]/14 bg-white/72 p-3"
-                              key={record.id}
-                            >
-                              <div className="flex flex-wrap items-center justify-between gap-2">
-                                <strong className="text-sm text-[var(--color-green)]">
-                                  {formatSourceRecordTitle(record, language)}
-                                </strong>
-                                <span className="rounded-full border border-[var(--color-gold)]/60 px-2.5 py-1 text-[0.68rem] font-black uppercase tracking-[0.12em] text-[var(--color-red)]">
-                                  {recordBadge(record, language, t)}
-                                </span>
-                              </div>
-                              {metadata ? (
-                                <p
-                                  className={`mt-2 text-xs font-black text-[var(--color-muted)] ${
-                                    language === "ar" ? "" : "uppercase tracking-[0.12em]"
-                                  }`}
-                                >
-                                  {metadata}
+                    {sourceRecords.length === 0 && retrieval?.records.length ? (
+                      <p className="mt-4 rounded-2xl border border-[var(--color-green)]/14 bg-white/60 p-3 text-sm font-black leading-7 text-[var(--color-muted)]">
+                        {t("result.filterEmpty")}
+                      </p>
+                    ) : (
+                      <div className="mt-4 grid gap-2">
+                        {visibleSourceRecords.map((record) => (
+                          (() => {
+                            const sourceText = sourceTextForLanguage(record, language, {
+                              arabic: t("result.arabicUnavailable"),
+                              english: t("result.englishUnavailable"),
+                            });
+                            const metadata = recordMetadata(record, language, t);
+
+                            return (
+                              <article
+                                className="rounded-2xl border border-[var(--color-green)]/14 bg-white/72 p-3"
+                                key={record.id}
+                              >
+                                <div className="flex flex-wrap items-center justify-between gap-2">
+                                  <strong className="text-sm text-[var(--color-green)]">
+                                    {formatSourceRecordTitle(record, language)}
+                                  </strong>
+                                  <span className="rounded-full border border-[var(--color-gold)]/60 px-2.5 py-1 text-[0.68rem] font-black uppercase tracking-[0.12em] text-[var(--color-red)]">
+                                    {recordBadge(record, language, t)}
+                                  </span>
+                                </div>
+                                {metadata ? (
+                                  <p
+                                    className={`mt-2 text-xs font-black text-[var(--color-muted)] ${
+                                      language === "ar" ? "" : "uppercase tracking-[0.12em]"
+                                    }`}
+                                  >
+                                    {metadata}
+                                  </p>
+                                ) : null}
+                                <p className={`mt-3 whitespace-pre-wrap ${sourceText.textClass}`} dir={sourceText.dir}>
+                                  {sourceText.text}
                                 </p>
-                              ) : null}
-                              <p className={`mt-3 whitespace-pre-wrap ${sourceText.textClass}`} dir={sourceText.dir}>
-                                {sourceText.text}
-                              </p>
-                            </article>
-                          );
-                        })()
-                      ))}
-                    </div>
+                              </article>
+                            );
+                          })()
+                        ))}
+                      </div>
+                    )}
 
                     {sourceRecords.length > sourcePageSize ? (
                       <div className="mt-4 flex items-center justify-between gap-3 rounded-2xl border border-[var(--color-green)]/14 bg-white/60 p-3">

@@ -7,11 +7,13 @@ function readHomePage() {
   return fs.readFileSync(path.join(process.cwd(), "src/app/page.tsx"), "utf8");
 }
 
-test("search requests include the selected tafsir source", () => {
+test("search requests include the selected source filters", () => {
   const pageSource = readHomePage();
 
-  assert.match(pageSource, /async function runSearch\(nextQuestion: string, selectedTafsirSource = tafsirSource\)/);
+  assert.match(pageSource, /selectedTafsirSource = tafsirSource/);
+  assert.match(pageSource, /selectedHadithCollection = hadithCollection/);
   assert.match(pageSource, /tafsirSource: selectedTafsirSource/);
+  assert.match(pageSource, /hadithCollection: selectedHadithCollection/);
 });
 
 test("changing tafsir source reruns the submitted question with the new source", () => {
@@ -19,5 +21,21 @@ test("changing tafsir source reruns the submitted question with the new source",
 
   assert.match(pageSource, /function handleTafsirSourceChange\(nextSource: TafsirSourceSelection\)/);
   assert.match(pageSource, /setTafsirSource\(nextSource\);/);
-  assert.match(pageSource, /runSearch\(submittedQuestion, nextSource\)/);
+  assert.match(pageSource, /runSearch\(submittedQuestion, nextSource, hadithCollection\)/);
+});
+
+test("changing hadith collection reruns the submitted question with the new collection", () => {
+  const pageSource = readHomePage();
+
+  assert.match(pageSource, /function handleHadithCollectionChange\(nextCollection: HadithCollectionSelection\)/);
+  assert.match(pageSource, /setHadithCollection\(nextCollection\);/);
+  assert.match(pageSource, /runSearch\(submittedQuestion, tafsirSource, nextCollection\)/);
+});
+
+test("source result filter narrows the visible source records", () => {
+  const pageSource = readHomePage();
+
+  assert.match(pageSource, /type ResultSourceFilter = "all" \| "quran" \| "hadith"/);
+  assert.match(pageSource, /record\.sourceKind === "hadith"/);
+  assert.match(pageSource, /record\.sourceKind === "quran" \|\| record\.sourceKind === "tafsir"/);
 });

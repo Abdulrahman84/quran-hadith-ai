@@ -11,11 +11,11 @@ export function SiteHeader() {
 
   return (
     <header className="fixed inset-x-0 top-0 z-50 border-b border-[var(--color-green)]/10 bg-[var(--color-sand)]/88 backdrop-blur">
-      <div className="mx-auto flex w-full max-w-6xl items-center justify-between px-5 py-4 sm:px-8">
+      <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-2 px-3 py-3 sm:px-8 sm:py-4">
         <Link className="group flex min-w-0 items-center" href="/" aria-label="سند AI">
           <Image
             alt="سند AI"
-            className="h-10 w-auto shrink-0 object-contain transition-transform duration-300 group-hover:-translate-y-0.5 sm:h-14"
+            className="h-8 w-auto shrink-0 object-contain transition-transform duration-300 group-hover:-translate-y-0.5 sm:h-14"
             height={56}
             priority
             src="/brand/sanad-logo.png"
@@ -23,11 +23,11 @@ export function SiteHeader() {
           />
         </Link>
 
-        <nav className="flex items-center gap-2 text-sm font-black">
+        <nav className="flex min-w-0 items-center justify-end gap-1 text-sm font-black sm:gap-2">
           <Link className="nav-link" href="/how-it-works">
             {t("nav.howItWorks")}
           </Link>
-          <Link className="nav-link nav-link-mobile-hidden" href="/source-policy">
+          <Link className="nav-link" href="/source-policy">
             {t("nav.sourcePolicy")}
           </Link>
           <LanguageSwitcher />
