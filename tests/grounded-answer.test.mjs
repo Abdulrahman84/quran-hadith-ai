@@ -8,7 +8,7 @@ import ts from "typescript";
 
 const require = createRequire(import.meta.url);
 
-function loadGroundedAnswerModule() {
+function loadGroundedAnswerModule(overrides = {}) {
   const filename = path.join(process.cwd(), "src/lib/llm/grounded-answer.ts");
   const source = fs.readFileSync(filename, "utf8");
   const transpiled = ts.transpileModule(source, {
@@ -30,18 +30,19 @@ function loadGroundedAnswerModule() {
     require: (id) => {
       if (id === "./provider") {
         return {
-          completeLlmText: async () => ({
+          completeLlmText: overrides.completeLlmText || (async () => ({
             status: "disabled",
             error: "OpenRouter is not configured for answer.",
             provider: "openrouter",
             model: "google/gemma-4-26b-a4b-it:free",
-          }),
+          })),
         };
       }
 
       return require(id);
     },
     setTimeout,
+    ...overrides.sandbox,
   };
 
   sandbox.exports = sandbox.module.exports;
@@ -267,4 +268,56 @@ test("fallback Arabic broad-topic summary includes hadith alongside Quran record
   assert.match(answer.text, /ومن يتصبر يصبره الله/);
   assert.ok(answer.text.indexOf("ومن سجلات الحديث") < answer.text.indexOf("ومن النص القرآني"));
   assert.deepEqual(Array.from(answer.citations), ["[2] صحيح البخاري 2:35", "[1] القرآن - سورة البقرة 2:153"]);
+});
+
+test("answer generation sends a bounded balanced evidence pack with original citation numbers", async () => {
+  let userPrompt = "";
+  const { generateGroundedAnswer } = loadGroundedAnswerModule({
+    completeLlmText: async (input) => {
+      userPrompt = input.messages.at(-1).content;
+
+      return {
+        status: "ok",
+        text: "بالنسبة إلى سؤالك، تعرض السجلات المسترجعة نص حديث 1 [1]، ومعه الآية: لَقَدْ كَانَ لَكُمْ فِي رَسُولِ اللَّهِ أُسْوَةٌ حَسَنَةٌ [21].",
+        provider: "openrouter",
+        model: "google/gemma-4-26b-a4b-it:free",
+      };
+    },
+  });
+  const records = [
+    ...Array.from({ length: 20 }, (_, index) =>
+      sourceRecord({
+        id: `hadith-${index + 1}`,
+        reference: `${index + 1}`,
+        sourceReference: `bukhari:${index + 1}`,
+        arabicText: `قال رسول الله صلى الله عليه وسلم نص حديث ${index + 1}`,
+      }),
+    ),
+    tafsirRecord({
+      id: "quran-21",
+      sourceKind: "quran",
+      collection: "quran",
+      displayName: "Quran 33:21",
+      reference: "33:21",
+      surahNumber: 33,
+      ayahNumber: 21,
+      surahName: "الأحزاب",
+      verseKey: "33:21",
+      arabicText: "لَقَدْ كَانَ لَكُمْ فِي رَسُولِ اللَّهِ أُسْوَةٌ حَسَنَةٌ",
+      tafsirText: null,
+    }),
+  ];
+
+  const answer = await generateGroundedAnswer({
+    question: "صفات سيدنا محمد",
+    language: "arabic",
+    records,
+  });
+  const citationMarkersInPrompt = userPrompt.match(/^\[\d+\]/gm) || [];
+
+  assert.equal(answer.status, "ready");
+  assert.ok(citationMarkersInPrompt.length <= 12);
+  assert.match(userPrompt, /^\[21\]/m);
+  assert.ok(answer.citations.includes("[1] صحيح البخاري 1"));
+  assert.ok(answer.citations.includes("[21] القرآن - سورة الأحزاب 33:21"));
 });

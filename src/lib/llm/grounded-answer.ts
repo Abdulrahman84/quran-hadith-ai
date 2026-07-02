@@ -7,6 +7,11 @@ type GenerateGroundedAnswerInput = {
   records: SourceRecord[];
 };
 
+type CitationPackRecord = {
+  record: SourceRecord;
+  citationNumber: number;
+};
+
 function disabledAnswer(): GroundedAnswer {
   return {
     status: "disabled",
@@ -32,10 +37,10 @@ function getRecordText(record: SourceRecord, language: RetrievalLanguage) {
   return record.englishText || "";
 }
 
-function buildCitationPack(records: SourceRecord[], language: RetrievalLanguage) {
+function buildCitationPack(records: CitationPackRecord[], language: RetrievalLanguage) {
   return records
-    .map((record, index) => {
-      const citation = `[${index + 1}]`;
+    .map(({ record, citationNumber }) => {
+      const citation = `[${citationNumber}]`;
       const text = getRecordText(record, language).trim();
       const metadata =
         language === "arabic"
@@ -58,7 +63,7 @@ function buildCitationPack(records: SourceRecord[], language: RetrievalLanguage)
         .filter(Boolean)
         .join("; ");
 
-      return `${citation} ${metadataText}\n${text.slice(0, 900)}`;
+      return `${citation} ${metadataText}\n${text.slice(0, 450)}`;
     })
     .join("\n\n");
 }
@@ -176,6 +181,42 @@ function citationLabelsForText(records: SourceRecord[], language: RetrievalLangu
   const uniqueUsedIndexes = [...new Set(usedIndexes)];
 
   return uniqueUsedIndexes.map((index) => allLabels[index - 1]).filter((label): label is string => Boolean(label));
+}
+
+function selectAnswerRecords(records: SourceRecord[]): CitationPackRecord[] {
+  const selected = new Map<string, CitationPackRecord>();
+
+  function add(record: SourceRecord, index: number, limit = 12) {
+    if (selected.size >= limit) {
+      return;
+    }
+
+    selected.set(record.id || `${record.sourceKind}:${record.sourceReference}:${index}`, {
+      record,
+      citationNumber: index + 1,
+    });
+  }
+
+  records.forEach((record, index) => {
+    if (record.sourceKind === "hadith") {
+      add(record, index, 6);
+    }
+  });
+  records.forEach((record, index) => {
+    if (record.sourceKind === "quran") {
+      add(record, index, 9);
+    }
+  });
+  records.forEach((record, index) => {
+    if (record.sourceKind === "tafsir") {
+      add(record, index, 12);
+    }
+  });
+  records.forEach((record, index) => {
+    add(record, index);
+  });
+
+  return [...selected.values()].sort((left, right) => left.citationNumber - right.citationNumber);
 }
 
 function cleanWhitespace(value: string) {
@@ -693,7 +734,7 @@ function systemPrompt(language: RetrievalLanguage) {
 }
 
 function userPrompt(input: GenerateGroundedAnswerInput) {
-  const citationPack = buildCitationPack(input.records, input.language);
+  const citationPack = buildCitationPack(selectAnswerRecords(input.records), input.language);
 
   if (input.language === "arabic") {
     return `السؤال:\n${input.question}\n\nسجلات المصادر المسترجعة:\n${citationPack}\n\nاكتب جملتين أو ثلاثا فقط. خاطب السائل مباشرة وابدأ بعبارة مثل: "بالنسبة إلى سؤالك، تعرض السجلات المسترجعة..." إذا وجدت آية فاذكر رقمها ونصها العربي حرفيا كما ورد في السجل، ولا تكتب أي كلمة إنجليزية. لا تضف تفصيلا غير ظاهر في النصوص.`;
