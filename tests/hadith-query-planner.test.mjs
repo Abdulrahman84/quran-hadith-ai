@@ -57,7 +57,7 @@ function loadHadithQueryPlanner(overrides = {}) {
               status: "ok",
               text: '{"queries":["ليس كمثله شيء"]}',
               provider: "openrouter",
-              model: "qwen/qwen3-next-80b-a3b-instruct:free",
+              model: "google/gemma-4-26b-a4b-it:free",
             };
           },
         };

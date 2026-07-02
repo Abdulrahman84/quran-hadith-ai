@@ -34,11 +34,11 @@ On first run it may download its Quran database and cache it under `~/.cache/taf
 in `.env.local` only if you want to point it at a specific local `quran.db`.
 
 Copy `.env.example` to `.env.local` if your local paths differ. Set `OPENROUTER_API_KEY` before searching; the default test
-model is OpenRouter's free `qwen/qwen3-next-80b-a3b-instruct:free` route:
+model is OpenRouter's free `google/gemma-4-26b-a4b-it:free` route:
 
 ```bash
 OPENROUTER_API_KEY=...
-OPENROUTER_MODEL=qwen/qwen3-next-80b-a3b-instruct:free
+OPENROUTER_MODEL=google/gemma-4-26b-a4b-it:free
 ```
 
 ```bash

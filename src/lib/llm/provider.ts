@@ -47,7 +47,7 @@ type OpenRouterResponse = {
 };
 
 const defaultOpenRouterBaseUrl = "https://openrouter.ai/api/v1";
-const defaultOpenRouterModel = "qwen/qwen3-next-80b-a3b-instruct:free";
+const defaultOpenRouterModel = "google/gemma-4-26b-a4b-it:free";
 
 function readPositiveInt(value: string | undefined, fallback: number) {
   const parsed = Number.parseInt(value || "", 10);

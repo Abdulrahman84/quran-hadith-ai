@@ -8,7 +8,7 @@ Set these in `.env.local` for local development or in your hosting provider's se
 
 ```bash
 OPENROUTER_API_KEY=...
-OPENROUTER_MODEL=qwen/qwen3-next-80b-a3b-instruct:free
+OPENROUTER_MODEL=google/gemma-4-26b-a4b-it:free
 OPENROUTER_SITE_URL=https://your-domain.example
 OPENROUTER_APP_NAME=Sanad AI
 LLM_TIMEOUT_MS=25000

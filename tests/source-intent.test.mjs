@@ -33,13 +33,13 @@ function loadSourceIntent(overrides = {}) {
                 status: "disabled",
                 error: "OpenRouter is not configured for router.",
                 provider: "openrouter",
-                model: "qwen/qwen3-next-80b-a3b-instruct:free",
+                model: "google/gemma-4-26b-a4b-it:free",
               };
             }
 
             const response = await overrides.fetch("https://openrouter.test/api/v1/chat/completions", {
               body: JSON.stringify({
-                model: overrides.process?.env?.MCP_TOOL_ROUTER_MODEL || "qwen/qwen3-next-80b-a3b-instruct:free",
+                model: overrides.process?.env?.MCP_TOOL_ROUTER_MODEL || "google/gemma-4-26b-a4b-it:free",
                 messages: input.messages,
                 response_format: input.json ? { type: "json_object" } : undefined,
               }),
@@ -50,7 +50,7 @@ function loadSourceIntent(overrides = {}) {
               status: "ok",
               text: payload.choices?.[0]?.message?.content || "",
               provider: "openrouter",
-              model: overrides.process?.env?.MCP_TOOL_ROUTER_MODEL || "qwen/qwen3-next-80b-a3b-instruct:free",
+              model: overrides.process?.env?.MCP_TOOL_ROUTER_MODEL || "google/gemma-4-26b-a4b-it:free",
             };
           },
         };
