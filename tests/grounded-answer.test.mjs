@@ -8,8 +8,8 @@ import ts from "typescript";
 
 const require = createRequire(import.meta.url);
 
-function loadOllamaModule() {
-  const filename = path.join(process.cwd(), "src/lib/llm/ollama.ts");
+function loadGroundedAnswerModule() {
+  const filename = path.join(process.cwd(), "src/lib/llm/grounded-answer.ts");
   const source = fs.readFileSync(filename, "utf8");
   const transpiled = ts.transpileModule(source, {
     compilerOptions: {
@@ -27,7 +27,20 @@ function loadOllamaModule() {
     fetch,
     module: { exports: {} },
     process,
-    require,
+    require: (id) => {
+      if (id === "./provider") {
+        return {
+          completeLlmText: async () => ({
+            status: "disabled",
+            error: "OpenRouter is not configured for answer.",
+            provider: "openrouter",
+            model: "qwen/qwen3-next-80b-a3b-instruct:free",
+          }),
+        };
+      }
+
+      return require(id);
+    },
     setTimeout,
   };
 
@@ -96,7 +109,7 @@ function tafsirRecord(overrides = {}) {
 }
 
 test("fallback answer addresses the asker directly in English", () => {
-  const { fallbackGroundedSummary } = loadOllamaModule();
+  const { fallbackGroundedSummary } = loadGroundedAnswerModule();
 
   const answer = fallbackGroundedSummary({
     question: "What hadith mention intentions?",
@@ -109,7 +122,7 @@ test("fallback answer addresses the asker directly in English", () => {
 });
 
 test("fallback answer addresses the asker directly in Arabic", () => {
-  const { fallbackGroundedSummary } = loadOllamaModule();
+  const { fallbackGroundedSummary } = loadGroundedAnswerModule();
 
   const answer = fallbackGroundedSummary({
     question: "ما حديث النية؟",
@@ -122,7 +135,7 @@ test("fallback answer addresses the asker directly in Arabic", () => {
 });
 
 test("fallback Arabic summary omits narrator-chain openings", () => {
-  const { fallbackGroundedSummary } = loadOllamaModule();
+  const { fallbackGroundedSummary } = loadGroundedAnswerModule();
 
   const answer = fallbackGroundedSummary({
     question: "ما حديث النية؟",
@@ -140,7 +153,7 @@ test("fallback Arabic summary omits narrator-chain openings", () => {
 });
 
 test("fallback Arabic summary prefers hadith matn over trailing notes", () => {
-  const { fallbackGroundedSummary } = loadOllamaModule();
+  const { fallbackGroundedSummary } = loadGroundedAnswerModule();
 
   const answer = fallbackGroundedSummary({
     question: "صفات سيدنا محمد",
@@ -158,7 +171,7 @@ test("fallback Arabic summary prefers hadith matn over trailing notes", () => {
 });
 
 test("fallback answer can cite tafsir records", () => {
-  const { fallbackGroundedSummary } = loadOllamaModule();
+  const { fallbackGroundedSummary } = loadGroundedAnswerModule();
 
   const answer = fallbackGroundedSummary({
     question: "What is the tafsir of Al-Fatihah 1:1?",
@@ -171,7 +184,7 @@ test("fallback answer can cite tafsir records", () => {
 });
 
 test("fallback Arabic Quran summary mentions the verse and exact ayah text without English labels", () => {
-  const { fallbackGroundedSummary } = loadOllamaModule();
+  const { fallbackGroundedSummary } = loadGroundedAnswerModule();
 
   const answer = fallbackGroundedSummary({
     question: "تفسير آية كل من عليها فان",
@@ -220,7 +233,7 @@ test("fallback Arabic Quran summary mentions the verse and exact ayah text witho
 });
 
 test("fallback Arabic broad-topic summary includes hadith alongside Quran records", () => {
-  const { fallbackGroundedSummary } = loadOllamaModule();
+  const { fallbackGroundedSummary } = loadGroundedAnswerModule();
 
   const answer = fallbackGroundedSummary({
     question: "ما المصادر عن الصبر؟",

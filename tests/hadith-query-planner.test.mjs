@@ -47,6 +47,22 @@ function loadHadithQueryPlanner(overrides = {}) {
         return loadQueryPlannerModule();
       }
 
+      if (id === "../llm/provider") {
+        return {
+          completeLlmText: async (input) => {
+            assert.equal(input.task, "hadith-query-planner");
+            assert.equal(input.json, true);
+
+            return {
+              status: "ok",
+              text: '{"queries":["ليس كمثله شيء"]}',
+              provider: "openrouter",
+              model: "qwen/qwen3-next-80b-a3b-instruct:free",
+            };
+          },
+        };
+      }
+
       return require(id);
     },
     setTimeout,
@@ -61,17 +77,9 @@ function loadHadithQueryPlanner(overrides = {}) {
 
 test("hadith query planner tries curated fallback phrases before AI phrases", async () => {
   const { planHadithRetrievalQueries } = loadHadithQueryPlanner({
-    fetch: async () => ({
-      ok: true,
-      json: async () => ({
-        message: {
-          content: '{"queries":["ليس كمثله شيء"]}',
-        },
-      }),
-    }),
     process: {
       env: {
-        OLLAMA_ENABLED: "true",
+        OPENROUTER_API_KEY: "test-key",
         HADITH_QUERY_PLANNER_ENABLED: "true",
       },
     },
@@ -81,4 +89,5 @@ test("hadith query planner tries curated fallback phrases before AI phrases", as
 
   assert.deepEqual(Array.from(plan.queries.slice(0, 3)), ["ليس بالطويل", "ربعة من القوم", "كان رسول الله ربعة"]);
   assert.ok(plan.queries.indexOf("ليس كمثله شيء") > plan.queries.indexOf("صفات سيدنا محمد"));
+  assert.equal(plan.planner, "llm");
 });

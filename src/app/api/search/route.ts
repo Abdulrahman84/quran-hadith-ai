@@ -1,4 +1,4 @@
-import { generateGroundedAnswer } from "@/lib/llm/ollama";
+import { generateGroundedAnswer } from "@/lib/llm/grounded-answer";
 import { isHadithCollectionSelection } from "@/lib/retrieval/hadith-collections";
 import { searchSources } from "@/lib/retrieval/source-router";
 import { isTafsirSourceSelection } from "@/lib/retrieval/tafsir-sources";

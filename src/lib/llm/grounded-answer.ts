@@ -1,3 +1,4 @@
+import { completeLlmText } from "./provider";
 import type { GroundedAnswer, RetrievalLanguage, SourceRecord } from "@/lib/retrieval/types";
 
 type GenerateGroundedAnswerInput = {
@@ -6,36 +7,12 @@ type GenerateGroundedAnswerInput = {
   records: SourceRecord[];
 };
 
-type OllamaChatResponse = {
-  message?: {
-    content?: string;
-  };
-  error?: string;
-};
-
-const defaultOllamaBaseUrl = "http://127.0.0.1:11434";
-const defaultOllamaModel = "qwen3:30b";
-
 function disabledAnswer(): GroundedAnswer {
   return {
     status: "disabled",
     text: null,
     citations: [],
-    warnings: [{ code: "ollama_disabled", message: "Ollama answer generation is disabled." }],
-  };
-}
-
-function getOllamaConfig() {
-  const enabled = process.env.OLLAMA_ENABLED?.trim() !== "false";
-  const baseUrl = process.env.OLLAMA_BASE_URL?.trim() || defaultOllamaBaseUrl;
-  const model = process.env.OLLAMA_MODEL?.trim() || defaultOllamaModel;
-  const timeoutMs = Number.parseInt(process.env.OLLAMA_TIMEOUT_MS || "25000", 10);
-
-  return {
-    enabled,
-    baseUrl: baseUrl.replace(/\/$/, ""),
-    model,
-    timeoutMs: Number.isFinite(timeoutMs) && timeoutMs > 0 ? timeoutMs : 25000,
+    warnings: [{ code: "openrouter_disabled", message: "OpenRouter answer generation is not configured." }],
   };
 }
 
@@ -463,7 +440,7 @@ export function fallbackGroundedSummary(input: GenerateGroundedAnswerInput): Gro
       status: "ready",
       text,
       citations: citationLabelsForText(input.records, input.language, text),
-      warnings: [{ code: "ollama_guardrail_fallback", message: "The model output was replaced by a guarded source summary." }],
+      warnings: [{ code: "llm_guardrail_fallback", message: "The model output was replaced by a guarded source summary." }],
     };
   }
 
@@ -480,7 +457,7 @@ export function fallbackGroundedSummary(input: GenerateGroundedAnswerInput): Gro
     status: "ready",
     text,
     citations: citationLabelsForText(input.records, input.language, text),
-    warnings: [{ code: "ollama_guardrail_fallback", message: "The model output was replaced by a guarded source summary." }],
+    warnings: [{ code: "llm_guardrail_fallback", message: "The model output was replaced by a guarded source summary." }],
   };
 }
 
@@ -735,84 +712,53 @@ export async function generateGroundedAnswer(input: GenerateGroundedAnswerInput)
     };
   }
 
-  const config = getOllamaConfig();
+  const completion = await completeLlmText({
+    task: "answer",
+    maxTokens: 190,
+    temperature: 0.1,
+    messages: [
+      { role: "system", content: systemPrompt(input.language) },
+      { role: "user", content: userPrompt(input) },
+    ],
+  });
 
-  if (!config.enabled) {
+  if (completion.status === "disabled") {
     return disabledAnswer();
   }
 
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), config.timeoutMs);
-
-  try {
-    const response = await fetch(`${config.baseUrl}/api/chat`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model: config.model,
-        stream: false,
-        messages: [
-          { role: "system", content: systemPrompt(input.language) },
-          { role: "user", content: userPrompt(input) },
-        ],
-        options: {
-          temperature: 0.1,
-          num_predict: 190,
-        },
-      }),
-      signal: controller.signal,
-    });
-
-    const payload = (await response.json().catch(() => ({}))) as OllamaChatResponse;
-
-    if (!response.ok || payload.error) {
-      return {
-        status: "error",
-        text: null,
-        citations: [],
-        warnings: [
-          {
-            code: "ollama_error",
-            message: payload.error || `Ollama returned HTTP ${response.status}.`,
-          },
-        ],
-      };
-    }
-
-    const text = stripThinkingBlocks(payload.message?.content || "");
-
-    if (!text) {
-      return {
-        status: "error",
-        text: null,
-        citations: [],
-        warnings: [{ code: "ollama_empty_answer", message: "Ollama returned an empty grounded answer." }],
-      };
-    }
-
-    if (!passesGroundingGuardrails(text, input.language) || !passesLexicalGrounding(text, input) || !passesExactQuranGuardrail(text, input)) {
-      return fallbackGroundedSummary(input);
-    }
-
-    return {
-      status: "ready",
-      text,
-      citations: citationLabelsForText(input.records, input.language, text),
-      warnings: [],
-    };
-  } catch (error) {
+  if (completion.status === "error") {
     return {
       status: "error",
       text: null,
       citations: [],
       warnings: [
         {
-          code: "ollama_request_failed",
-          message: error instanceof Error ? error.message : "The local Ollama answer request failed.",
+          code: "llm_error",
+          message: completion.error,
         },
       ],
     };
-  } finally {
-    clearTimeout(timeout);
   }
+
+  const text = stripThinkingBlocks(completion.text);
+
+  if (!text) {
+    return {
+      status: "error",
+      text: null,
+      citations: [],
+      warnings: [{ code: "llm_empty_answer", message: "The configured LLM provider returned an empty grounded answer." }],
+    };
+  }
+
+  if (!passesGroundingGuardrails(text, input.language) || !passesLexicalGrounding(text, input) || !passesExactQuranGuardrail(text, input)) {
+    return fallbackGroundedSummary(input);
+  }
+
+  return {
+    status: "ready",
+    text,
+    citations: citationLabelsForText(input.records, input.language, text),
+    warnings: [],
+  };
 }

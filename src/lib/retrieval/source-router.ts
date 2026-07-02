@@ -89,7 +89,7 @@ export async function searchSources(
         },
       ],
       provenanceNotes: [
-        "Source tool router: ollama.",
+        "Source tool router: llm.",
         ...(routeDecision.warning ? [`Source tool router error: ${routeDecision.warning}`] : []),
       ],
     };

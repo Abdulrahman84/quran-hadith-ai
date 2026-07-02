@@ -10,7 +10,7 @@ The app is intentionally separate from `hadith-mcp`. Its job is to orchestrate s
 - Hadith grades must remain source-attributed.
 - Missing provenance, missing translation, or missing grade data must be visible to users.
 - The app must not issue fatwas, replace scholars, or generate unsupported religious interpretation.
-- The model provider should be replaceable; source MCPs are the source of truth.
+- OpenRouter is the only model provider; source MCPs are the source of truth.
 
 ## Local Development
 
@@ -33,13 +33,12 @@ uvx tafsir-mcp
 On first run it may download its Quran database and cache it under `~/.cache/tafsir-mcp/`. Set `TAFSIR_DB_PATH`
 in `.env.local` only if you want to point it at a specific local `quran.db`.
 
-Copy `.env.example` to `.env.local` if your local paths differ.
-
-The default local model path uses Ollama. Start Ollama and set `OLLAMA_MODEL` to an installed model if you want grounded answer drafting:
+Copy `.env.example` to `.env.local` if your local paths differ. Set `OPENROUTER_API_KEY` before searching; the default test
+model is OpenRouter's free `qwen/qwen3-next-80b-a3b-instruct:free` route:
 
 ```bash
-ollama list
-OLLAMA_MODEL=qwen3:30b
+OPENROUTER_API_KEY=...
+OPENROUTER_MODEL=qwen/qwen3-next-80b-a3b-instruct:free
 ```
 
 ```bash
@@ -55,8 +54,9 @@ Open [http://localhost:3000](http://localhost:3000) with your browser.
 ## Current Status
 
 This repository contains a Next.js product shell, planning docs, server-side local Tafsir and Hadith MCP retrieval
-paths, and an optional local Ollama answer layer. The model receives only retrieved source records and is not used as a
+paths, and an OpenRouter answer layer. The model receives only retrieved source records and is not used as a
 source of Quran text, tafsir text, hadith text, grades, or provenance. Tafsir MCP code is MIT licensed; its Quranic data
 requires Tafsir Center attribution under CC BY 4.0.
 
 See [docs/product-plan.md](docs/product-plan.md) and [docs/source-policy.md](docs/source-policy.md).
+For API-model deployment, see [docs/openrouter-deployment.md](docs/openrouter-deployment.md).

@@ -1,40 +1,12 @@
+import { completeLlmText } from "../llm/provider";
 import { planHadithSearchQueries } from "./query-planner";
 import type { RetrievalLanguage } from "./types";
 
 type HadithQueryPlan = {
   queries: string[];
-  planner: "ollama" | "fallback";
+  planner: "llm" | "fallback";
   warning: string | null;
 };
-
-type OllamaQueryResponse = {
-  message?: {
-    content?: string;
-  };
-  error?: string;
-};
-
-const defaultOllamaBaseUrl = "http://127.0.0.1:11434";
-const defaultOllamaModel = "qwen3:30b";
-
-function getHadithQueryPlannerConfig() {
-  const ollamaEnabled = process.env.OLLAMA_ENABLED?.trim() !== "false";
-  const plannerEnabled = process.env.HADITH_QUERY_PLANNER_ENABLED?.trim() !== "false";
-  const baseUrl = process.env.OLLAMA_BASE_URL?.trim() || defaultOllamaBaseUrl;
-  const model =
-    process.env.HADITH_QUERY_PLANNER_MODEL?.trim() ||
-    process.env.MCP_TOOL_ROUTER_MODEL?.trim() ||
-    process.env.OLLAMA_MODEL?.trim() ||
-    defaultOllamaModel;
-  const timeoutMs = Number.parseInt(process.env.HADITH_QUERY_PLANNER_TIMEOUT_MS || process.env.OLLAMA_TIMEOUT_MS || "12000", 10);
-
-  return {
-    enabled: ollamaEnabled && plannerEnabled,
-    baseUrl: baseUrl.replace(/\/$/, ""),
-    model,
-    timeoutMs: Number.isFinite(timeoutMs) && timeoutMs > 0 ? timeoutMs : 12000,
-  };
-}
 
 function parseJsonObject(value: string) {
   const stripped = value
@@ -104,69 +76,41 @@ function systemPrompt(language: RetrievalLanguage) {
   ].join("\n");
 }
 
-async function planWithOllama(query: string, language: RetrievalLanguage): Promise<HadithQueryPlan | null> {
-  const config = getHadithQueryPlannerConfig();
+async function planWithLlm(query: string, language: RetrievalLanguage): Promise<HadithQueryPlan> {
+  const completion = await completeLlmText({
+    task: "hadith-query-planner",
+    json: true,
+    maxTokens: 120,
+    temperature: 0,
+    messages: [
+      { role: "system", content: systemPrompt(language) },
+      { role: "user", content: `Question:\n${query}\n\nPlan Hadith MCP search phrases now.` },
+    ],
+  });
 
-  if (!config.enabled) {
-    return null;
-  }
-
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), config.timeoutMs);
-
-  try {
-    const response = await fetch(`${config.baseUrl}/api/chat`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model: config.model,
-        stream: false,
-        format: "json",
-        messages: [
-          { role: "system", content: systemPrompt(language) },
-          { role: "user", content: `Question:\n${query}\n\nPlan Hadith MCP search phrases now.` },
-        ],
-        options: {
-          temperature: 0,
-          num_predict: 120,
-        },
-      }),
-      signal: controller.signal,
-    });
-    const payload = (await response.json().catch(() => ({}))) as OllamaQueryResponse;
-
-    if (!response.ok || payload.error) {
-      return {
-        queries: [],
-        planner: "fallback",
-        warning: payload.error || `Ollama hadith query planner returned HTTP ${response.status}.`,
-      };
-    }
-
-    const queries = normalizeQueries(parseJsonObject(payload.message?.content || ""), language);
-
-    if (queries.length === 0) {
-      return {
-        queries: [],
-        planner: "fallback",
-        warning: "Ollama hadith query planner returned no valid search phrases.",
-      };
-    }
-
-    return {
-      queries,
-      planner: "ollama",
-      warning: null,
-    };
-  } catch (error) {
+  if (completion.status !== "ok") {
     return {
       queries: [],
       planner: "fallback",
-      warning: error instanceof Error ? error.message : "Ollama hadith query planner request failed.",
+      warning: completion.error,
     };
-  } finally {
-    clearTimeout(timeout);
   }
+
+  const queries = normalizeQueries(parseJsonObject(completion.text), language);
+
+  if (queries.length === 0) {
+    return {
+      queries: [],
+      planner: "fallback",
+      warning: `${completion.provider} hadith query planner returned no valid search phrases.`,
+    };
+  }
+
+  return {
+    queries,
+    planner: "llm",
+    warning: null,
+  };
 }
 
 export async function planHadithRetrievalQueries(
@@ -175,15 +119,7 @@ export async function planHadithRetrievalQueries(
   plannedQuery: string,
 ): Promise<HadithQueryPlan> {
   const fallbackQueries = planHadithSearchQueries(query, language, plannedQuery);
-  const aiPlan = await planWithOllama(query, language);
-
-  if (!aiPlan) {
-    return {
-      queries: fallbackQueries,
-      planner: "fallback",
-      warning: null,
-    };
-  }
+  const aiPlan = await planWithLlm(query, language);
 
   return {
     queries: [...new Set([...fallbackQueries, ...aiPlan.queries])],

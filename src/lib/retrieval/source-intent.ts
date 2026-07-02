@@ -1,22 +1,15 @@
+import { completeLlmText } from "../llm/provider";
+
 export type SourceRoute = "tafsir" | "hadith";
 
 type SourceRoutePlan = {
   routes: SourceRoute[];
-  planner: "ollama";
+  planner: "llm";
   reason: string | null;
   warning: string | null;
 };
 
-type OllamaRouteResponse = {
-  message?: {
-    content?: string;
-  };
-  error?: string;
-};
-
 const allowedRoutes = new Set<SourceRoute>(["tafsir", "hadith"]);
-const defaultOllamaBaseUrl = "http://127.0.0.1:11434";
-const defaultOllamaModel = "qwen3:30b";
 
 function uniqueRoutes(routes: SourceRoute[]) {
   return [...new Set(routes)];
@@ -116,25 +109,10 @@ function applyRouteSafetyNet(query: string, routes: SourceRoute[]) {
   return uniqueRoutes([...routes, "tafsir", "hadith"]);
 }
 
-function getOllamaRouterConfig() {
-  const ollamaEnabled = process.env.OLLAMA_ENABLED?.trim() !== "false";
-  const routerEnabled = process.env.MCP_TOOL_ROUTER_ENABLED?.trim() !== "false";
-  const baseUrl = process.env.OLLAMA_BASE_URL?.trim() || defaultOllamaBaseUrl;
-  const model = process.env.MCP_TOOL_ROUTER_MODEL?.trim() || process.env.OLLAMA_MODEL?.trim() || defaultOllamaModel;
-  const timeoutMs = Number.parseInt(process.env.MCP_TOOL_ROUTER_TIMEOUT_MS || process.env.OLLAMA_TIMEOUT_MS || "12000", 10);
-
-  return {
-    enabled: ollamaEnabled && routerEnabled,
-    baseUrl: baseUrl.replace(/\/$/, ""),
-    model,
-    timeoutMs: Number.isFinite(timeoutMs) && timeoutMs > 0 ? timeoutMs : 12000,
-  };
-}
-
 function routerUnavailablePlan(message: string): SourceRoutePlan {
   return {
     routes: [],
-    planner: "ollama",
+    planner: "llm",
     reason: null,
     warning: message,
   };
@@ -217,67 +195,36 @@ function routeUserPrompt(query: string) {
   return `Question:\n${query}\n\nChoose source tools now.`;
 }
 
-async function planSourceRoutesWithOllama(query: string): Promise<SourceRoutePlan | null> {
-  const config = getOllamaRouterConfig();
+async function planSourceRoutesWithLlm(query: string): Promise<SourceRoutePlan> {
+  const completion = await completeLlmText({
+    task: "router",
+    json: true,
+    maxTokens: 80,
+    temperature: 0,
+    messages: [
+      { role: "system", content: routeSystemPrompt() },
+      { role: "user", content: routeUserPrompt(query) },
+    ],
+  });
 
-  if (!config.enabled) {
-    return null;
+  if (completion.status !== "ok") {
+    return routerUnavailablePlan(completion.error);
   }
 
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), config.timeoutMs);
+  const normalized = normalizeModelRoutes(parseJsonObject(completion.text));
 
-  try {
-    const response = await fetch(`${config.baseUrl}/api/chat`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model: config.model,
-        stream: false,
-        format: "json",
-        messages: [
-          { role: "system", content: routeSystemPrompt() },
-          { role: "user", content: routeUserPrompt(query) },
-        ],
-        options: {
-          temperature: 0,
-          num_predict: 80,
-        },
-      }),
-      signal: controller.signal,
-    });
-    const payload = (await response.json().catch(() => ({}))) as OllamaRouteResponse;
-
-    if (!response.ok || payload.error) {
-      return routerUnavailablePlan(payload.error || `Ollama tool router returned HTTP ${response.status}.`);
-    }
-
-    const content = payload.message?.content || "";
-    const normalized = normalizeModelRoutes(parseJsonObject(content));
-
-    if (!normalized) {
-      return routerUnavailablePlan("Ollama tool router returned an invalid route plan.");
-    }
-
-    return {
-      routes: applyRouteSafetyNet(query, normalized.routes),
-      planner: "ollama",
-      reason: normalized.reason,
-      warning: null,
-    };
-  } catch (error) {
-    return routerUnavailablePlan(error instanceof Error ? error.message : "Ollama tool router request failed.");
-  } finally {
-    clearTimeout(timeout);
+  if (!normalized) {
+    return routerUnavailablePlan(`${completion.provider} source-tool router returned an invalid route plan.`);
   }
+
+  return {
+    routes: applyRouteSafetyNet(query, normalized.routes),
+    planner: "llm",
+    reason: normalized.reason,
+    warning: null,
+  };
 }
 
 export async function planSourceRouteDecision(query: string): Promise<SourceRoutePlan> {
-  const modelPlan = await planSourceRoutesWithOllama(query);
-
-  if (modelPlan) {
-    return modelPlan;
-  }
-
-  return routerUnavailablePlan("AI source-tool router is disabled. Enable Ollama and MCP_TOOL_ROUTER_ENABLED to call MCP tools.");
+  return planSourceRoutesWithLlm(query);
 }

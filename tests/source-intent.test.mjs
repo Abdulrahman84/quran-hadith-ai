@@ -24,7 +24,40 @@ function loadSourceIntent(overrides = {}) {
     exports: {},
     module: { exports: {} },
     process: { env: {} },
-    require,
+    require: (id) => {
+      if (id === "../llm/provider") {
+        return {
+          completeLlmText: async (input) => {
+            if (overrides.process?.env?.MCP_TOOL_ROUTER_ENABLED === "false" || !overrides.process?.env?.OPENROUTER_API_KEY) {
+              return {
+                status: "disabled",
+                error: "OpenRouter is not configured for router.",
+                provider: "openrouter",
+                model: "qwen/qwen3-next-80b-a3b-instruct:free",
+              };
+            }
+
+            const response = await overrides.fetch("https://openrouter.test/api/v1/chat/completions", {
+              body: JSON.stringify({
+                model: overrides.process?.env?.MCP_TOOL_ROUTER_MODEL || "qwen/qwen3-next-80b-a3b-instruct:free",
+                messages: input.messages,
+                response_format: input.json ? { type: "json_object" } : undefined,
+              }),
+            });
+            const payload = await response.json();
+
+            return {
+              status: "ok",
+              text: payload.choices?.[0]?.message?.content || "",
+              provider: "openrouter",
+              model: overrides.process?.env?.MCP_TOOL_ROUTER_MODEL || "qwen/qwen3-next-80b-a3b-instruct:free",
+            };
+          },
+        };
+      }
+
+      return require(id);
+    },
     setTimeout,
     clearTimeout,
     ...overrides,
@@ -47,15 +80,19 @@ test("lets the AI router choose source tools from the approved MCP set", async (
       return {
         ok: true,
         json: async () => ({
-          message: {
-            content: '{"routes":["tafsir","hadith"],"reason":"The question asks for broad evidence."}',
-          },
+          choices: [
+            {
+              message: {
+                content: '{"routes":["tafsir","hadith"],"reason":"The question asks for broad evidence."}',
+              },
+            },
+          ],
         }),
       };
     },
     process: {
       env: {
-        OLLAMA_ENABLED: "true",
+        OPENROUTER_API_KEY: "test-key",
         MCP_TOOL_ROUTER_ENABLED: "true",
         MCP_TOOL_ROUTER_MODEL: "router-model",
       },
@@ -64,7 +101,7 @@ test("lets the AI router choose source tools from the approved MCP set", async (
 
   const decision = await planSourceRouteDecision("What evidence is there about patience?");
 
-  assert.equal(decision.planner, "ollama");
+  assert.equal(decision.planner, "llm");
   assert.deepEqual(Array.from(decision.routes), ["tafsir", "hadith"]);
   assert.equal(decision.reason, "The question asks for broad evidence.");
   assert.equal(decision.warning, null);
@@ -75,14 +112,12 @@ test("adds both routes for broad Islamic topics when the model is too narrow", a
     fetch: async () => ({
       ok: true,
       json: async () => ({
-        message: {
-          content: '{"routes":["tafsir"],"reason":"The model chose Quran evidence."}',
-        },
+        choices: [{ message: { content: '{"routes":["tafsir"],"reason":"The model chose Quran evidence."}' } }],
       }),
     }),
     process: {
       env: {
-        OLLAMA_ENABLED: "true",
+        OPENROUTER_API_KEY: "test-key",
         MCP_TOOL_ROUTER_ENABLED: "true",
       },
     },
@@ -98,14 +133,12 @@ test("keeps explicitly Quran-only questions on the tafsir route", async () => {
     fetch: async () => ({
       ok: true,
       json: async () => ({
-        message: {
-          content: '{"routes":["tafsir"],"reason":"The question asks for tafsir."}',
-        },
+        choices: [{ message: { content: '{"routes":["tafsir"],"reason":"The question asks for tafsir."}' } }],
       }),
     }),
     process: {
       env: {
-        OLLAMA_ENABLED: "true",
+        OPENROUTER_API_KEY: "test-key",
         MCP_TOOL_ROUTER_ENABLED: "true",
       },
     },
@@ -121,14 +154,12 @@ test("does not call MCP tools when the AI router returns invalid tools", async (
     fetch: async () => ({
       ok: true,
       json: async () => ({
-        message: {
-          content: '{"routes":["web_search"],"reason":"unsupported"}',
-        },
+        choices: [{ message: { content: '{"routes":["web_search"],"reason":"unsupported"}' } }],
       }),
     }),
     process: {
       env: {
-        OLLAMA_ENABLED: "true",
+        OPENROUTER_API_KEY: "test-key",
         MCP_TOOL_ROUTER_ENABLED: "true",
       },
     },
@@ -136,7 +167,7 @@ test("does not call MCP tools when the AI router returns invalid tools", async (
 
   const decision = await planSourceRouteDecision("Find hadith about intention");
 
-  assert.equal(decision.planner, "ollama");
+  assert.equal(decision.planner, "llm");
   assert.deepEqual(Array.from(decision.routes), []);
   assert.match(decision.warning, /invalid route plan/);
 });
@@ -145,7 +176,6 @@ test("requires the AI router to be enabled before source tools are selected", as
   const { planSourceRouteDecision } = loadSourceIntent({
     process: {
       env: {
-        OLLAMA_ENABLED: "false",
         MCP_TOOL_ROUTER_ENABLED: "true",
       },
     },
@@ -153,7 +183,7 @@ test("requires the AI router to be enabled before source tools are selected", as
 
   const decision = await planSourceRouteDecision("What sources mention mercy?");
 
-  assert.equal(decision.planner, "ollama");
+  assert.equal(decision.planner, "llm");
   assert.deepEqual(Array.from(decision.routes), []);
-  assert.match(decision.warning, /router is disabled/i);
+  assert.match(decision.warning, /OpenRouter is not configured/i);
 });
