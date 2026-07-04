@@ -62,6 +62,23 @@ Then open:
 http://localhost:3000
 ```
 
+## Free Cloud Deploy on Render
+
+This repo includes `render.yaml` for a free Render web service that builds the Dockerfile.
+
+1. Open <https://dashboard.render.com/select-repo?type=blueprint>.
+2. Connect this GitHub repository and select the `main` branch.
+3. When Render prompts for `OPENROUTER_API_KEY`, paste the OpenRouter key.
+4. Apply the Blueprint.
+
+Render will create a public `onrender.com` URL for the service. The configured service name is `sanad-ai`, so the URL is expected to be similar to:
+
+```text
+https://sanad-ai.onrender.com
+```
+
+Free Render web services can spin down when idle, so the first request after inactivity can take about a minute.
+
 ### Compose
 
 ```bash

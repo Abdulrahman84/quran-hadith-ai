@@ -10,6 +10,7 @@ function read(filename) {
 test("Docker runtime config exposes OpenRouter env instead of legacy Ollama routing", () => {
   const dockerfile = read("Dockerfile");
   const compose = read("docker-compose.yml");
+  const render = read("render.yaml");
 
   assert.match(dockerfile, /ENV OPENROUTER_MODEL=/);
   assert.match(dockerfile, /ENV OPENROUTER_APP_NAME="Sanad AI"/);
@@ -19,4 +20,8 @@ test("Docker runtime config exposes OpenRouter env instead of legacy Ollama rout
   assert.match(compose, /OPENROUTER_API_KEY/);
   assert.match(compose, /ANSWER_FALLBACK_MODELS: \$\{ANSWER_FALLBACK_MODELS:-liquid\/lfm-2\.5-1\.2b-instruct:free\}/);
   assert.doesNotMatch(compose, /OLLAMA_/);
+  assert.match(render, /runtime: docker/);
+  assert.match(render, /plan: free/);
+  assert.match(render, /OPENROUTER_API_KEY[\s\S]*sync: false/);
+  assert.match(render, /PORT[\s\S]*value: 10000/);
 });

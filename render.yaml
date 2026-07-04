@@ -1,0 +1,41 @@
+services:
+  - type: web
+    name: sanad-ai
+    runtime: docker
+    plan: free
+    branch: main
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /
+    autoDeployTrigger: commit
+    envVars:
+      - key: PORT
+        value: 10000
+      - key: HOSTNAME
+        value: 0.0.0.0
+      - key: OPENROUTER_API_KEY
+        sync: false
+      - key: OPENROUTER_MODEL
+        value: google/gemma-4-26b-a4b-it:free
+      - key: OPENROUTER_APP_NAME
+        value: Sanad AI
+      - key: ANSWER_MODEL
+        value: google/gemma-4-26b-a4b-it:free
+      - key: ANSWER_FALLBACK_MODELS
+        value: liquid/lfm-2.5-1.2b-instruct:free
+      - key: MCP_TOOL_ROUTER_ENABLED
+        value: "true"
+      - key: MCP_TOOL_ROUTER_MODEL
+        value: liquid/lfm-2.5-1.2b-instruct:free
+      - key: MCP_TOOL_ROUTER_FALLBACK_MODELS
+        value: liquid/lfm-2.5-1.2b-thinking:free
+      - key: MCP_TOOL_ROUTER_TIMEOUT_MS
+        value: "12000"
+      - key: HADITH_QUERY_PLANNER_ENABLED
+        value: "true"
+      - key: HADITH_QUERY_PLANNER_MODEL
+        value: google/gemma-4-26b-a4b-it:free
+      - key: HADITH_QUERY_PLANNER_TIMEOUT_MS
+        value: "12000"
+      - key: LLM_TIMEOUT_MS
+        value: "25000"
