@@ -39,3 +39,11 @@ test("source result filter narrows the visible source records", () => {
   assert.match(pageSource, /record\.sourceKind === "hadith"/);
   assert.match(pageSource, /record\.sourceKind === "quran" \|\| record\.sourceKind === "tafsir"/);
 });
+
+test("English source cards fall back to original Arabic when translation is missing", () => {
+  const pageSource = readHomePage();
+
+  assert.match(pageSource, /record\.arabicText \|\| fallbackText\.english/);
+  assert.match(pageSource, /const direction: "ltr" \| "rtl" = record\.englishText \? "ltr" : "rtl"/);
+  assert.match(pageSource, /dir: direction/);
+});

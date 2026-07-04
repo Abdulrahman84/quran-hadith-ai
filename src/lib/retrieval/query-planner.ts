@@ -140,6 +140,10 @@ export function planHadithSearchQueries(query: string, language: RetrievalLangua
     if (tokens.has("صلاه") || tokens.has("الصلاه") || tokens.has("صلاة") || tokens.has("الصلاة")) {
       expansions.push("صلوا كما رأيتموني أصلي", "لا صلاة لمن لم يقرأ", "أفضل الصلاة بعد الفريضة");
     }
+
+    if (tokens.has("نيه") || tokens.has("النيه") || tokens.has("نيات") || tokens.has("بالنيات") || normalizedQuery.includes("الاعمال بالنيات")) {
+      expansions.push("إنما الأعمال بالنيات", "الأعمال بالنية", "من كانت هجرته");
+    }
   } else {
     const asksAboutProphet = /\b(?:prophet|messenger|muhammad)\b/.test(normalizedQuery);
     const asksAboutTraits = /\b(?:trait|traits|character|description|appearance|manners|qualities)\b/.test(normalizedQuery);
@@ -158,6 +162,10 @@ export function planHadithSearchQueries(query: string, language: RetrievalLangua
 
     if (/\b(?:prayer|salah|salat)\b/.test(normalizedQuery)) {
       expansions.push("pray as you have seen me pray", "no prayer for whoever does not recite", "best prayer after the obligatory");
+    }
+
+    if (/\b(?:intention|intentions|intent)\b/.test(normalizedQuery)) {
+      expansions.push("actions are by intentions", "actions are judged by intentions", "intention behind actions");
     }
   }
 

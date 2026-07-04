@@ -98,12 +98,16 @@ function sourceTextForLanguage(
     };
   }
 
+  const translatedText = [record.englishText, record.sourceKind === "tafsir" ? record.tafsirText : null].filter(Boolean).join("\n\n");
+  const originalText = [record.arabicText, record.sourceKind === "tafsir" ? record.tafsirText : null].filter(Boolean).join("\n\n");
+  const direction: "ltr" | "rtl" = record.englishText ? "ltr" : "rtl";
+
   return {
-    dir: "ltr" as const,
-    text:
-      [record.englishText, record.sourceKind === "tafsir" ? record.tafsirText : null].filter(Boolean).join("\n\n") ||
-      fallbackText.english,
-    textClass: "text-left text-sm font-bold leading-6 text-[var(--color-ink)]",
+    dir: direction,
+    text: translatedText || originalText || record.arabicText || fallbackText.english,
+    textClass: record.englishText
+      ? "text-left text-sm font-bold leading-6 text-[var(--color-ink)]"
+      : "text-right text-base font-black leading-8 text-[var(--color-green)]",
   };
 }
 

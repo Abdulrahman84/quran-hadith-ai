@@ -91,3 +91,27 @@ test("hadith query planner tries curated fallback phrases before AI phrases", as
   assert.ok(plan.queries.indexOf("ليس كمثله شيء") > plan.queries.indexOf("صفات سيدنا محمد"));
   assert.equal(plan.planner, "llm");
 });
+
+test("English intention questions try canonical matn phrases before generic wording", async () => {
+  const { planHadithRetrievalQueries } = loadHadithQueryPlanner({
+    process: {
+      env: {
+        OPENROUTER_API_KEY: "test-key",
+        HADITH_QUERY_PLANNER_ENABLED: "true",
+      },
+    },
+  });
+
+  const plan = await planHadithRetrievalQueries(
+    "Find hadith on intention with source",
+    "english",
+    "on intention with",
+  );
+
+  assert.deepEqual(Array.from(plan.queries.slice(0, 3)), [
+    "actions are by intentions",
+    "actions are judged by intentions",
+    "intention behind actions",
+  ]);
+  assert.ok(plan.queries.indexOf("on intention with") > plan.queries.indexOf("actions are by intentions"));
+});
