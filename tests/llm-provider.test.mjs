@@ -159,3 +159,48 @@ test("completeLlmText retries router fallback models when the configured router 
   assert.equal(result.model, "router-fallback");
   assert.deepEqual(requestedModels, ["router-primary", "router-fallback"]);
 });
+
+test("completeLlmText retries answer fallback models when the configured answer model is unavailable", async () => {
+  const requestedModels = [];
+  const { completeLlmText } = loadProvider({
+    fetch: async (_url, init) => {
+      const body = JSON.parse(init.body);
+      requestedModels.push(body.model);
+
+      if (body.model === "answer-primary") {
+        return {
+          ok: false,
+          status: 429,
+          json: async () => ({
+            error: { message: "answer-primary is temporarily rate-limited upstream." },
+          }),
+        };
+      }
+
+      return {
+        ok: true,
+        json: async () => ({
+          choices: [{ message: { content: "Grounded answer [1]" } }],
+        }),
+      };
+    },
+    process: {
+      env: {
+        OPENROUTER_API_KEY: "test-key",
+        ANSWER_MODEL: "answer-primary",
+        ANSWER_FALLBACK_MODELS: "answer-fallback",
+      },
+    },
+  });
+
+  const result = await completeLlmText({
+    task: "answer",
+    maxTokens: 190,
+    temperature: 0.1,
+    messages: [{ role: "user", content: "answer this" }],
+  });
+
+  assert.equal(result.status, "ok");
+  assert.equal(result.model, "answer-fallback");
+  assert.deepEqual(requestedModels, ["answer-primary", "answer-fallback"]);
+});

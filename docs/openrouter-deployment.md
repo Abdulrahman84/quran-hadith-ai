@@ -12,15 +12,20 @@ OPENROUTER_MODEL=google/gemma-4-26b-a4b-it:free
 OPENROUTER_SITE_URL=https://your-domain.example
 OPENROUTER_APP_NAME=Sanad AI
 LLM_TIMEOUT_MS=25000
+ANSWER_MODEL=google/gemma-4-26b-a4b-it:free
+ANSWER_FALLBACK_MODELS=liquid/lfm-2.5-1.2b-instruct:free
 MCP_TOOL_ROUTER_ENABLED=true
 MCP_TOOL_ROUTER_MODEL=liquid/lfm-2.5-1.2b-instruct:free
 MCP_TOOL_ROUTER_FALLBACK_MODELS=liquid/lfm-2.5-1.2b-thinking:free
 HADITH_QUERY_PLANNER_ENABLED=true
+HADITH_QUERY_PLANNER_MODEL=google/gemma-4-26b-a4b-it:free
+HADITH_QUERY_PLANNER_FALLBACK_MODELS=
 ```
 
 The same OpenRouter model is used for routing, hadith query planning, and grounded answer drafting unless you override
-`MCP_TOOL_ROUTER_MODEL`, `HADITH_QUERY_PLANNER_MODEL`, or `ANSWER_MODEL`. If the configured router model is temporarily
-rate-limited or unavailable, `MCP_TOOL_ROUTER_FALLBACK_MODELS` is tried from left to right.
+`MCP_TOOL_ROUTER_MODEL`, `HADITH_QUERY_PLANNER_MODEL`, or `ANSWER_MODEL`. If a configured model is temporarily
+rate-limited or unavailable, the matching fallback list is tried from left to right:
+`MCP_TOOL_ROUTER_FALLBACK_MODELS`, `HADITH_QUERY_PLANNER_FALLBACK_MODELS`, or `ANSWER_FALLBACK_MODELS`.
 
 ## Source MCPs
 

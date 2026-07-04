@@ -34,7 +34,7 @@ The included `Dockerfile` builds a single image that contains:
 - `sqlite3`
 - Python and `uvx` for Tafsir MCP
 
-Ollama is required at runtime because the model chooses which MCP source tools to call. The model is not the source of Quran, tafsir, hadith, grades, or provenance; it is the tool router and answer-drafting layer.
+OpenRouter is required at runtime because the model chooses which MCP source tools to call and drafts answers from retrieved records. The model is not the source of Quran, tafsir, hadith, grades, or provenance; it is the tool router and answer-drafting layer.
 
 Build it from this repository:
 
@@ -48,10 +48,13 @@ docker build \
 Run it:
 
 ```bash
-docker run --rm -p 3000:3000 sanad-ai
+docker run --rm -p 3000:3000 \
+  -e OPENROUTER_API_KEY=... \
+  -e OPENROUTER_SITE_URL=https://your-domain.example \
+  sanad-ai
 ```
 
-The plain `docker run` form expects Ollama to be reachable through the container environment. Compose is easier for local use.
+You can also pass model overrides such as `OPENROUTER_MODEL`, `ANSWER_MODEL`, `MCP_TOOL_ROUTER_MODEL`, and their matching fallback lists.
 
 Then open:
 
@@ -62,39 +65,17 @@ http://localhost:3000
 ### Compose
 
 ```bash
+OPENROUTER_API_KEY=... docker compose up --build
+```
+
+The default Compose file passes OpenRouter configuration into the app container. For local smoke testing, set:
+
+```bash
+OPENROUTER_SITE_URL=http://localhost:3000
+MCP_TOOL_ROUTER_MODEL=liquid/lfm-2.5-1.2b-instruct:free
+MCP_TOOL_ROUTER_FALLBACK_MODELS=liquid/lfm-2.5-1.2b-thinking:free
+OPENROUTER_API_KEY=...
 docker compose up --build
-```
-
-The default Compose file expects Ollama on the host machine, using `http://host.docker.internal:11434`.
-
-Start Ollama on the host and pull a model:
-
-```bash
-ollama pull qwen2.5-coder:7b
-```
-
-Then run:
-
-```bash
-docker compose up --build
-```
-
-To run an open-weight model in Docker too, use the Ollama override:
-
-```bash
-docker compose -f docker-compose.yml -f docker-compose.ollama.yml up --build
-```
-
-Then pull the model once:
-
-```bash
-docker compose -f docker-compose.yml -f docker-compose.ollama.yml exec ollama ollama pull qwen2.5-coder:7b
-```
-
-You can switch models by setting `OLLAMA_MODEL`:
-
-```bash
-OLLAMA_MODEL=llama3.1:8b docker compose -f docker-compose.yml -f docker-compose.ollama.yml up --build
 ```
 
 The model is only the answer-drafting layer. Quran, tafsir, hadith text, grades, and provenance still come from the MCP retrieval sources.
@@ -149,13 +130,21 @@ TAFSIR_MCP_COMMAND=uvx
 TAFSIR_MCP_ARGS=tafsir-mcp
 # Optional: TAFSIR_DB_PATH=/var/lib/sanad-ai/tafsir/quran.db
 
-OLLAMA_ENABLED=true
-OLLAMA_BASE_URL=http://127.0.0.1:11434
-OLLAMA_MODEL=qwen2.5-coder:7b
+OPENROUTER_API_KEY=...
+OPENROUTER_MODEL=google/gemma-4-26b-a4b-it:free
+OPENROUTER_SITE_URL=https://your-domain.example
+OPENROUTER_APP_NAME=Sanad AI
+LLM_TIMEOUT_MS=25000
+ANSWER_MODEL=google/gemma-4-26b-a4b-it:free
+ANSWER_FALLBACK_MODELS=liquid/lfm-2.5-1.2b-instruct:free
 MCP_TOOL_ROUTER_ENABLED=true
-# Optional: MCP_TOOL_ROUTER_MODEL=qwen2.5-coder:7b
+MCP_TOOL_ROUTER_MODEL=liquid/lfm-2.5-1.2b-instruct:free
+# Optional: MCP_TOOL_ROUTER_FALLBACK_MODELS=liquid/lfm-2.5-1.2b-thinking:free
+# Optional: MCP_TOOL_ROUTER_TIMEOUT_MS=12000
 HADITH_QUERY_PLANNER_ENABLED=true
-# Optional: HADITH_QUERY_PLANNER_MODEL=qwen2.5-coder:7b
+# Optional: HADITH_QUERY_PLANNER_MODEL=google/gemma-4-26b-a4b-it:free
+# Optional: HADITH_QUERY_PLANNER_FALLBACK_MODELS=
+# Optional: HADITH_QUERY_PLANNER_TIMEOUT_MS=12000
 ```
 
 Start it:

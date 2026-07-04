@@ -79,6 +79,14 @@ function taskFallbackModelsEnv(task: LlmTask) {
     return splitModelList(process.env.MCP_TOOL_ROUTER_FALLBACK_MODELS);
   }
 
+  if (task === "hadith-query-planner") {
+    return splitModelList(process.env.HADITH_QUERY_PLANNER_FALLBACK_MODELS);
+  }
+
+  if (task === "answer") {
+    return splitModelList(process.env.ANSWER_FALLBACK_MODELS);
+  }
+
   return [];
 }
 
