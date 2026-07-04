@@ -321,3 +321,31 @@ test("answer generation sends a bounded balanced evidence pack with original cit
   assert.ok(answer.citations.includes("[1] صحيح البخاري 1"));
   assert.ok(answer.citations.includes("[21] القرآن - سورة الأحزاب 33:21"));
 });
+
+test("answer generation falls back to a guarded source summary when the model errors", async () => {
+  const { generateGroundedAnswer } = loadGroundedAnswerModule({
+    completeLlmText: async () => ({
+      status: "error",
+      error: "Provider returned error",
+      provider: "openrouter",
+      model: "google/gemma-4-26b-a4b-it:free",
+    }),
+  });
+
+  const answer = await generateGroundedAnswer({
+    question: "صفات سيدنا محمد",
+    language: "arabic",
+    records: [
+      sourceRecord({
+        arabicText: "قال رسول الله صلى الله عليه وسلم كان رسول الله ربعة ليس بالطويل ولا بالقصير",
+      }),
+    ],
+  });
+
+  assert.equal(answer.status, "ready");
+  assert.match(answer.text, /بالنسبة إلى سؤالك/);
+  assert.deepEqual(
+    Array.from(answer.warnings.map((warning) => warning.code)),
+    ["llm_error", "llm_guardrail_fallback"],
+  );
+});

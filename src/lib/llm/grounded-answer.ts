@@ -768,16 +768,11 @@ export async function generateGroundedAnswer(input: GenerateGroundedAnswerInput)
   }
 
   if (completion.status === "error") {
+    const answer = fallbackGroundedSummary(input);
+
     return {
-      status: "error",
-      text: null,
-      citations: [],
-      warnings: [
-        {
-          code: "llm_error",
-          message: completion.error,
-        },
-      ],
+      ...answer,
+      warnings: [{ code: "llm_error", message: completion.error }, ...answer.warnings],
     };
   }
 
