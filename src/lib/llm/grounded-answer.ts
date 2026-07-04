@@ -223,31 +223,58 @@ function cleanWhitespace(value: string) {
   return value.replace(/\s+/g, " ").trim();
 }
 
-function normalizeArabicForExcerpt(value: string) {
+function cleanArabicForExcerpt(value: string) {
   return cleanWhitespace(
     value
       .replace(/[\u064B-\u065F\u0670]/g, "")
-      .replace(/\u0640/g, "")
+      .replace(/\u0640/g, ""),
+  );
+}
+
+function normalizeArabicForMatching(value: string) {
+  return cleanWhitespace(
+    cleanArabicForExcerpt(value)
       .replace(/[إأآٱ]/g, "ا")
       .replace(/ى/g, "ي"),
   );
 }
 
+function escapeRegExp(value: string) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function findLastArabicPhraseIndex(text: string, phrases: string[]) {
+  const normalizedText = normalizeArabicForMatching(text);
+
+  return phrases
+    .map((phrase) => {
+      const normalizedPhrase = normalizeArabicForMatching(phrase);
+      const pattern = new RegExp(`(^|[\\s،,؛:])(${escapeRegExp(normalizedPhrase)})(?=$|[\\s،,؛:.])`, "gu");
+      let found: number | undefined;
+      let match: RegExpExecArray | null;
+
+      while ((match = pattern.exec(normalizedText)) !== null) {
+        found = match.index + (match[1]?.length || 0);
+      }
+
+      return found;
+    })
+    .filter((index): index is number => index !== undefined)
+    .sort((a, b) => b - a)[0];
+}
+
 function stripArabicNarratorOpening(value: string) {
   const text = cleanWhitespace(value);
-  const narratorOpening = /^(?:حدثنا|حدثني|اخبرنا|انبانا|انبا|سمعت)(?:\s|،|,)/;
+  const narratorOpening = /^(?:حدثنا|حدثني|أخبرنا|اخبرنا|أنبأنا|انبانا|أنبا|انبا|سمعت)(?:\s|،|,)/;
 
   if (!narratorOpening.test(text)) {
     return text;
   }
 
-  const matnMarkersToKeep = ["قال رسول الله", "قال النبي", "سمعت رسول الله", "عن النبي", "ان رسول الله", "ان النبي"];
-  const markerIndex = matnMarkersToKeep
-    .map((marker) => text.lastIndexOf(marker))
-    .filter((index) => index > 0)
-    .sort((a, b) => b - a)[0];
+  const matnMarkersToKeep = ["قال رسول الله", "قال النبي", "سمعت رسول الله", "عن النبي", "إن رسول الله", "أن رسول الله", "إن النبي", "أن النبي", "كان رسول الله"];
+  const markerIndex = findLastArabicPhraseIndex(text, matnMarkersToKeep);
 
-  if (markerIndex !== undefined) {
+  if (markerIndex !== undefined && markerIndex > 0) {
     return text.slice(markerIndex).trim();
   }
 
@@ -262,22 +289,20 @@ function stripArabicNarratorOpening(value: string) {
 }
 
 function stripArabicHadithTrailingNotes(value: string) {
-  return value
-    .replace(/\s*قال ابو كريب[\s\S]*$/u, "")
-    .replace(/\s*قال ابو عيسي[\s\S]*$/u, "")
-    .replace(/\s*قال الترمذي[\s\S]*$/u, "")
-    .replace(/\s*وفي الباب[\s\S]*$/u, "")
-    .replace(/\s*قال\s*$/u, "")
-    .trim();
+  const trailingMarkers = ["قال أبو كريب", "قال أبو عيسى", "قال الترمذي", "وفي الباب"];
+  const markerIndex = trailingMarkers
+    .map((marker) => findLastArabicPhraseIndex(value, [marker]))
+    .filter((index): index is number => index !== undefined)
+    .sort((a, b) => a - b)[0];
+  const text = markerIndex === undefined ? value : value.slice(0, markerIndex);
+
+  return text.replace(/\s*قال\s*$/u, "").trim();
 }
 
 function excerptArabicText(value: string) {
-  const text = stripArabicNarratorOpening(normalizeArabicForExcerpt(value));
-  const strongMarkers = ["قال رسول الله", "سمعت رسول الله", "ان رسول الله", "كان رسول الله", "يصف النبي", "عن النبي", "قال النبي"];
-  const strongMarkerIndex = strongMarkers
-    .map((marker) => text.lastIndexOf(marker))
-    .filter((index) => index >= 0)
-    .sort((a, b) => b - a)[0];
+  const text = stripArabicNarratorOpening(cleanArabicForExcerpt(value));
+  const strongMarkers = ["قال رسول الله", "سمعت رسول الله", "إن رسول الله", "أن رسول الله", "كان رسول الله", "يصف النبي", "عن النبي", "قال النبي"];
+  const strongMarkerIndex = findLastArabicPhraseIndex(text, strongMarkers);
 
   if (strongMarkerIndex !== undefined) {
     return stripArabicHadithTrailingNotes(text.slice(strongMarkerIndex)).slice(0, 260);
@@ -320,21 +345,22 @@ function contentExcerpt(record: SourceRecord, language: RetrievalLanguage) {
 }
 
 function summarizeArabicExcerpt(excerpt: string) {
-  const text = normalizeArabicForExcerpt(excerpt).replace(/^قال\s+/, "");
+  const text = cleanArabicForExcerpt(excerpt).replace(/^قال\s+/, "");
+  const normalized = normalizeArabicForMatching(text);
 
-  if (text.includes("اقيمت الصلاة") && text.includes("حبسه")) {
+  if (normalized.includes("اقيمت الصلاة") && normalized.includes("حبسه")) {
     return "موقفا وقع بعد إقامة الصلاة، حيث عُرض للنبي صلى الله عليه وسلم رجل فحبسه بعد الإقامة";
   }
 
-  if (text.includes("نجمع بين الصلاتين") && text.includes("عهد رسول الله")) {
+  if (normalized.includes("نجمع بين الصلاتين") && normalized.includes("عهد رسول الله")) {
     return "الجمع بين الصلاتين على عهد رسول الله صلى الله عليه وسلم";
   }
 
-  if (text.includes("افضل الصلاة") && text.includes("الصلاة المكتوبة")) {
+  if (normalized.includes("افضل الصلاة") && normalized.includes("الصلاة المكتوبة")) {
     return "أن من الصلاة المذكورة في النص صلاة الليل بعد الصلاة المكتوبة";
   }
 
-  if (text.includes("لا صلاة") && text.includes("فاتحة الكتاب")) {
+  if (normalized.includes("لا صلاة") && normalized.includes("فاتحة الكتاب")) {
     return "رواية تربط صحة الصلاة بقراءة فاتحة الكتاب";
   }
 
@@ -382,7 +408,7 @@ function formatArabicHadithGrade(value: string) {
 }
 
 function isArabicQuranOnlyQuestion(question: string) {
-  const normalized = normalizeArabicForExcerpt(question.toLowerCase());
+  const normalized = normalizeArabicForMatching(question.toLowerCase());
   const tokens = new Set(normalized.replace(/[^\p{L}\p{N}\s]/gu, " ").split(/\s+/).filter(Boolean));
   const quranTerms = ["قران", "القران", "اية", "الاية", "ايه", "الايه", "سوره", "السوره", "تفسير", "التفسير"];
   const hadithTerms = ["حديث", "احاديث", "سنه", "السنه"];

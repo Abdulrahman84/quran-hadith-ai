@@ -150,7 +150,7 @@ test("fallback Arabic summary omits narrator-chain openings", () => {
   });
 
   assert.doesNotMatch(answer.text, /حدثنا|سفيان|الزهري/);
-  assert.match(answer.text, /انما الاعمال بالنيات/);
+  assert.match(answer.text, /إنما الأعمال بالنيات/);
 });
 
 test("fallback Arabic summary prefers hadith matn over trailing notes", () => {
@@ -167,8 +167,30 @@ test("fallback Arabic summary prefers hadith matn over trailing notes", () => {
     ],
   });
 
-  assert.match(answer.text, /ان رسول الله صلي الله عليه وسلم احسن الناس وجها/);
-  assert.doesNotMatch(answer.text, /ابو كريب له شعر/);
+  assert.match(answer.text, /كان رسول الله صلى الله عليه وسلم أحسن الناس وجها/);
+  assert.doesNotMatch(answer.text, /أبو كريب له شعر/);
+});
+
+test("fallback Arabic summary preserves hamza and alif maqsurah in displayed excerpts", () => {
+  const { fallbackGroundedSummary } = loadGroundedAnswerModule();
+
+  const answer = fallbackGroundedSummary({
+    question: "صفات سيدنا محمد",
+    language: "arabic",
+    records: [
+      sourceRecord({
+        arabicText:
+          "حدثنا قتيبة، عن البراء قال كان رسول الله صلى الله عليه وسلم أحسن الناس وجها، أزهر اللون، ليس بالطويل ولا بالقصير.",
+      }),
+    ],
+  });
+
+  assert.match(answer.text, /صلى الله عليه وسلم/);
+  assert.match(answer.text, /أحسن الناس وجها/);
+  assert.match(answer.text, /أزهر اللون/);
+  assert.doesNotMatch(answer.text, /صلي الله عليه وسلم/);
+  assert.doesNotMatch(answer.text, /احسن الناس وجها/);
+  assert.doesNotMatch(answer.text, /ازهر اللون/);
 });
 
 test("fallback answer can cite tafsir records", () => {
