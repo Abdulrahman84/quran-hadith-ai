@@ -12,6 +12,7 @@ test("Docker runtime config exposes OpenRouter env instead of legacy Ollama rout
   const compose = read("docker-compose.yml");
 
   assert.match(dockerfile, /ENV OPENROUTER_MODEL=/);
+  assert.match(dockerfile, /ENV OPENROUTER_APP_NAME="Sanad AI"/);
   assert.match(dockerfile, /ENV ANSWER_FALLBACK_MODELS=liquid\/lfm-2\.5-1\.2b-instruct:free/);
   assert.match(dockerfile, /ENV MCP_TOOL_ROUTER_MODEL=/);
   assert.doesNotMatch(dockerfile, /ENV OLLAMA_/);
