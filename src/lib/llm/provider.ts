@@ -55,6 +55,13 @@ function readPositiveInt(value: string | undefined, fallback: number) {
   return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
 }
 
+function splitModelList(value: string | undefined) {
+  return (value || "")
+    .split(",")
+    .map((model) => model.trim())
+    .filter(Boolean);
+}
+
 function taskModelEnv(task: LlmTask) {
   if (task === "router") {
     return process.env.MCP_TOOL_ROUTER_MODEL?.trim();
@@ -65,6 +72,14 @@ function taskModelEnv(task: LlmTask) {
   }
 
   return process.env.ANSWER_MODEL?.trim();
+}
+
+function taskFallbackModelsEnv(task: LlmTask) {
+  if (task === "router") {
+    return splitModelList(process.env.MCP_TOOL_ROUTER_FALLBACK_MODELS);
+  }
+
+  return [];
 }
 
 function taskTimeoutEnv(task: LlmTask) {
@@ -104,6 +119,7 @@ function getLlmConfig(task: LlmTask) {
     enabled: isTaskEnabled(task) && Boolean(process.env.OPENROUTER_API_KEY?.trim()),
     provider: "openrouter" as const,
     model: taskModel || sharedModel || process.env.OPENROUTER_MODEL?.trim() || defaultOpenRouterModel,
+    fallbackModels: taskFallbackModelsEnv(task),
     baseUrl: (process.env.OPENROUTER_BASE_URL?.trim() || defaultOpenRouterBaseUrl).replace(/\/$/, ""),
     apiKey: process.env.OPENROUTER_API_KEY?.trim() || "",
     timeoutMs,
@@ -184,9 +200,26 @@ export async function completeLlmText(input: LlmCompletionInput): Promise<LlmCom
 
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), config.timeoutMs);
+  const models = [...new Set([config.model, ...config.fallbackModels])];
+  let lastResult: LlmCompletionResult | null = null;
 
   try {
-    return await completeWithOpenRouter(input, config, controller.signal);
+    for (const model of models) {
+      const result = await completeWithOpenRouter(input, { ...config, model }, controller.signal);
+
+      if (result.status === "ok") {
+        return result;
+      }
+
+      lastResult = result;
+    }
+
+    return lastResult || {
+      status: "error",
+      error: "OpenRouter request failed.",
+      provider: config.provider,
+      model: config.model,
+    };
   } catch (error) {
     return {
       status: "error",

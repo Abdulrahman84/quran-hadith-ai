@@ -13,11 +13,14 @@ OPENROUTER_SITE_URL=https://your-domain.example
 OPENROUTER_APP_NAME=Sanad AI
 LLM_TIMEOUT_MS=25000
 MCP_TOOL_ROUTER_ENABLED=true
+MCP_TOOL_ROUTER_MODEL=liquid/lfm-2.5-1.2b-instruct:free
+MCP_TOOL_ROUTER_FALLBACK_MODELS=liquid/lfm-2.5-1.2b-thinking:free
 HADITH_QUERY_PLANNER_ENABLED=true
 ```
 
 The same OpenRouter model is used for routing, hadith query planning, and grounded answer drafting unless you override
-`MCP_TOOL_ROUTER_MODEL`, `HADITH_QUERY_PLANNER_MODEL`, or `ANSWER_MODEL`.
+`MCP_TOOL_ROUTER_MODEL`, `HADITH_QUERY_PLANNER_MODEL`, or `ANSWER_MODEL`. If the configured router model is temporarily
+rate-limited or unavailable, `MCP_TOOL_ROUTER_FALLBACK_MODELS` is tried from left to right.
 
 ## Source MCPs
 

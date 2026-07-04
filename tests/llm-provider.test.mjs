@@ -113,3 +113,49 @@ test("completeLlmText does not use legacy provider env as fallback providers", a
   assert.equal(result.provider, "openrouter");
   assert.match(result.error, /OpenRouter is not configured/);
 });
+
+test("completeLlmText retries router fallback models when the configured router model is unavailable", async () => {
+  const requestedModels = [];
+  const { completeLlmText } = loadProvider({
+    fetch: async (_url, init) => {
+      const body = JSON.parse(init.body);
+      requestedModels.push(body.model);
+
+      if (body.model === "router-primary") {
+        return {
+          ok: false,
+          status: 429,
+          json: async () => ({
+            error: { message: "router-primary is temporarily rate-limited upstream." },
+          }),
+        };
+      }
+
+      return {
+        ok: true,
+        json: async () => ({
+          choices: [{ message: { content: '{"routes":["tafsir"],"reason":"fallback"}' } }],
+        }),
+      };
+    },
+    process: {
+      env: {
+        OPENROUTER_API_KEY: "test-key",
+        MCP_TOOL_ROUTER_MODEL: "router-primary",
+        MCP_TOOL_ROUTER_FALLBACK_MODELS: "router-fallback",
+      },
+    },
+  });
+
+  const result = await completeLlmText({
+    task: "router",
+    json: true,
+    maxTokens: 80,
+    temperature: 0,
+    messages: [{ role: "user", content: "route this" }],
+  });
+
+  assert.equal(result.status, "ok");
+  assert.equal(result.model, "router-fallback");
+  assert.deepEqual(requestedModels, ["router-primary", "router-fallback"]);
+});

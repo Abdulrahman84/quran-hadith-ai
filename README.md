@@ -39,6 +39,8 @@ model is OpenRouter's free `google/gemma-4-26b-a4b-it:free` route:
 ```bash
 OPENROUTER_API_KEY=...
 OPENROUTER_MODEL=google/gemma-4-26b-a4b-it:free
+MCP_TOOL_ROUTER_MODEL=liquid/lfm-2.5-1.2b-instruct:free
+MCP_TOOL_ROUTER_FALLBACK_MODELS=liquid/lfm-2.5-1.2b-thinking:free
 ```
 
 ```bash
