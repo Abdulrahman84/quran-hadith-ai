@@ -94,7 +94,7 @@ function sourceTextForLanguage(
     return {
       dir: "rtl" as const,
       text: [record.arabicText, record.sourceKind === "tafsir" ? record.tafsirText : null].filter(Boolean).join("\n\n") || fallbackText.arabic,
-      textClass: "text-right text-base font-black leading-8 text-[var(--color-green)]",
+      textClass: "text-right text-base font-semibold leading-8 text-[var(--color-green)]",
     };
   }
 
@@ -107,11 +107,23 @@ function sourceTextForLanguage(
     text: translatedText || originalText || record.arabicText || fallbackText.english,
     textClass: record.englishText
       ? "text-left text-sm font-bold leading-6 text-[var(--color-ink)]"
-      : "text-right text-base font-black leading-8 text-[var(--color-green)]",
+      : "text-right text-base font-semibold leading-8 text-[var(--color-green)]",
   };
 }
 
-function recordBadge(record: RetrievalResponse["records"][number], language: "ar" | "en", t: (key: TranslationKey) => string) {
+function sourceKindLabel(record: RetrievalResponse["records"][number], t: (key: TranslationKey) => string) {
+  if (record.sourceKind === "hadith") {
+    return t("routes.hadith");
+  }
+
+  if (record.sourceKind === "tafsir") {
+    return t("routes.tafsir");
+  }
+
+  return t("routes.quran");
+}
+
+function recordDetailBadge(record: RetrievalResponse["records"][number], language: "ar" | "en", t: (key: TranslationKey) => string) {
   if (record.sourceKind === "hadith") {
     return record.grade ? formatHadithGrade(record.grade.value, language) : t("result.gradeUnavailable");
   }
@@ -120,7 +132,32 @@ function recordBadge(record: RetrievalResponse["records"][number], language: "ar
     return record.tafsirSource || t("result.tafsirUnavailable");
   }
 
-  return t("routes.quran");
+  return record.translationEdition || record.sourceDataset || null;
+}
+
+function recordGradeMetadata(record: RetrievalResponse["records"][number], t: (key: TranslationKey) => string) {
+  if (record.sourceKind !== "hadith" || !record.grade) {
+    return "";
+  }
+
+  return [
+    record.grade.source ? `${t("result.gradeSourceLabel")}: ${record.grade.source}` : null,
+    record.grade.sourceReference ? `${t("result.gradeReferenceLabel")}: ${record.grade.sourceReference}` : null,
+  ]
+    .filter(Boolean)
+    .join(" / ");
+}
+
+function warningToneClass(warning: RetrievalWarning) {
+  if (warning.code === "query_expanded") {
+    return "border-[var(--color-green)]/20 bg-[var(--color-primary-soft)] text-[var(--color-green)]";
+  }
+
+  if (warning.code === "no_hadith_results" || warning.code === "no_tafsir_results") {
+    return "border-[var(--color-gold)]/40 bg-[var(--color-gold-soft)] text-[var(--color-ink)]";
+  }
+
+  return "border-[var(--color-red)]/24 bg-[var(--color-error-soft)] text-[var(--color-red)]";
 }
 
 function recordMetadata(record: RetrievalResponse["records"][number], language: string, t: (key: TranslationKey) => string) {
@@ -289,17 +326,17 @@ export default function Home() {
       >
         {!hasScenario ? (
           <>
-            <p className="animate-rise text-xs font-black uppercase tracking-[0.28em] text-[var(--color-red)]">
+            <p className="animate-rise text-xs font-semibold uppercase tracking-[0.24em] text-[var(--color-green-soft)]">
               {t("home.eyebrow")}
             </p>
-            <h1 className="animate-rise mt-5 text-balance text-4xl font-black leading-tight text-[var(--color-green)] [animation-delay:80ms] sm:text-6xl">
+            <h1 className="animate-rise mt-5 text-balance text-4xl font-bold leading-tight text-[var(--color-green)] [animation-delay:80ms] sm:text-6xl">
               {t("home.title")}
             </h1>
           </>
         ) : null}
 
         <form
-          className={`search-shell animate-rise w-full max-w-4xl rounded-[1.35rem] bg-white/90 p-2.5 text-start shadow-[0_20px_54px_rgba(18,63,57,0.10)] backdrop-blur ${
+          className={`search-shell animate-rise w-full max-w-4xl rounded-2xl bg-[var(--color-surface)]/95 p-2.5 text-start shadow-[0_20px_54px_rgba(22,58,95,0.09)] backdrop-blur ${
             hasScenario ? "" : "mt-8 [animation-delay:160ms]"
           }`}
           onSubmit={handleSubmit}
@@ -308,14 +345,14 @@ export default function Home() {
             {t("home.inputLabel")}
           </label>
           <div className="grid gap-2.5 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-start">
-            <div className="flex min-h-14 items-start gap-3 rounded-[1rem] bg-[var(--color-sand)]/70 px-4 py-2.5 ring-1 ring-[var(--color-green)]/10 transition focus-within:bg-white focus-within:ring-[var(--color-gold)]">
-              <span className="mt-0.5 grid h-9 w-9 shrink-0 place-items-center rounded-full bg-white text-[var(--color-green)] shadow-sm" aria-hidden="true">
+            <div className="flex min-h-14 items-start gap-3 rounded-xl bg-[var(--color-primary-soft)] px-4 py-2.5 ring-1 ring-[var(--color-green)]/10 transition focus-within:bg-[var(--color-surface)] focus-within:ring-[var(--color-gold)]">
+              <span className="mt-0.5 grid h-9 w-9 shrink-0 place-items-center rounded-full bg-[var(--color-surface)] text-[var(--color-green)] shadow-sm" aria-hidden="true">
                 <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24">
                   <path d="m20 20-4.5-4.5M18 10.5a7.5 7.5 0 1 1-15 0 7.5 7.5 0 0 1 15 0Z" stroke="currentColor" strokeLinecap="round" strokeWidth="2" />
                 </svg>
               </span>
               <textarea
-                className="query-textarea min-h-9 min-w-0 flex-1 resize-none bg-transparent py-1.5 text-base font-black leading-6 text-[var(--color-green)] outline-none placeholder:text-[var(--color-muted)]/78"
+                className="query-textarea min-h-9 min-w-0 flex-1 resize-none bg-transparent py-1.5 text-base font-semibold leading-6 text-[var(--color-green)] outline-none placeholder:text-[var(--color-muted)]/78"
                 id="question"
                 onChange={(event) => {
                   resizeQuestionField(event.currentTarget);
@@ -332,12 +369,12 @@ export default function Home() {
             </div>
 
             <div className="grid gap-2.5 sm:grid-cols-2 lg:col-span-2 lg:row-start-2">
-              <div className="relative flex h-14 items-center rounded-[1rem] border border-[var(--color-green)]/14 bg-white px-4 shadow-sm">
+              <div className="relative flex h-14 items-center rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-4 shadow-sm">
                 <label className="sr-only" htmlFor="hadith-collection">
                   {t("home.hadithCollectionLabel")}
                 </label>
                 <select
-                  className="w-full appearance-none bg-transparent py-2 pe-8 text-sm font-black text-[var(--color-green)] outline-none disabled:opacity-60"
+                  className="w-full appearance-none bg-transparent py-2 pe-8 text-sm font-semibold text-[var(--color-green)] outline-none disabled:opacity-60"
                   id="hadith-collection"
                   disabled={isRetrieving}
                   onChange={(event) => handleHadithCollectionChange(event.target.value as HadithCollectionSelection)}
@@ -355,12 +392,12 @@ export default function Home() {
                 </svg>
               </div>
 
-              <div className="relative flex h-14 items-center rounded-[1rem] border border-[var(--color-green)]/14 bg-white px-4 shadow-sm">
+              <div className="relative flex h-14 items-center rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-4 shadow-sm">
                 <label className="sr-only" htmlFor="tafsir-source">
                   {t("home.tafsirSourceLabel")}
                 </label>
                 <select
-                  className="w-full appearance-none bg-transparent py-2 pe-8 text-sm font-black text-[var(--color-green)] outline-none disabled:opacity-60"
+                  className="w-full appearance-none bg-transparent py-2 pe-8 text-sm font-semibold text-[var(--color-green)] outline-none disabled:opacity-60"
                   id="tafsir-source"
                   disabled={isRetrieving}
                   onChange={(event) => handleTafsirSourceChange(event.target.value as TafsirSourceSelection)}
@@ -380,7 +417,7 @@ export default function Home() {
             </div>
 
             <button
-              className="inline-flex h-14 items-center justify-center gap-2 rounded-[1rem] border border-[var(--color-green)] bg-[var(--color-green)] px-5 text-sm font-black text-[var(--color-sand)] transition duration-300 hover:-translate-y-0.5 hover:bg-[var(--color-ink)] disabled:cursor-wait disabled:opacity-75 lg:col-start-2 lg:row-start-1"
+              className="inline-flex h-14 items-center justify-center gap-2 rounded-xl border border-[var(--color-green)] bg-[var(--color-green)] px-5 text-sm font-bold text-white transition duration-300 hover:bg-[var(--color-ink)] disabled:cursor-wait disabled:opacity-75 lg:col-start-2 lg:row-start-1"
               disabled={isRetrieving}
               type="submit"
             >
@@ -394,24 +431,26 @@ export default function Home() {
 
         {!hasScenario ? (
           <>
-            <div className="animate-rise mt-5 flex max-w-3xl flex-wrap justify-center gap-2 [animation-delay:220ms]">
-              {suggestionKeys.map((suggestionKey) => (
-                <button
-                  className="chip"
-                  key={suggestionKey}
-                  onClick={() => void runSearch(t(suggestionKey))}
-                  type="button"
-                >
-                  {t(suggestionKey)}
-                </button>
-              ))}
+            <div className="animate-rise mt-5 w-full max-w-3xl overflow-x-auto pb-1 [animation-delay:220ms] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+              <div className="flex w-max min-w-full justify-start gap-2 sm:justify-center">
+                {suggestionKeys.map((suggestionKey) => (
+                  <button
+                    className="chip shrink-0 whitespace-nowrap"
+                    key={suggestionKey}
+                    onClick={() => void runSearch(t(suggestionKey))}
+                    type="button"
+                  >
+                    {t(suggestionKey)}
+                  </button>
+                ))}
+              </div>
             </div>
 
-            <div className="animate-rise mt-8 w-full max-w-3xl rounded-[2rem] border border-[var(--color-green)]/12 bg-white/54 p-5 [animation-delay:300ms]">
-              <p className="text-sm font-black uppercase tracking-[0.18em] text-[var(--color-green)]">
+            <div className="animate-rise mt-8 w-full max-w-3xl rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)]/92 p-5 shadow-[0_12px_32px_rgba(22,58,95,0.05)] [animation-delay:300ms]">
+              <p className="text-sm font-bold tracking-[0.08em] text-[var(--color-green)]">
                 {t("home.startTitle")}
               </p>
-              <p className="mx-auto mt-3 max-w-xl text-sm font-bold leading-7 text-[var(--color-muted)]">
+              <p className="mx-auto mt-3 max-w-xl text-sm font-medium leading-7 text-[var(--color-muted)]">
                 {t("home.startText")}
               </p>
             </div>
@@ -420,7 +459,7 @@ export default function Home() {
 
         {hasScenario ? (
           <section className="mt-3 grid w-full max-w-3xl gap-3 text-start">
-            <div className="animate-rise rounded-[1.35rem] border border-[var(--color-green)]/10 bg-white/62 px-4 py-3 shadow-[0_14px_34px_rgba(18,63,57,0.06)]">
+            <div className="animate-rise rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)]/92 px-4 py-3 shadow-[0_14px_34px_rgba(22,58,95,0.05)]">
               <div className="source-trail" aria-label={t("result.routes")}>
                 {sourceRoutes.map((route, index) => (
                   <span className="contents" key={route.id}>
@@ -434,52 +473,58 @@ export default function Home() {
               </div>
             </div>
 
-            <div className="answer-preview rounded-[2rem] bg-[var(--color-green)] p-4">
+            <div className="answer-preview rounded-2xl bg-[var(--color-green)] p-4">
               <div className="flex items-center justify-between border-b border-white/10 pb-3">
                 <div>
-                  <h2 className="text-lg font-black text-white">
+                  <h2 className="text-lg font-bold text-white">
                     {isRetrieving ? t("result.tracing") : t("result.recordsTitle")}
                   </h2>
-                  <p className="mt-2 line-clamp-2 max-w-xl whitespace-pre-wrap text-sm font-bold leading-6 text-white/70">
+                  <p className="mt-2 line-clamp-2 max-w-xl whitespace-pre-wrap text-sm font-medium leading-6 text-white/72">
                     {submittedQuestion}
                   </p>
                 </div>
                 <span className="pulse-dot" aria-hidden="true" />
               </div>
 
-              <div className="mt-4 rounded-3xl border border-[var(--color-gold)]/55 bg-[var(--color-sand)] p-4 text-[var(--color-ink)]">
+              <div className="mt-4 rounded-xl border border-[var(--color-gold)]/55 bg-[var(--color-sand)] p-4 text-[var(--color-ink)]">
                 {isRetrieving ? (
                   <div className="source-loading" role="status" aria-live="polite">
                     <Image
                       alt=""
                       aria-hidden="true"
                       className="source-loading-mark"
-                      height={153}
-                      src="/assets/sanad-ai-loader.svg"
+                      height={82}
+                      src="/assets/sanad-ai-loader.svg?v=midnight-manuscript-3"
+                      style={{ height: "auto", width: "min(17rem, 72vw)" }}
                       unoptimized
-                      width={272}
+                      width={176}
                     />
                     <p>{t("result.loading")}</p>
                   </div>
                 ) : requestError ? (
                   <div role="alert">
-                    <p className="text-xs font-black uppercase tracking-[0.18em] text-[var(--color-red)]">
+                    <p className="text-xs font-bold uppercase tracking-[0.16em] text-[var(--color-red)]">
                       {t("result.failed")}
                     </p>
-                    <p className="mt-3 text-sm font-bold leading-7 text-[var(--color-muted)]">{requestError}</p>
-                    <p className="mt-3 text-xs font-black uppercase tracking-[0.12em] text-[var(--color-green)]">
+                    <p className="mt-3 text-sm font-medium leading-7 text-[var(--color-muted)]">{requestError}</p>
+                    <p className="mt-3 rounded-lg bg-[var(--color-error-soft)] p-3 text-xs font-semibold leading-6 text-[var(--color-red)]">
                       {t(requestErrorHelp)}
                     </p>
                   </div>
                 ) : (
                   <>
                     {retrieval?.status === "empty" ? (
-                      <p className="text-sm font-black leading-7 text-[var(--color-red)]">{t("result.empty")}</p>
+                      <p className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] p-3 text-sm font-semibold leading-7 text-[var(--color-muted)]">
+                        {t("result.empty")}
+                      </p>
                     ) : null}
                     {retrieval?.answer?.status === "ready" && retrieval.answer.text ? (
-                      <div className="rounded-2xl border border-[var(--color-green)]/14 bg-white/72 p-4">
+                      <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4">
+                        <p className="mb-3 text-xs font-bold uppercase tracking-[0.14em] text-[var(--color-green-soft)]">
+                          {t("result.answerTitle")}
+                        </p>
                         <p
-                          className="whitespace-pre-wrap text-sm font-black leading-8 text-[var(--color-green)]"
+                          className="whitespace-pre-wrap text-sm font-semibold leading-8 text-[var(--color-green)]"
                           dir={language === "ar" ? "rtl" : "ltr"}
                         >
                           {retrieval.answer.text}
@@ -488,7 +533,7 @@ export default function Home() {
                           <div className="mt-4 flex flex-wrap gap-2">
                             {retrieval.answer.citations.map((citation) => (
                               <span
-                                className="rounded-full border border-[var(--color-gold)]/60 px-3 py-1 text-[0.68rem] font-black text-[var(--color-muted)]"
+                                className="source-detail-badge"
                                 key={citation}
                               >
                                 {citation}
@@ -498,15 +543,23 @@ export default function Home() {
                         ) : null}
                       </div>
                     ) : (
-                      <p className="mt-3 text-sm font-bold leading-7">{t(getAnswerStatusKey(retrieval?.answer))}</p>
+                      <p
+                        className={`mt-3 rounded-lg border p-3 text-sm font-semibold leading-7 ${
+                          retrieval?.answer?.status === "error"
+                            ? "border-[var(--color-red)]/24 bg-[var(--color-error-soft)] text-[var(--color-red)]"
+                            : "border-[var(--color-border)] bg-[var(--color-primary-soft)] text-[var(--color-green)]"
+                        }`}
+                      >
+                        {t(getAnswerStatusKey(retrieval?.answer))}
+                      </p>
                     )}
 
                     {retrieval?.records.length ? (
-                      <div className="mt-4 flex flex-wrap gap-1.5 rounded-2xl border border-[var(--color-green)]/14 bg-white/60 p-1.5">
+                      <div className="mt-4 flex flex-wrap gap-1.5 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)]/80 p-1.5">
                         {resultSourceFilters.map((filter) => (
                           <button
                             aria-pressed={resultSourceFilter === filter.id}
-                            className="min-h-10 flex-1 rounded-xl px-3 py-2 text-xs font-black text-[var(--color-muted)] transition hover:bg-white hover:text-[var(--color-green)] aria-pressed:bg-[var(--color-green)] aria-pressed:text-[var(--color-sand)]"
+                            className="min-h-10 flex-1 rounded-lg px-3 py-2 text-xs font-semibold text-[var(--color-muted)] transition hover:bg-[var(--color-primary-soft)] hover:text-[var(--color-green)] aria-pressed:bg-[var(--color-green)] aria-pressed:text-white"
                             key={filter.id}
                             onClick={() => {
                               setResultSourceFilter(filter.id);
@@ -521,7 +574,7 @@ export default function Home() {
                     ) : null}
 
                     {sourceRecords.length === 0 && retrieval?.records.length ? (
-                      <p className="mt-4 rounded-2xl border border-[var(--color-green)]/14 bg-white/60 p-3 text-sm font-black leading-7 text-[var(--color-muted)]">
+                      <p className="mt-4 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)]/80 p-3 text-sm font-semibold leading-7 text-[var(--color-muted)]">
                         {t("result.filterEmpty")}
                       </p>
                     ) : (
@@ -533,27 +586,35 @@ export default function Home() {
                               english: t("result.englishUnavailable"),
                             });
                             const metadata = recordMetadata(record, language, t);
+                            const gradeMetadata = recordGradeMetadata(record, t);
+                            const detailBadge = recordDetailBadge(record, language, t);
 
                             return (
                               <article
-                                className="rounded-2xl border border-[var(--color-green)]/14 bg-white/72 p-3"
+                                className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-[0_8px_24px_rgba(22,58,95,0.04)]"
                                 key={record.id}
                               >
                                 <div className="flex flex-wrap items-center justify-between gap-2">
-                                  <strong className="text-sm text-[var(--color-green)]">
+                                  <strong className="text-sm font-bold text-[var(--color-green)]">
                                     {formatSourceRecordTitle(record, language)}
                                   </strong>
-                                  <span className="rounded-full border border-[var(--color-gold)]/60 px-2.5 py-1 text-[0.68rem] font-black uppercase tracking-[0.12em] text-[var(--color-red)]">
-                                    {recordBadge(record, language, t)}
+                                  <span className="flex flex-wrap items-center gap-1.5">
+                                    <span className="source-type-badge">{sourceKindLabel(record, t)}</span>
+                                    {detailBadge ? <span className="source-detail-badge">{detailBadge}</span> : null}
                                   </span>
                                 </div>
                                 {metadata ? (
                                   <p
-                                    className={`mt-2 text-xs font-black text-[var(--color-muted)] ${
+                                    className={`mt-2 text-xs font-semibold text-[var(--color-muted)] ${
                                       language === "ar" ? "" : "uppercase tracking-[0.12em]"
                                     }`}
                                   >
                                     {metadata}
+                                  </p>
+                                ) : null}
+                                {gradeMetadata ? (
+                                  <p className="mt-2 text-xs font-medium leading-6 text-[var(--color-green-soft)]">
+                                    {gradeMetadata}
                                   </p>
                                 ) : null}
                                 <p className={`mt-3 whitespace-pre-wrap ${sourceText.textClass}`} dir={sourceText.dir}>
@@ -567,20 +628,20 @@ export default function Home() {
                     )}
 
                     {sourceRecords.length > sourcePageSize ? (
-                      <div className="mt-4 flex items-center justify-between gap-3 rounded-2xl border border-[var(--color-green)]/14 bg-white/60 p-3">
+                      <div className="mt-4 flex items-center justify-between gap-3 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)]/80 p-3">
                         <button
-                          className="rounded-full border border-[var(--color-gold)]/60 px-4 py-2 text-xs font-black text-[var(--color-green)] disabled:opacity-40"
+                          className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-2 text-xs font-semibold text-[var(--color-green)] disabled:opacity-40"
                           disabled={currentSourcePage === 1}
                           onClick={() => setSourcePage((page) => Math.max(1, page - 1))}
                           type="button"
                         >
                           {t("result.previousPage")}
                         </button>
-                        <span className="text-xs font-black text-[var(--color-muted)]">
+                        <span className="text-xs font-semibold text-[var(--color-muted)]">
                           {t("result.pageLabel")} {currentSourcePage} / {totalSourcePages}
                         </span>
                         <button
-                          className="rounded-full border border-[var(--color-gold)]/60 px-4 py-2 text-xs font-black text-[var(--color-green)] disabled:opacity-40"
+                          className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-2 text-xs font-semibold text-[var(--color-green)] disabled:opacity-40"
                           disabled={currentSourcePage === totalSourcePages}
                           onClick={() => setSourcePage((page) => Math.min(totalSourcePages, page + 1))}
                           type="button"
@@ -591,9 +652,9 @@ export default function Home() {
                     ) : null}
 
                     {retrieval?.warnings.length ? (
-                      <div className="mt-4 rounded-2xl border border-[var(--color-red)]/18 bg-white/60 p-3">
+                      <div className="mt-4 grid gap-2">
                         {retrieval.warnings.map((warning) => (
-                          <p className="text-sm font-bold leading-6 text-[var(--color-muted)]" key={warning.code}>
+                          <p className={`rounded-lg border p-3 text-sm font-medium leading-6 ${warningToneClass(warning)}`} key={warning.code}>
                             {t(getWarningKey(warning))}
                           </p>
                         ))}

@@ -18,8 +18,9 @@ export const metadata: Metadata = {
   title: "سند AI",
   description: "A citation-first Quran, tafsir, and Sunnah assistant.",
   icons: {
-    icon: "/favicon.png",
-    apple: "/brand/sanad-icon.png",
+    icon: "/favicon.png?v=midnight-manuscript",
+    shortcut: "/favicon.png?v=midnight-manuscript",
+    apple: "/brand/sanad-icon.png?v=midnight-manuscript",
   },
 };
 

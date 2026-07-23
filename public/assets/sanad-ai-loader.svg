@@ -1,165 +1,48 @@
-<svg width="1536" height="864" viewBox="0 0 1536 864" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
-  <title id="title">سند AI animated book and robot loader</title>
-  <desc id="desc">An animated open book logo with a floating robot, blinking eyes, citation dots, and a reduced motion fallback.</desc>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 176 82" fill="none" role="img" aria-labelledby="title desc">
+  <title id="title">Sanad AI loading</title>
+  <desc id="desc">A navy book receives a gold trace while the assistant antenna pulses.</desc>
+  <style>
+    .trace {
+      stroke-dasharray: 1;
+      stroke-dashoffset: 1;
+      animation: trace-book 2.2s ease-in-out infinite;
+    }
+    .signal {
+      transform-box: fill-box;
+      transform-origin: center;
+      animation: pulse-signal 2.2s ease-in-out infinite;
+    }
+    .eye {
+      transform-box: fill-box;
+      transform-origin: center;
+      animation: blink 4s ease-in-out infinite;
+    }
+    .eye-right { animation-delay: .08s; }
+    @keyframes trace-book {
+      0%, 12% { stroke-dashoffset: 1; opacity: .3; }
+      64%, 100% { stroke-dashoffset: 0; opacity: 1; }
+    }
+    @keyframes pulse-signal {
+      0%, 55%, 100% { opacity: .4; transform: scale(.72); }
+      72% { opacity: 1; transform: scale(1.25); }
+    }
+    @keyframes blink {
+      0%, 91%, 97%, 100% { transform: scaleY(1); }
+      94% { transform: scaleY(.12); }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .trace, .signal, .eye { animation: none; }
+      .trace { stroke-dashoffset: 0; opacity: 1; }
+    }
+  </style>
 
-  <defs>
-    <linearGradient id="greenStroke" x1="386" y1="210" x2="1148" y2="900" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#004C43"/>
-      <stop offset="0.55" stop-color="#00685D"/>
-      <stop offset="1" stop-color="#003D36"/>
-    </linearGradient>
-
-    <linearGradient id="goldFill" x1="650" y1="168" x2="930" y2="666" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#F5B51D"/>
-      <stop offset="1" stop-color="#F7C22C"/>
-    </linearGradient>
-
-    <radialGradient id="robotGlow" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(768 232) rotate(90) scale(180 180)">
-      <stop offset="0" stop-color="#F5B51D" stop-opacity="0.23"/>
-      <stop offset="0.72" stop-color="#F5B51D" stop-opacity="0.08"/>
-      <stop offset="1" stop-color="#F5B51D" stop-opacity="0"/>
-    </radialGradient>
-
-    <filter id="softShadow" x="320" y="120" width="900" height="780" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
-      <feDropShadow dx="0" dy="12" stdDeviation="10" flood-color="#003D36" flood-opacity="0.11"/>
-    </filter>
-
-    <style><![CDATA[
-      :root {
-        --green: #004f46;
-        --green-2: #00695d;
-        --gold: #f4b51f;
-        --paper: #fffdf7;
-      }
-
-      .draw {
-        stroke-dasharray: 1;
-        stroke-dashoffset: 1;
-        animation: drawBook 1.45s cubic-bezier(.58,.01,.23,1) forwards;
-      }
-
-      .book-outer { animation-delay: 0s; }
-      .book-left-page { animation-delay: .18s; }
-      .book-right-page { animation-delay: .34s; }
-      .book-spine { animation-delay: .46s; }
-      .book-inner { animation-delay: .62s; }
-
-      .robot {
-        transform-origin: 768px 430px;
-        animation: robotFloat 2.8s ease-in-out .95s infinite;
-      }
-
-      .robot-body {
-        transform-origin: 768px 505px;
-        animation: robotPulse 2.8s ease-in-out 1.15s infinite;
-      }
-
-      .antenna-ring {
-        transform-origin: 768px 228px;
-        animation: haloPulse 2.8s ease-in-out 1.25s infinite;
-      }
-
-      .eye {
-        transform-box: fill-box;
-        transform-origin: center;
-        animation: blink 4s ease-in-out 1.8s infinite;
-      }
-
-      .eye.right { animation-delay: 1.9s; }
-
-      .citation-dot {
-        transform-box: fill-box;
-        transform-origin: center;
-        opacity: 0;
-        animation: dotPop 2.1s ease-in-out infinite;
-      }
-
-      .dot-1 { animation-delay: 1.05s; }
-      .dot-2 { animation-delay: 1.24s; }
-      .dot-3 { animation-delay: 1.43s; }
-      .dot-4 { animation-delay: 1.62s; }
-
-      @keyframes drawBook {
-        to { stroke-dashoffset: 0; }
-      }
-
-      @keyframes robotFloat {
-        0%, 100% { transform: translateY(0); }
-        50% { transform: translateY(-15px); }
-      }
-
-      @keyframes robotPulse {
-        0%, 100% { transform: scale(1); filter: drop-shadow(0 0 0 rgba(244,181,31,0)); }
-        50% { transform: scale(1.025); filter: drop-shadow(0 10px 18px rgba(244,181,31,.22)); }
-      }
-
-      @keyframes haloPulse {
-        0%, 100% { opacity: .18; transform: scale(.98); }
-        50% { opacity: .34; transform: scale(1.07); }
-      }
-
-      @keyframes blink {
-        0%, 91%, 100% { transform: scaleY(1); }
-        94%, 96% { transform: scaleY(.08); }
-      }
-
-      @keyframes dotPop {
-        0%, 36%, 100% { opacity: 0; transform: translateY(8px) scale(.72); }
-        46%, 74% { opacity: 1; transform: translateY(0) scale(1); }
-        88% { opacity: 0; transform: translateY(-4px) scale(.9); }
-      }
-
-      @media (prefers-reduced-motion: reduce) {
-        .draw,
-        .robot,
-        .robot-body,
-        .antenna-ring,
-        .eye,
-        .citation-dot {
-          animation: none !important;
-        }
-        .draw { stroke-dashoffset: 0 !important; }
-        .citation-dot { opacity: 1 !important; transform: none !important; }
-      }
-    ]]></style>
-  </defs>
-
-  <!-- Transparent background by design: no background rectangle. -->
-
-  <g filter="url(#softShadow)">
-    <!-- Very subtle robot halo -->
-    <circle class="antenna-ring" cx="768" cy="228" r="148" fill="url(#robotGlow)"/>
-
-    <!-- Book outline draw animation -->
-    <path class="draw book-outer" pathLength="1" d="M417 201H515C617 201 680 217 721 260C746 287 758 321 768 373C778 321 790 287 815 260C856 217 919 201 1021 201H1119C1135 201 1148 214 1148 230V786C1148 802 1135 815 1119 815H1007C905 815 831 836 788 875C776 886 760 886 748 875C705 836 631 815 529 815H417C401 815 388 802 388 786V230C388 214 401 201 417 201Z" stroke="url(#greenStroke)" stroke-width="40" stroke-linejoin="round" stroke-linecap="round"/>
-
-    <path class="draw book-left-page" pathLength="1" d="M502 326V722H533C638 722 709 755 768 835" stroke="url(#greenStroke)" stroke-width="28" stroke-linecap="round" stroke-linejoin="round"/>
-
-    <path class="draw book-right-page" pathLength="1" d="M1034 326V722H1003C898 722 827 755 768 835" stroke="url(#greenStroke)" stroke-width="28" stroke-linecap="round" stroke-linejoin="round"/>
-
-    <path class="draw book-spine" pathLength="1" d="M530 770H568C652 770 721 794 759 845C764 852 772 852 777 845C815 794 884 770 968 770H1006" stroke="url(#greenStroke)" stroke-width="42" stroke-linecap="round" stroke-linejoin="round"/>
-
-    <path class="draw book-inner" pathLength="1" d="M423 230H507C623 230 675 257 711 324M1128 230H1029C913 230 861 257 825 324" stroke="url(#greenStroke)" stroke-width="23" stroke-linecap="round" stroke-linejoin="round" opacity=".95"/>
-
-    <!-- Robot group -->
-    <g class="robot">
-      <path d="M768 242V356" stroke="url(#goldFill)" stroke-width="45" stroke-linecap="round"/>
-      <circle cx="768" cy="228" r="63" fill="url(#goldFill)"/>
-      <circle cx="768" cy="228" r="22" fill="var(--paper)" opacity=".95"/>
-
-      <g class="robot-body">
-        <rect x="547" y="353" width="442" height="313" rx="132" fill="url(#goldFill)"/>
-        <rect x="591" y="399" width="354" height="221" rx="88" fill="var(--paper)"/>
-        <rect x="630" y="438" width="276" height="145" rx="70" fill="url(#greenStroke)"/>
-        <circle class="eye left" cx="707" cy="510" r="27" fill="var(--paper)"/>
-        <circle class="eye right" cx="829" cy="510" r="27" fill="var(--paper)"/>
-      </g>
-    </g>
-
-    <!-- Citation dots -->
-    <circle class="citation-dot dot-1" cx="651" cy="724" r="13" fill="var(--gold)"/>
-    <circle class="citation-dot dot-2" cx="729" cy="752" r="13" fill="var(--gold)"/>
-    <circle class="citation-dot dot-3" cx="807" cy="752" r="13" fill="var(--gold)"/>
-    <circle class="citation-dot dot-4" cx="885" cy="724" r="13" fill="var(--gold)"/>
-  </g>
+  <path d="M51 18c14 0 26 3 37 13 11-10 23-13 37-13v49c-15 0-27 4-37 12-10-8-22-12-37-12Z" stroke="#163A5F" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M59 27v33c11 1 21 4 29 10m29-43v33c-11 1-21 4-29 10V34" stroke="#163A5F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" opacity=".78"/>
+  <path class="trace" pathLength="1" d="M51 18c14 0 26 3 37 13 11-10 23-13 37-13v49c-15 0-27 4-37 12-10-8-22-12-37-12Z" stroke="#B38B45" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M88 30v-7" stroke="#B38B45" stroke-width="3" stroke-linecap="round"/>
+  <circle class="signal" cx="88" cy="19" r="4" fill="#B38B45"/>
+  <rect x="69" y="30" width="38" height="28" rx="13" fill="#B38B45"/>
+  <rect x="75" y="36" width="26" height="15" rx="7" fill="#163A5F"/>
+  <circle class="eye" cx="82" cy="43.5" r="2" fill="#F3F1E8"/>
+  <circle class="eye eye-right" cx="94" cy="43.5" r="2" fill="#F3F1E8"/>
 </svg>

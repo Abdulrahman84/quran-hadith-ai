@@ -69,59 +69,59 @@ export default function HowItWorks() {
       <SiteHeader />
 
       <section className="relative z-10 mx-auto max-w-6xl px-5 py-8 sm:px-8 sm:py-10">
-        <p className="text-xs font-black uppercase tracking-[0.28em] text-[var(--color-red)]">{t("how.eyebrow")}</p>
-        <h1 className="mt-4 max-w-4xl text-balance text-3xl font-black leading-tight text-[var(--color-green)] sm:text-5xl">
+        <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[var(--color-green-soft)]">{t("how.eyebrow")}</p>
+        <h1 className="mt-4 max-w-4xl text-balance text-3xl font-bold leading-tight text-[var(--color-green)] sm:text-5xl">
           {t("how.title")}
         </h1>
-        <p className="mt-4 max-w-3xl text-base font-bold leading-7 text-[var(--color-muted)] sm:text-lg sm:leading-8">
+        <p className="mt-4 max-w-3xl text-base font-medium leading-7 text-[var(--color-muted)] sm:text-lg sm:leading-8">
           {t("how.intro")}
         </p>
       </section>
 
-      <section className="relative z-10 bg-[var(--color-green)] py-10 text-[var(--color-sand)] shadow-[0_24px_70px_rgba(18,63,57,0.14)] sm:py-12">
+      <section className="relative z-10 bg-[var(--color-green)] py-10 text-[var(--color-sand)] shadow-[0_24px_70px_rgba(22,58,95,0.16)] sm:py-12">
         <div className="mx-auto grid max-w-6xl gap-8 px-5 sm:px-8 lg:grid-cols-[minmax(0,1fr)_110px_minmax(0,1fr)] lg:items-center">
           <div className="animate-rise">
             <div className="flex items-center gap-3">
-              <span className="grid h-11 w-11 place-items-center rounded-full border border-[var(--color-red)]/35 bg-white/8 text-[var(--color-gold)]">
+              <span className="grid h-11 w-11 place-items-center rounded-xl border border-[var(--color-gold)]/55 bg-white/8 text-[var(--color-gold-on-dark)]">
                 <PageIcon type="risk" />
               </span>
-              <p className="text-xs font-black uppercase tracking-[0.2em] text-[var(--color-gold)]">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--color-gold-on-dark)]">
                 {t("how.problem.general.label")}
               </p>
             </div>
-            <h2 className="mt-5 text-3xl font-black leading-tight text-white sm:text-4xl">{t("how.problem.general.title")}</h2>
-            <p className="mt-4 text-base font-bold leading-8 text-white/72">{t("how.problem.general.text")}</p>
-            <p className="mt-5 border-s-4 border-[var(--color-red)]/70 ps-4 text-xl font-black leading-9 text-white">
+            <h2 className="mt-5 text-3xl font-bold leading-tight text-white sm:text-4xl">{t("how.problem.general.title")}</h2>
+            <p className="mt-4 text-base font-medium leading-8 text-white/76">{t("how.problem.general.text")}</p>
+            <p className="mt-5 border-s-4 border-[var(--color-gold)]/70 ps-4 text-xl font-semibold leading-9 text-white">
               {t("how.problem.general.callout")}
             </p>
           </div>
 
-          <div className="relative grid place-items-center text-[var(--color-gold)] lg:h-full">
+          <div className="relative grid place-items-center text-[var(--color-gold-on-dark)] lg:h-full">
             <div className="hidden h-full w-px bg-white/14 lg:block" aria-hidden="true" />
-            <div className="grid h-12 w-12 place-items-center rounded-full border border-[var(--color-gold)]/70 bg-[var(--color-green)] text-xl font-black shadow-[0_0_0_10px_rgba(18,63,57,1)] lg:absolute">
+            <div className="grid h-12 w-12 place-items-center rounded-xl border border-[var(--color-gold)]/70 bg-[var(--color-green)] text-xl font-bold shadow-[0_0_0_10px_rgba(22,58,95,1)] lg:absolute">
               ←
             </div>
           </div>
 
           <div className="animate-rise [animation-delay:90ms]">
             <div className="flex items-center gap-3">
-              <span className="grid h-11 w-11 place-items-center rounded-full border border-[var(--color-gold)]/60 bg-white/8 text-[var(--color-gold)]">
+              <span className="grid h-11 w-11 place-items-center rounded-xl border border-[var(--color-gold)]/60 bg-white/8 text-[var(--color-gold-on-dark)]">
                 <PageIcon type="solve" />
               </span>
-              <p className="text-xs font-black uppercase tracking-[0.2em] text-[var(--color-gold)]">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--color-gold-on-dark)]">
                 {t("how.problem.solution.label")}
               </p>
             </div>
-            <h2 className="mt-5 text-3xl font-black leading-tight text-white sm:text-4xl">{t("how.problem.solution.title")}</h2>
-            <p className="mt-4 text-base font-bold leading-8 text-white/72">{t("how.problem.solution.text")}</p>
+            <h2 className="mt-5 text-3xl font-bold leading-tight text-white sm:text-4xl">{t("how.problem.solution.title")}</h2>
+            <p className="mt-4 text-base font-medium leading-8 text-white/76">{t("how.problem.solution.text")}</p>
             <div className="mt-5 grid gap-2">
-              <p className="rounded-full border border-white/14 bg-white/8 px-4 py-2.5 text-sm font-black text-white/82">
+              <p className="rounded-lg border border-white/14 bg-white/8 px-4 py-2.5 text-sm font-semibold text-white/86">
                 {t("how.problem.solution.stepOne")}
               </p>
-              <p className="rounded-full border border-white/14 bg-white/8 px-4 py-2.5 text-sm font-black text-white/82">
+              <p className="rounded-lg border border-white/14 bg-white/8 px-4 py-2.5 text-sm font-semibold text-white/86">
                 {t("how.problem.solution.stepTwo")}
               </p>
-              <p className="rounded-full border border-white/14 bg-white/8 px-4 py-2.5 text-sm font-black text-white/82">
+              <p className="rounded-lg border border-white/14 bg-white/8 px-4 py-2.5 text-sm font-semibold text-white/86">
                 {t("how.problem.solution.stepThree")}
               </p>
             </div>
@@ -131,21 +131,21 @@ export default function HowItWorks() {
 
       <section className="relative z-10 mx-auto max-w-6xl px-5 py-10 sm:px-8">
         <div className="mb-4">
-          <p className="text-xs font-black uppercase tracking-[0.22em] text-[var(--color-red)]">
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--color-green-soft)]">
             {t("how.flow.eyebrow")}
           </p>
-          <h2 className="mt-3 text-2xl font-black leading-tight text-[var(--color-green)] sm:text-3xl">
+          <h2 className="mt-3 text-2xl font-bold leading-tight text-[var(--color-green)] sm:text-3xl">
             {t("how.flow.title")}
           </h2>
-          <p className="mt-3 max-w-3xl text-sm font-bold leading-7 text-[var(--color-muted)]">{t("how.flow.text")}</p>
+          <p className="mt-3 max-w-3xl text-sm font-medium leading-7 text-[var(--color-muted)]">{t("how.flow.text")}</p>
         </div>
 
         <div className="grid gap-3 md:grid-cols-2">
           {steps.map((step, index) => (
             <article className="product-card animate-rise" key={step.titleKey} style={{ animationDelay: `${index * 90}ms` }}>
-              <span className="text-sm font-black text-[var(--color-red)]">{String(index + 1).padStart(2, "0")}</span>
-              <h2 className="mt-5 text-2xl font-black text-[var(--color-green)]">{t(step.titleKey)}</h2>
-              <p className="mt-4 text-sm font-bold leading-7 text-[var(--color-muted)]">{t(step.textKey)}</p>
+              <span className="text-sm font-bold text-[var(--color-green-soft)]">{String(index + 1).padStart(2, "0")}</span>
+              <h2 className="mt-5 text-2xl font-bold text-[var(--color-green)]">{t(step.titleKey)}</h2>
+              <p className="mt-4 text-sm font-medium leading-7 text-[var(--color-muted)]">{t(step.textKey)}</p>
             </article>
           ))}
         </div>

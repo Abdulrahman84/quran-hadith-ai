@@ -3,18 +3,28 @@
 import { useI18n } from "@/components/i18n-provider";
 import { languages } from "@/lib/i18n";
 
-export function LanguageSwitcher() {
+export function LanguageSwitcher({
+  idPrefix = "language",
+  onLanguageChange,
+}: {
+  idPrefix?: string;
+  onLanguageChange?: () => void;
+}) {
   const { language, setLanguage, t } = useI18n();
+  const selectId = `${idPrefix}-select`;
 
   return (
     <>
-      <label className="sr-only" htmlFor="language-select">
+      <label className="sr-only" htmlFor={selectId}>
         {t("language.label")}
       </label>
       <select
         className="language-select"
-        id="language-select"
-        onChange={(event) => setLanguage(event.target.value as typeof language)}
+        id={selectId}
+        onChange={(event) => {
+          setLanguage(event.target.value as typeof language);
+          onLanguageChange?.();
+        }}
         value={language}
       >
         {languages.map((item) => (
@@ -30,7 +40,10 @@ export function LanguageSwitcher() {
             className="language-option"
             data-active={language === item.code}
             key={item.code}
-            onClick={() => setLanguage(item.code)}
+            onClick={() => {
+              setLanguage(item.code);
+              onLanguageChange?.();
+            }}
             type="button"
           >
             {item.label}
