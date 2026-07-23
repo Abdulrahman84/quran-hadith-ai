@@ -189,6 +189,11 @@ html[dir="rtl"] body {
   scrollbar-color: color-mix(in srgb, var(--color-green) 44%, transparent) transparent;
 }
 
+.query-textarea:focus-visible {
+  outline: none;
+  box-shadow: none;
+}
+
 .query-textarea::-webkit-scrollbar {
   width: 0.45rem;
 }
