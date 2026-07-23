@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist_Mono, IBM_Plex_Sans_Arabic } from "next/font/google";
+import { ConvexClientProvider } from "@/components/convex-client-provider";
 import { I18nProvider } from "@/components/i18n-provider";
 import "./globals.css";
 
@@ -37,7 +38,9 @@ export default function RootLayout({
       suppressHydrationWarning
     >
       <body className="min-h-full flex flex-col">
-        <I18nProvider>{children}</I18nProvider>
+        <ConvexClientProvider>
+          <I18nProvider>{children}</I18nProvider>
+        </ConvexClientProvider>
       </body>
     </html>
   );

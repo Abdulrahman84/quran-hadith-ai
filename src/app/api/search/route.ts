@@ -1,4 +1,5 @@
 import { generateGroundedAnswer } from "@/lib/llm/grounded-answer";
+import { recordQuestionRun } from "@/lib/analytics/record-question-run";
 import { isHadithCollectionSelection } from "@/lib/retrieval/hadith-collections";
 import { searchSources } from "@/lib/retrieval/source-router";
 import { isTafsirSourceSelection } from "@/lib/retrieval/tafsir-sources";
@@ -23,6 +24,7 @@ function noAnswer(status: GroundedAnswer["status"], code: string, message: strin
 }
 
 export async function POST(request: Request) {
+  const startedAt = Date.now();
   let body: SearchRequestBody;
 
   try {
@@ -69,6 +71,13 @@ export async function POST(request: Request) {
     question,
     language,
     records: response.records,
+  });
+
+  await recordQuestionRun({
+    question,
+    language,
+    response: { ...response, answer },
+    durationMs: Date.now() - startedAt,
   });
 
   return Response.json({ ...response, answer } satisfies RetrievalResponse, {
