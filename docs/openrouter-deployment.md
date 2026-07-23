@@ -9,18 +9,18 @@ Set these in `.env.local` for local development or in your hosting provider's se
 ```bash
 OPENROUTER_API_KEY=...
 OPENROUTER_MANAGEMENT_KEY=...
-OPENROUTER_MODEL=google/gemma-4-26b-a4b-it:free
+OPENROUTER_MODEL=google/gemini-3.1-flash-lite
 OPENROUTER_SITE_URL=https://your-domain.example
 OPENROUTER_APP_NAME=Sanad AI
 LLM_TIMEOUT_MS=25000
-ANSWER_MODEL=google/gemma-4-26b-a4b-it:free
-ANSWER_FALLBACK_MODELS=liquid/lfm-2.5-1.2b-instruct:free
+ANSWER_MODEL=google/gemini-3.1-flash-lite
+ANSWER_FALLBACK_MODELS=mistralai/mistral-small-2603
 MCP_TOOL_ROUTER_ENABLED=true
-MCP_TOOL_ROUTER_MODEL=liquid/lfm-2.5-1.2b-instruct:free
-MCP_TOOL_ROUTER_FALLBACK_MODELS=liquid/lfm-2.5-1.2b-thinking:free
+MCP_TOOL_ROUTER_MODEL=google/gemini-3.1-flash-lite
+MCP_TOOL_ROUTER_FALLBACK_MODELS=mistralai/mistral-small-2603
 HADITH_QUERY_PLANNER_ENABLED=true
-HADITH_QUERY_PLANNER_MODEL=google/gemma-4-26b-a4b-it:free
-HADITH_QUERY_PLANNER_FALLBACK_MODELS=
+HADITH_QUERY_PLANNER_MODEL=google/gemini-3.1-flash-lite
+HADITH_QUERY_PLANNER_FALLBACK_MODELS=mistralai/mistral-small-2603
 NTFY_TOPIC=use-a-long-random-private-topic
 NTFY_BASE_URL=https://ntfy.sh
 NTFY_ACCESS_TOKEN=

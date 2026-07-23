@@ -52,14 +52,14 @@ ENV HADITH_MCP_DB_PATH=/opt/hadith-mcp/data/generated/hadith-meeatif.sqlite
 ENV TAFSIR_MCP_COMMAND=uvx
 ENV TAFSIR_MCP_ARGS=tafsir-mcp
 
-ENV OPENROUTER_MODEL=google/gemma-4-26b-a4b-it:free
+ENV OPENROUTER_MODEL=google/gemini-3.1-flash-lite
 ENV OPENROUTER_APP_NAME="Sanad AI"
-ENV ANSWER_FALLBACK_MODELS=liquid/lfm-2.5-1.2b-instruct:free
+ENV ANSWER_FALLBACK_MODELS=mistralai/mistral-small-2603
 ENV MCP_TOOL_ROUTER_ENABLED=true
-ENV MCP_TOOL_ROUTER_MODEL=liquid/lfm-2.5-1.2b-instruct:free
-ENV MCP_TOOL_ROUTER_FALLBACK_MODELS=liquid/lfm-2.5-1.2b-thinking:free
+ENV MCP_TOOL_ROUTER_MODEL=google/gemini-3.1-flash-lite
+ENV MCP_TOOL_ROUTER_FALLBACK_MODELS=mistralai/mistral-small-2603
 ENV HADITH_QUERY_PLANNER_ENABLED=true
-ENV HADITH_QUERY_PLANNER_MODEL=google/gemma-4-26b-a4b-it:free
+ENV HADITH_QUERY_PLANNER_MODEL=google/gemini-3.1-flash-lite
 
 RUN apt-get update \
   && apt-get install -y --no-install-recommends ca-certificates sqlite3 python3 python3-pip python3-venv \

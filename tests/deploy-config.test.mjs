@@ -14,13 +14,15 @@ test("Docker runtime config exposes OpenRouter env instead of legacy Ollama rout
 
   assert.match(dockerfile, /ENV OPENROUTER_MODEL=/);
   assert.match(dockerfile, /ENV OPENROUTER_APP_NAME="Sanad AI"/);
-  assert.match(dockerfile, /ENV ANSWER_FALLBACK_MODELS=liquid\/lfm-2\.5-1\.2b-instruct:free/);
+  assert.match(dockerfile, /ENV OPENROUTER_MODEL=google\/gemini-3\.1-flash-lite/);
+  assert.match(dockerfile, /ENV ANSWER_FALLBACK_MODELS=mistralai\/mistral-small-2603/);
   assert.match(dockerfile, /ENV MCP_TOOL_ROUTER_MODEL=/);
   assert.doesNotMatch(dockerfile, /ENV OLLAMA_/);
   assert.match(compose, /OPENROUTER_API_KEY/);
   assert.match(compose, /OPENROUTER_MANAGEMENT_KEY/);
   assert.match(compose, /NTFY_TOPIC/);
-  assert.match(compose, /ANSWER_FALLBACK_MODELS: \$\{ANSWER_FALLBACK_MODELS:-liquid\/lfm-2\.5-1\.2b-instruct:free\}/);
+  assert.match(compose, /ANSWER_FALLBACK_MODELS: \$\{ANSWER_FALLBACK_MODELS:-mistralai\/mistral-small-2603\}/);
+  assert.match(render, /OPENROUTER_MODEL[\s\S]*google\/gemini-3\.1-flash-lite/);
   assert.doesNotMatch(compose, /OLLAMA_/);
   assert.match(render, /runtime: docker/);
   assert.match(render, /plan: free/);
