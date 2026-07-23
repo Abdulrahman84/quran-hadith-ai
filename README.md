@@ -64,3 +64,4 @@ requires Tafsir Center attribution under CC BY 4.0.
 
 See [docs/product-plan.md](docs/product-plan.md) and [docs/source-policy.md](docs/source-policy.md).
 For API-model deployment, see [docs/openrouter-deployment.md](docs/openrouter-deployment.md).
+That deployment guide also explains how to receive OpenRouter low-credit and exhausted-credit alerts on a phone.

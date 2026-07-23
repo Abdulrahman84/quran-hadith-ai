@@ -15,10 +15,24 @@ services:
         value: 0.0.0.0
       - key: OPENROUTER_API_KEY
         sync: false
+      - key: OPENROUTER_MANAGEMENT_KEY
+        sync: false
       - key: OPENROUTER_MODEL
         value: google/gemma-4-26b-a4b-it:free
       - key: OPENROUTER_APP_NAME
         value: Sanad AI
+      - key: NTFY_TOPIC
+        value: sanad
+      - key: NTFY_ACCESS_TOKEN
+        sync: false
+      - key: NTFY_BASE_URL
+        value: https://ntfy.sh
+      - key: OPENROUTER_LOW_CREDIT_USD
+        value: "1"
+      - key: OPENROUTER_CREDIT_CHECK_INTERVAL_MS
+        value: "900000"
+      - key: CREDIT_ALERT_TIMEOUT_MS
+        value: "4000"
       - key: ANSWER_MODEL
         value: google/gemma-4-26b-a4b-it:free
       - key: ANSWER_FALLBACK_MODELS

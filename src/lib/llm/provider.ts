@@ -1,3 +1,5 @@
+import { checkOpenRouterCreditBalanceIfDue, reportOpenRouterCreditFailure } from "./credit-monitor";
+
 export type LlmProvider = "openrouter";
 
 export type LlmTask = "answer" | "router" | "hadith-query-planner";
@@ -33,6 +35,7 @@ type LlmCompletionResult =
       error: string;
       provider: LlmProvider;
       model: string;
+      httpStatus?: number;
     };
 
 type OpenRouterResponse = {
@@ -42,6 +45,7 @@ type OpenRouterResponse = {
     };
   }>;
   error?: {
+    code?: number;
     message?: string;
   };
 };
@@ -167,11 +171,18 @@ async function completeWithOpenRouter(input: LlmCompletionInput, config: ReturnT
   const payload = (await response.json().catch(() => ({}))) as OpenRouterResponse;
 
   if (!response.ok || payload.error) {
+    const httpStatus = payload.error?.code || response.status;
+
+    if (httpStatus === 402) {
+      await reportOpenRouterCreditFailure();
+    }
+
     return {
       status: "error" as const,
       error: payload.error?.message || `OpenRouter returned HTTP ${response.status}.`,
       provider: config.provider,
       model: config.model,
+      httpStatus,
     };
   }
 
@@ -211,11 +222,17 @@ export async function completeLlmText(input: LlmCompletionInput): Promise<LlmCom
   const models = [...new Set([config.model, ...config.fallbackModels])];
   let lastResult: LlmCompletionResult | null = null;
 
+  void checkOpenRouterCreditBalanceIfDue();
+
   try {
     for (const model of models) {
       const result = await completeWithOpenRouter(input, { ...config, model }, controller.signal);
 
       if (result.status === "ok") {
+        return result;
+      }
+
+      if (result.httpStatus === 402) {
         return result;
       }
 

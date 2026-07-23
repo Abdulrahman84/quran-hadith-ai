@@ -19,6 +19,10 @@ function loadProvider(overrides = {}) {
     },
     fileName: filename,
   }).outputText;
+  const creditMonitor = overrides.creditMonitor || {
+    checkOpenRouterCreditBalanceIfDue: async () => {},
+    reportOpenRouterCreditFailure: async () => {},
+  };
   const sandbox = {
     AbortController,
     clearTimeout,
@@ -26,7 +30,7 @@ function loadProvider(overrides = {}) {
     fetch,
     module: { exports: {} },
     process: { env: {} },
-    require,
+    require: (specifier) => specifier === "./credit-monitor" ? creditMonitor : require(specifier),
     setTimeout,
     ...overrides,
   };
@@ -203,4 +207,47 @@ test("completeLlmText retries answer fallback models when the configured answer 
   assert.equal(result.status, "ok");
   assert.equal(result.model, "answer-fallback");
   assert.deepEqual(requestedModels, ["answer-primary", "answer-fallback"]);
+});
+
+test("completeLlmText reports exhausted credit and skips fallback models on HTTP 402", async () => {
+  const requestedModels = [];
+  let reportedFailures = 0;
+  const { completeLlmText } = loadProvider({
+    creditMonitor: {
+      checkOpenRouterCreditBalanceIfDue: async () => {},
+      reportOpenRouterCreditFailure: async () => {
+        reportedFailures += 1;
+      },
+    },
+    fetch: async (_url, init) => {
+      requestedModels.push(JSON.parse(init.body).model);
+
+      return {
+        ok: false,
+        status: 402,
+        json: async () => ({
+          error: { code: 402, message: "Insufficient credits" },
+        }),
+      };
+    },
+    process: {
+      env: {
+        OPENROUTER_API_KEY: "test-key",
+        ANSWER_MODEL: "answer-primary",
+        ANSWER_FALLBACK_MODELS: "answer-fallback",
+      },
+    },
+  });
+
+  const result = await completeLlmText({
+    task: "answer",
+    maxTokens: 190,
+    temperature: 0.1,
+    messages: [{ role: "user", content: "answer this" }],
+  });
+
+  assert.equal(result.status, "error");
+  assert.equal(result.httpStatus, 402);
+  assert.equal(reportedFailures, 1);
+  assert.deepEqual(requestedModels, ["answer-primary"]);
 });

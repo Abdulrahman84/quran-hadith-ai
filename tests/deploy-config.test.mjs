@@ -18,10 +18,14 @@ test("Docker runtime config exposes OpenRouter env instead of legacy Ollama rout
   assert.match(dockerfile, /ENV MCP_TOOL_ROUTER_MODEL=/);
   assert.doesNotMatch(dockerfile, /ENV OLLAMA_/);
   assert.match(compose, /OPENROUTER_API_KEY/);
+  assert.match(compose, /OPENROUTER_MANAGEMENT_KEY/);
+  assert.match(compose, /NTFY_TOPIC/);
   assert.match(compose, /ANSWER_FALLBACK_MODELS: \$\{ANSWER_FALLBACK_MODELS:-liquid\/lfm-2\.5-1\.2b-instruct:free\}/);
   assert.doesNotMatch(compose, /OLLAMA_/);
   assert.match(render, /runtime: docker/);
   assert.match(render, /plan: free/);
   assert.match(render, /OPENROUTER_API_KEY[\s\S]*sync: false/);
+  assert.match(render, /OPENROUTER_MANAGEMENT_KEY[\s\S]*sync: false/);
+  assert.match(render, /NTFY_TOPIC[\s\S]*sync: false/);
   assert.match(render, /PORT[\s\S]*value: 10000/);
 });

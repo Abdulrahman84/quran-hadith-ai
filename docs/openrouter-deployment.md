@@ -8,6 +8,7 @@ Set these in `.env.local` for local development or in your hosting provider's se
 
 ```bash
 OPENROUTER_API_KEY=...
+OPENROUTER_MANAGEMENT_KEY=...
 OPENROUTER_MODEL=google/gemma-4-26b-a4b-it:free
 OPENROUTER_SITE_URL=https://your-domain.example
 OPENROUTER_APP_NAME=Sanad AI
@@ -20,6 +21,12 @@ MCP_TOOL_ROUTER_FALLBACK_MODELS=liquid/lfm-2.5-1.2b-thinking:free
 HADITH_QUERY_PLANNER_ENABLED=true
 HADITH_QUERY_PLANNER_MODEL=google/gemma-4-26b-a4b-it:free
 HADITH_QUERY_PLANNER_FALLBACK_MODELS=
+NTFY_TOPIC=use-a-long-random-private-topic
+NTFY_BASE_URL=https://ntfy.sh
+NTFY_ACCESS_TOKEN=
+OPENROUTER_LOW_CREDIT_USD=1
+OPENROUTER_CREDIT_CHECK_INTERVAL_MS=900000
+CREDIT_ALERT_TIMEOUT_MS=4000
 ```
 
 The same OpenRouter model is used for routing, hadith query planning, and grounded answer drafting unless you override
@@ -36,6 +43,21 @@ The source retrieval layer still needs:
 - Tafsir MCP available through `TAFSIR_MCP_COMMAND` and optional `TAFSIR_DB_PATH`.
 
 Only the web app should be public. Keep database files and MCP processes private to the host.
+
+## Mobile Credit Alerts
+
+Install the ntfy app on iOS or Android, subscribe to the exact value configured in `NTFY_TOPIC`, and allow phone
+notifications. Public `ntfy.sh` topics can be read or published by anyone who guesses the topic name, so use a long,
+random value or reserve a private topic and configure its token in `NTFY_ACCESS_TOKEN`.
+
+An OpenRouter HTTP 402 response triggers an urgent notification using only the normal inference key. Add a separate
+`OPENROUTER_MANAGEMENT_KEY` to also check the account balance during app traffic and warn when it reaches
+`OPENROUTER_LOW_CREDIT_USD`. The management key is sent only to OpenRouter's official credits endpoint and cannot be
+used for model inference.
+
+Checks are opportunistic and run no more than once per configured interval while the app receives traffic. They are
+not a background schedule: if another application spends the balance while Sanad AI is idle, the alert arrives on the
+next Sanad AI request. Deploys, restarts, or multiple server instances can also cause an occasional duplicate alert.
 
 ## Smoke Test
 
