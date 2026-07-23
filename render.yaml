@@ -13,6 +13,8 @@ services:
         value: 10000
       - key: HOSTNAME
         value: 0.0.0.0
+      - key: NEXT_PUBLIC_CONVEX_URL
+        value: https://tacit-dolphin-856.convex.cloud
       - key: OPENROUTER_API_KEY
         sync: false
       - key: OPENROUTER_MANAGEMENT_KEY

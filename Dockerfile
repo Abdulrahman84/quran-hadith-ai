@@ -3,7 +3,9 @@
 FROM node:22-bookworm-slim AS app
 
 WORKDIR /app
+ARG NEXT_PUBLIC_CONVEX_URL
 ENV NEXT_TELEMETRY_DISABLED=1
+ENV NEXT_PUBLIC_CONVEX_URL=$NEXT_PUBLIC_CONVEX_URL
 
 RUN apt-get update \
   && apt-get install -y --no-install-recommends ca-certificates \
@@ -39,8 +41,10 @@ FROM node:22-bookworm-slim AS runner
 
 WORKDIR /app
 
+ARG NEXT_PUBLIC_CONVEX_URL
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
+ENV NEXT_PUBLIC_CONVEX_URL=$NEXT_PUBLIC_CONVEX_URL
 ENV PORT=3000
 ENV HOSTNAME=0.0.0.0
 
