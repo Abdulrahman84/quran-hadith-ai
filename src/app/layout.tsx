@@ -20,7 +20,7 @@ export const metadata: Metadata = {
   title: "سند | Sanad AI",
   description: "A citation-first Quran, tafsir, and Sunnah assistant.",
   verification: {
-    google: "JVTR0R3N6Hz-1Ce6McU-WJb1hunwhAdq9zzhMLDLPV4",
+    google: "P4KIgp2oN1afFuRDLRHg20NkD-cAUvc-WTVaow1cbuk",
   },
   icons: {
     icon: "/brand/sanad-icon-gold-forward.png?v=gold-forward",
