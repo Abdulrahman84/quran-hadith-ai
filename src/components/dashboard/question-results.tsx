@@ -11,6 +11,22 @@ type QuestionResultsProps = {
 };
 
 const statuses: DashboardStatus[] = ["all", "completed", "needs_review", "failed"];
+const dateTimeFormatters = {
+  ar: new Intl.DateTimeFormat("ar", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  }),
+  en: new Intl.DateTimeFormat("en", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  }),
+};
 
 function statusKey(status: DashboardStatus): TranslationKey {
   if (status === "completed") return "dashboard.status.completed";
@@ -81,7 +97,9 @@ export function QuestionResults({ runs, language, status, setStatus, t }: Questi
                   </div>
                   <p className="mt-2 text-base font-bold leading-7 text-[var(--color-ink)]" dir="auto">{run.question}</p>
                   <p className="mt-1 text-xs font-semibold text-[var(--color-muted)]">
-                    {new Intl.DateTimeFormat(locale, { month: "short", day: "numeric", year: "numeric" }).format(new Date(run.occurredAt))}
+                    <time dateTime={new Date(run.occurredAt).toISOString()}>
+                      {dateTimeFormatters[language].format(new Date(run.occurredAt))}
+                    </time>
                   </p>
                 </div>
                 <span className={`w-fit shrink-0 rounded-lg border px-2.5 py-1.5 text-xs font-bold ${statusClass(run.status)}`}>
