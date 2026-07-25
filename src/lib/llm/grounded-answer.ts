@@ -544,31 +544,7 @@ function passesExactQuranGuardrail(text: string, input: GenerateGroundedAnswerIn
     return true;
   }
 
-  const selectedCitationNumbers = answerCitationNumbers(input);
-  const quranRecords = input.records
-    .map((record, index) => ({ citationNumber: index + 1, record }))
-    .filter(({ citationNumber, record }) => {
-      return (
-        selectedCitationNumbers.has(citationNumber)
-        && (record.sourceKind === "quran" || record.sourceKind === "tafsir")
-        && cleanWhitespace(record.arabicText).length > 0
-      );
-    });
-
-  if (quranRecords.length === 0) {
-    return true;
-  }
-
   const segments = answerSegments(text);
-  const hasExactQuranText = quranRecords.some(({ record }) => {
-    const reference = record.verseKey || record.reference;
-    const ayahText = cleanWhitespace(record.arabicText);
-    return segments.some((segment) => segment.includes(reference) && segment.includes(ayahText));
-  });
-
-  if (!hasExactQuranText) {
-    return false;
-  }
 
   return segments.every((segment) => {
     const quranCitationNumbers = citationNumbersInText(segment).filter((citationNumber) => {
@@ -577,9 +553,14 @@ function passesExactQuranGuardrail(text: string, input: GenerateGroundedAnswerIn
 
     return quranCitationNumbers.every((citationNumber) => {
       const record = input.records[citationNumber - 1];
-      if (!record) return false;
+      const ayahText = record ? cleanWhitespace(record.arabicText) : "";
+
+      if (!record || !ayahText) {
+        return false;
+      }
+
       const reference = record.verseKey || record.reference;
-      return segment.includes(reference) && segment.includes(cleanWhitespace(record.arabicText));
+      return segment.includes(reference) && segment.includes(ayahText);
     });
   });
 }

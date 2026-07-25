@@ -435,6 +435,69 @@ test("answer generation rejects a fabricated direct quotation", async () => {
   assert.deepEqual(Array.from(answer.warnings.map((warning) => warning.code)), ["llm_guardrail_fallback"]);
 });
 
+test("Arabic answer may summarize cited hadith when uncited Quran records are also available", async () => {
+  const text = "توضح الأحاديث مكانة النية في العمل [1].";
+  const { generateGroundedAnswer } = loadGroundedAnswerModule({
+    completeLlmText: async () => ({
+      status: "ok",
+      text,
+      provider: "openrouter",
+      model: "google/gemma-4-26b-a4b-it:free",
+    }),
+  });
+
+  const answer = await generateGroundedAnswer({
+    question: "النية",
+    language: "arabic",
+    records: [
+      sourceRecord(),
+      tafsirRecord({
+        id: "quran-2",
+        sourceKind: "quran",
+        collection: "quran",
+        reference: "2:286",
+        verseKey: "2:286",
+        arabicText: "لَا يُكَلِّفُ اللَّهُ نَفْسًا إِلَّا وُسْعَهَا",
+        tafsirText: null,
+      }),
+    ],
+  });
+
+  assert.equal(answer.status, "ready");
+  assert.equal(answer.text, text);
+});
+
+test("Arabic answer still requires exact verse text when it cites a Quran record", async () => {
+  const { generateGroundedAnswer } = loadGroundedAnswerModule({
+    completeLlmText: async () => ({
+      status: "ok",
+      text: "تقرر الآية أن التكليف يكون في حدود الاستطاعة [1].",
+      provider: "openrouter",
+      model: "google/gemma-4-26b-a4b-it:free",
+    }),
+  });
+
+  const answer = await generateGroundedAnswer({
+    question: "ما معنى الآية؟",
+    language: "arabic",
+    records: [
+      tafsirRecord({
+        id: "quran-1",
+        sourceKind: "quran",
+        collection: "quran",
+        reference: "2:286",
+        verseKey: "2:286",
+        arabicText: "لَا يُكَلِّفُ اللَّهُ نَفْسًا إِلَّا وُسْعَهَا",
+        tafsirText: null,
+      }),
+    ],
+  });
+
+  assert.equal(answer.status, "error");
+  assert.equal(answer.text, null);
+  assert.match(answer.warnings[0].message, /exact_quran/);
+});
+
 test("answer generation sends a bounded balanced evidence pack with original citation numbers", async () => {
   let userPrompt = "";
   const { generateGroundedAnswer } = loadGroundedAnswerModule({
