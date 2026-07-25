@@ -6,7 +6,13 @@ import { FormEvent, KeyboardEvent, useEffect, useMemo, useRef, useState } from "
 import { useI18n } from "@/components/i18n-provider";
 import type { TranslationKey } from "@/lib/i18n";
 import { hadithCollections, type HadithCollectionSelection } from "@/lib/retrieval/hadith-collections";
-import { formatHadithGrade, formatSourceRecordTitle } from "@/lib/retrieval/source-display";
+import {
+  formatHadithGrade,
+  formatHadithGradeReference,
+  formatHadithGradeSource,
+  formatSourceDetailLabel,
+  formatSourceRecordTitle,
+} from "@/lib/retrieval/source-display";
 import { tafsirSources, type TafsirSourceSelection } from "@/lib/retrieval/tafsir-sources";
 import type { RetrievalResponse, RetrievalWarning } from "@/lib/retrieval/types";
 
@@ -128,20 +134,29 @@ function recordDetailBadge(record: RetrievalResponse["records"][number], languag
   }
 
   if (record.sourceKind === "tafsir") {
-    return record.tafsirSource || t("result.tafsirUnavailable");
+    const source = record.tafsirSource || t("result.tafsirUnavailable");
+    return formatSourceDetailLabel(source, record.sourceKind, language);
   }
 
-  return record.translationEdition || record.sourceDataset || null;
+  return null;
 }
 
-function recordGradeMetadata(record: RetrievalResponse["records"][number], t: (key: TranslationKey) => string) {
+function recordGradeMetadata(
+  record: RetrievalResponse["records"][number],
+  language: "ar" | "en",
+  t: (key: TranslationKey) => string,
+) {
   if (record.sourceKind !== "hadith" || !record.grade) {
     return "";
   }
 
   return [
-    record.grade.source ? `${t("result.gradeSourceLabel")}: ${record.grade.source}` : null,
-    record.grade.sourceReference ? `${t("result.gradeReferenceLabel")}: ${record.grade.sourceReference}` : null,
+    record.grade.source
+      ? `${t("result.gradeSourceLabel")}: ${formatHadithGradeSource(record.grade.source, language)}`
+      : null,
+    record.grade.sourceReference
+      ? `${t("result.gradeReferenceLabel")}: ${formatHadithGradeReference(record.grade.sourceReference, language)}`
+      : null,
   ]
     .filter(Boolean)
     .join(" / ");
@@ -167,8 +182,8 @@ function recordMetadata(record: RetrievalResponse["records"][number], language: 
 
     if (language === "ar") {
       return [
-        record.book ? `${t("result.bookLabel")}: ${record.book}` : null,
-        record.chapter ? `${t("result.chapterLabel")}: ${record.chapter}` : null,
+        record.book && !/[A-Za-z]/.test(record.book) ? `${t("result.bookLabel")}: ${record.book}` : null,
+        record.chapter && !/[A-Za-z]/.test(record.chapter) ? `${t("result.chapterLabel")}: ${record.chapter}` : null,
       ]
         .filter(Boolean)
         .join(" / ");
@@ -178,8 +193,12 @@ function recordMetadata(record: RetrievalResponse["records"][number], language: 
   }
 
   return [
-    record.translationEdition ? `${t("result.translationLabel")}: ${record.translationEdition}` : null,
-    record.tafsirSource ? `${t("result.tafsirLabel")}: ${record.tafsirSource}` : null,
+    record.translationEdition && (language !== "ar" || !/[A-Za-z]/.test(record.translationEdition))
+      ? `${t("result.translationLabel")}: ${record.translationEdition}`
+      : null,
+    record.tafsirSource && (language !== "ar" || !/[A-Za-z]/.test(record.tafsirSource))
+      ? `${t("result.tafsirLabel")}: ${record.tafsirSource}`
+      : null,
   ]
     .filter(Boolean)
     .join(" / ");
@@ -198,6 +217,7 @@ export default function Home() {
   const [tafsirSource, setTafsirSource] = useState<TafsirSourceSelection>("all");
   const [sourcePage, setSourcePage] = useState(1);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const loadingPanelRef = useRef<HTMLDivElement>(null);
 
   const hasScenario = isRetrieving || Boolean(submittedQuestion) || retrieval !== null || requestError.length > 0;
 
@@ -232,6 +252,23 @@ export default function Home() {
       resizeQuestionField(textareaRef.current);
     }
   }, [question]);
+
+  useEffect(() => {
+    if (!isRetrieving) {
+      return;
+    }
+
+    const frame = window.requestAnimationFrame(() => {
+      const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+      loadingPanelRef.current?.scrollIntoView({
+        behavior: prefersReducedMotion ? "auto" : "smooth",
+        block: "start",
+      });
+    });
+
+    return () => window.cancelAnimationFrame(frame);
+  }, [isRetrieving]);
 
   async function runSearch(
     nextQuestion: string,
@@ -479,7 +516,10 @@ export default function Home() {
               </div>
             </div>
 
-            <div className="answer-preview rounded-2xl bg-[var(--color-green)] p-4">
+            <div
+              className="answer-preview scroll-mt-24 rounded-2xl bg-[var(--color-green)] p-4"
+              ref={loadingPanelRef}
+            >
               <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 pb-3">
                 <div>
                   <h2 className="text-lg font-bold text-white">
@@ -592,7 +632,7 @@ export default function Home() {
                               english: t("result.englishUnavailable"),
                             });
                             const metadata = recordMetadata(record, language, t);
-                            const gradeMetadata = recordGradeMetadata(record, t);
+                            const gradeMetadata = recordGradeMetadata(record, language, t);
                             const detailBadge = recordDetailBadge(record, language, t);
 
                             return (

@@ -70,9 +70,32 @@ test("formats common romanized hadith grades in Arabic UI", () => {
   assert.equal(formatHadithGrade("daif", "ar"), "ضعيف");
 });
 
-test("preserves hadith grades in English UI and unknown Arabic grades", () => {
+test("preserves hadith grades in English UI and avoids Latin grades in Arabic UI", () => {
   const { formatHadithGrade } = loadSourceDisplay();
 
   assert.equal(formatHadithGrade("SAHIH LI GHAIRIHI", "en"), "SAHIH LI GHAIRIHI");
-  assert.equal(formatHadithGrade("gharib", "ar"), "gharib");
+  assert.equal(formatHadithGrade("gharib", "ar"), "غريب");
+  assert.equal(formatHadithGrade("unknown label", "ar"), "درجة أخرى");
+});
+
+test("formats hadith grade provenance without English text in Arabic UI", () => {
+  const { formatHadithGradeReference, formatHadithGradeSource } = loadSourceDisplay();
+
+  assert.equal(formatHadithGradeSource("Darussalam", "ar"), "دار السلام");
+  assert.equal(formatHadithGradeSource("Al-Albani", "ar"), "الألباني");
+  assert.equal(formatHadithGradeSource("Unmapped Grader", "ar"), "الجهة المذكورة في سجل المصدر");
+  assert.equal(
+    formatHadithGradeReference("meeAtif/hadith_datasets Grade field", "ar"),
+    "حقل الدرجة في مجموعة بيانات الحديث",
+  );
+  assert.equal(formatHadithGradeReference("Grade metadata", "ar"), "مرجع الدرجة في سجل المصدر");
+  assert.equal(formatHadithGradeSource("Darussalam", "en"), "Darussalam");
+});
+
+test("localizes technical source badges in Arabic UI", () => {
+  const { formatSourceDetailLabel } = loadSourceDisplay();
+
+  assert.equal(formatSourceDetailLabel("tafsir-mcp", "quran", "ar"), "مصدر القرآن");
+  assert.equal(formatSourceDetailLabel("tafsir-mcp", "tafsir", "ar"), "مصدر التفسير");
+  assert.equal(formatSourceDetailLabel("tafsir-mcp", "quran", "en"), "tafsir-mcp");
 });

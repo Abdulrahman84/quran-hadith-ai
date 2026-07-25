@@ -13,7 +13,15 @@ const arabicGradeLabels = new Map<string, string>([
   ["mawdu", "موضوع"],
   ["mawdoo", "موضوع"],
   ["mawdu'", "موضوع"],
+  ["gharib", "غريب"],
 ]);
+
+const arabicGradeSourceLabels: Array<[RegExp, string]> = [
+  [/\bdarussalam\b/i, "دار السلام"],
+  [/\bal[-\s]?albani\b|\balbani\b/i, "الألباني"],
+  [/\bshu['’]?aib al[-\s]?arna['’]?ut\b|\bal[-\s]?arna['’]?ut\b/i, "شعيب الأرناؤوط"],
+  [/\babu (?:eisa|isa)\b|\btirmidhi\b/i, "أبو عيسى الترمذي"],
+];
 
 function normalizeGrade(value: string) {
   return value
@@ -111,7 +119,57 @@ export function formatHadithGrade(value: string, language: Language) {
     return "حسن";
   }
 
-  return value;
+  if (!/[A-Za-z]/.test(value)) {
+    return value;
+  }
+
+  return "درجة أخرى";
+}
+
+export function formatHadithGradeSource(value: string, language: Language) {
+  if (language !== "ar") {
+    return value;
+  }
+
+  const localizedSource = arabicGradeSourceLabels.find(([pattern]) => pattern.test(value));
+
+  if (localizedSource) {
+    return localizedSource[1];
+  }
+
+  return /[A-Za-z]/.test(value) ? "الجهة المذكورة في سجل المصدر" : value;
+}
+
+export function formatHadithGradeReference(value: string, language: Language) {
+  if (language !== "ar") {
+    return value;
+  }
+
+  if (/grade field/i.test(value) && /hadith[_\s-]?datasets|meeatif/i.test(value)) {
+    return "حقل الدرجة في مجموعة بيانات الحديث";
+  }
+
+  return /[A-Za-z]/.test(value) ? "مرجع الدرجة في سجل المصدر" : value;
+}
+
+export function formatSourceDetailLabel(
+  value: string,
+  sourceKind: SourceRecord["sourceKind"],
+  language: Language,
+) {
+  if (language !== "ar" || !/[A-Za-z]/.test(value)) {
+    return value;
+  }
+
+  if (sourceKind === "quran") {
+    return "مصدر القرآن";
+  }
+
+  if (sourceKind === "tafsir") {
+    return "مصدر التفسير";
+  }
+
+  return "مصدر الحديث";
 }
 
 export function formatSourceRecordTitle(
