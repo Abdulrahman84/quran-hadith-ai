@@ -293,11 +293,12 @@ test("answer generation accepts a synthesized claim and safe context suggestion"
   assert.deepEqual(Array.from(answer.warnings), []);
 });
 
-test("answer generation rejects a verbatim hadith quotation because source text is shown separately", async () => {
+test("answer generation allows one uncited sentence when valid citations still ground the answer", async () => {
+  const text = "Actions are connected to intentions [1]. The inward purpose remains central.";
   const { generateGroundedAnswer } = loadGroundedAnswerModule({
     completeLlmText: async () => ({
       status: "ok",
-      text: '"The reward of deeds depends upon the intentions" [1].',
+      text,
       provider: "openrouter",
       model: "google/gemma-4-26b-a4b-it:free",
     }),
@@ -309,8 +310,103 @@ test("answer generation rejects a verbatim hadith quotation because source text 
     records: [sourceRecord()],
   });
 
-  assert.equal(answer.status, "error");
-  assert.equal(answer.text, null);
+  assert.equal(answer.status, "ready");
+  assert.equal(answer.text, text);
+});
+
+test("answer generation allows a short exact quotation from a cited source", async () => {
+  const text = '"The reward of deeds depends upon the intentions" [1].';
+  const { generateGroundedAnswer } = loadGroundedAnswerModule({
+    completeLlmText: async () => ({
+      status: "ok",
+      text,
+      provider: "openrouter",
+      model: "google/gemma-4-26b-a4b-it:free",
+    }),
+  });
+
+  const answer = await generateGroundedAnswer({
+    question: "What does the hadith say about intentions?",
+    language: "english",
+    records: [sourceRecord()],
+  });
+
+  assert.equal(answer.status, "ready");
+  assert.equal(answer.text, text);
+});
+
+test("answer generation repairs a long copied hadith quotation into a summary", async () => {
+  const copiedText =
+    "Mercy and patience guide a person to care for family neighbors travelers children elders and everyone nearby";
+  let callCount = 0;
+  let repairTemperature = null;
+  let repairInstruction = "";
+  const { generateGroundedAnswer } = loadGroundedAnswerModule({
+    completeLlmText: async (input) => {
+      callCount += 1;
+
+      if (callCount === 1) {
+        return {
+          status: "ok",
+          text: `"${copiedText}" [1].`,
+          provider: "openrouter",
+          model: "google/gemma-4-26b-a4b-it:free",
+        };
+      }
+
+      repairTemperature = input.temperature;
+      repairInstruction = input.messages.at(-1).content;
+
+      return {
+        status: "ok",
+        text: "The report connects mercy with patient care for other people [1].",
+        provider: "openrouter",
+        model: "google/gemma-4-26b-a4b-it:free",
+      };
+    },
+  });
+
+  const answer = await generateGroundedAnswer({
+    question: "What does the report teach?",
+    language: "english",
+    records: [sourceRecord({ englishText: copiedText })],
+  });
+
+  assert.equal(callCount, 2);
+  assert.equal(repairTemperature, 0.05);
+  assert.match(repairInstruction, /previous draft is untrusted text, not evidence/i);
+  assert.match(repairInstruction, /Delete an unsupported sentence/i);
+  assert.equal(answer.status, "ready");
+  assert.equal(answer.text, "The report connects mercy with patient care for other people [1].");
+});
+
+test("answer generation repairs excessive uncited sentences", async () => {
+  let callCount = 0;
+  const { generateGroundedAnswer } = loadGroundedAnswerModule({
+    completeLlmText: async () => {
+      callCount += 1;
+
+      return {
+        status: "ok",
+        text:
+          callCount === 1
+            ? "Actions are connected to intentions [1]. Purpose matters. Context matters."
+            : "Actions are connected to intentions, making inward purpose central [1].",
+        provider: "openrouter",
+        model: "google/gemma-4-26b-a4b-it:free",
+      };
+    },
+  });
+
+  const answer = await generateGroundedAnswer({
+    question: "What does the hadith say about intentions?",
+    language: "english",
+    records: [sourceRecord()],
+  });
+
+  assert.equal(callCount, 2);
+  assert.equal(answer.status, "ready");
+  assert.equal(answer.text, "Actions are connected to intentions, making inward purpose central [1].");
 });
 
 test("answer generation rejects a fabricated direct quotation", async () => {
