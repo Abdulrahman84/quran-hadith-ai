@@ -501,14 +501,19 @@ function passesDirectQuoteGuardrail(text: string, input: GenerateGroundedAnswerI
 
   return [...text.matchAll(quotePattern)].every((match) => {
     const quotedText = cleanWhitespace(match[1] || match[2] || match[3] || "");
-
-    if (tokenizeForGrounding(quotedText, input.language).length < 3) {
-      return true;
-    }
-
     const quoteStart = match.index || 0;
     const sentence = sentenceAroundRange(text, quoteStart, quoteStart + match[0].length);
     const citationNumbers = citationNumbersInText(sentence);
+    const hasQuranCitation = citationNumbers.some((citationNumber) => {
+      return input.records[citationNumber - 1]?.sourceKind === "quran";
+    });
+
+    if (
+      tokenizeForGrounding(quotedText, input.language).length < 3
+      && !hasQuranCitation
+    ) {
+      return true;
+    }
 
     return citationNumbers.some((citationNumber) => {
       const record = input.records[citationNumber - 1];
@@ -535,32 +540,6 @@ function passesDirectQuoteGuardrail(text: string, input: GenerateGroundedAnswerI
       return cleanWhitespace(recordText).toLowerCase().includes(
         quotedText.toLowerCase(),
       );
-    });
-  });
-}
-
-function passesExactQuranGuardrail(text: string, input: GenerateGroundedAnswerInput) {
-  if (input.language !== "arabic") {
-    return true;
-  }
-
-  const segments = answerSegments(text);
-
-  return segments.every((segment) => {
-    const quranCitationNumbers = citationNumbersInText(segment).filter((citationNumber) => {
-      return input.records[citationNumber - 1]?.sourceKind === "quran";
-    });
-
-    return quranCitationNumbers.every((citationNumber) => {
-      const record = input.records[citationNumber - 1];
-      const ayahText = record ? cleanWhitespace(record.arabicText) : "";
-
-      if (!record || !ayahText) {
-        return false;
-      }
-
-      const reference = record.verseKey || record.reference;
-      return segment.includes(reference) && segment.includes(ayahText);
     });
   });
 }
@@ -608,7 +587,8 @@ function systemPrompt(language: RetrievalLanguage) {
       "لا تعتبر عناوين الكتب أو الأبواب حكما شرعيا؛ هي بيانات وصفية فقط.",
       "اكتب إجابة عربية قصيرة تلخّص المعنى الذي تدعمه النصوص، لا تجب بصيغة حكم عام.",
       "لا تستخدم أي كلمة إنجليزية في الإجابة العربية، بما في ذلك أسماء الأنواع مثل Quran أو Tafsir.",
-      "إذا كان في السجلات آية قرآنية، فاذكر مرجع الآية ونصها العربي كما هو حرفيا من السجل، ولا تعد صياغة النص القرآني ولا تكمله من الذاكرة.",
+      "لخّص معنى الآية عند الاستناد إليها وضع إحالتها، ولا تشترط نسخ نصها الكامل لأن النص الأصلي ظاهر في النتائج أدناه.",
+      "إذا نقلت جزءا من آية بين علامات اقتباس، فانقله حرفيا من السجل نفسه ولا تكمله من الذاكرة.",
       "لخّص المعنى والمضمون المشترك للنصوص المسترجعة. لا تنقل ألفاظ الحديث أو مقتطفاته حرفيا، ولا تنقل أسانيد الرواة إلا إذا كان السؤال عنها.",
       "لا تعرض قائمة بأسماء المصادر فقط؛ لخّص مضمون النصوص المسترجعة.",
       "ضع أرقام الاقتباس مثل [1] بجانب كل معلومة مستندة إلى سجل.",
@@ -635,7 +615,7 @@ function userPrompt(input: GenerateGroundedAnswerInput) {
   const citationPack = buildCitationPack(selectAnswerRecords(input.records), input.language);
 
   if (input.language === "arabic") {
-    return `السؤال:\n${input.question}\n\nالمصادر:\n${citationPack}\n\nاكتب ثلاث أو أربع جمل موجزة وودودة، وابدأ مباشرة بالمعنى الذي يجيب عن السؤال. لا تذكر عملية البحث أو السجلات المسترجعة. اجمع المعاني المتقاربة في خلاصة طبيعية، ثم أضف فائدة عملية لطيفة فقط إن كانت النصوص تدعمها. نوّع الافتتاحية والصياغة، وضع رقم الاقتباس بعد كل معنى أو نصيحة. إذا وجدت آية فاذكر مرجعها ونصها العربي حرفيا كما ورد في السجل، ولا تكتب أي كلمة إنجليزية. لا تضف تفصيلا غير ظاهر في النصوص.`;
+    return `السؤال:\n${input.question}\n\nالمصادر:\n${citationPack}\n\nاكتب ثلاث أو أربع جمل موجزة وودودة، وابدأ مباشرة بالمعنى الذي يجيب عن السؤال. لا تذكر عملية البحث أو السجلات المسترجعة. اجمع المعاني المتقاربة في خلاصة طبيعية، ثم أضف فائدة عملية لطيفة فقط إن كانت النصوص تدعمها. نوّع الافتتاحية والصياغة، وضع رقم الاقتباس بعد كل معنى أو نصيحة. لخّص معنى الآيات عند الاستناد إليها؛ فالنتائج الأصلية ظاهرة أدناه، ولا حاجة إلى نسخ نص الآية كاملا. لا تكتب أي كلمة إنجليزية، ولا تضف تفصيلا غير ظاهر في النصوص.`;
   }
 
   return `Question:\n${input.question}\n\nSources:\n${citationPack}\n\nWrite three or four concise, friendly sentences and begin directly with the meaning that answers the question. Do not mention the search process or the retrieved records. Combine related ideas into a natural synthesis, then add a gentle practical takeaway only when the texts support it. Vary the opening and phrasing, and place a citation marker after every claim or suggestion. Summarize the content, not only source names or hadith narrator chains. Do not add details that are not visible in the records.`;
@@ -647,7 +627,6 @@ function answerGuardFailure(text: string, input: GenerateGroundedAnswerInput) {
     ["citations", passesValidCitationGuardrail(text, input)],
     ["quotes", passesDirectQuoteGuardrail(text, input)],
     ["citation_coverage", passesCitationCoverageGuardrail(text, input)],
-    ["exact_quran", passesExactQuranGuardrail(text, input)],
   ] as const;
 
   return checks.find(([, passed]) => !passed)?.[0] || null;
@@ -659,14 +638,12 @@ function repairInstruction(guardFailure: string, language: RetrievalLanguage) {
     citations: "استخدم فقط أرقام الإحالات الظاهرة في حزمة المصادر.",
     quotes: "حوّل أي نقل مباشر من الحديث إلى تلخيص بالمعنى، ولا تستخدم علامات اقتباس حول ألفاظ الحديث.",
     citation_coverage: "ضع إحالة صحيحة في كل جملة تحمل معنى أو نصيحة مستندة إلى المصادر.",
-    exact_quran: "إذا ذكرت آية، فاكتب مرجعها ونصها العربي حرفيا كما يظهران في حزمة المصادر.",
   };
   const englishRules: Record<string, string> = {
     format: "Use the requested language and do not issue a ruling or personal command.",
     citations: "Use only citation numbers visible in the source pack.",
     quotes: "Turn any direct hadith wording into a meaning-based summary and do not place hadith wording in quotation marks.",
     citation_coverage: "Put a valid citation in every sentence that contains a sourced meaning or suggestion.",
-    exact_quran: "When mentioning a Quran verse, include its reference and exact Arabic text from the source pack.",
   };
 
   if (language === "arabic") {

@@ -467,11 +467,42 @@ test("Arabic answer may summarize cited hadith when uncited Quran records are al
   assert.equal(answer.text, text);
 });
 
-test("Arabic answer still requires exact verse text when it cites a Quran record", async () => {
+test("Arabic answer may summarize a cited Quran record without repeating the verse", async () => {
+  const text = "تقرر الآية أن التكليف يكون في حدود الاستطاعة [1].";
   const { generateGroundedAnswer } = loadGroundedAnswerModule({
     completeLlmText: async () => ({
       status: "ok",
-      text: "تقرر الآية أن التكليف يكون في حدود الاستطاعة [1].",
+      text,
+      provider: "openrouter",
+      model: "google/gemma-4-26b-a4b-it:free",
+    }),
+  });
+
+  const answer = await generateGroundedAnswer({
+    question: "ما معنى الآية؟",
+    language: "arabic",
+    records: [
+      tafsirRecord({
+        id: "quran-1",
+        sourceKind: "quran",
+        collection: "quran",
+        reference: "2:286",
+        verseKey: "2:286",
+        arabicText: "لَا يُكَلِّفُ اللَّهُ نَفْسًا إِلَّا وُسْعَهَا",
+        tafsirText: null,
+      }),
+    ],
+  });
+
+  assert.equal(answer.status, "ready");
+  assert.equal(answer.text, text);
+});
+
+test("Arabic answer rejects a fabricated Quran quotation", async () => {
+  const { generateGroundedAnswer } = loadGroundedAnswerModule({
+    completeLlmText: async () => ({
+      status: "ok",
+      text: "تقول الآية: «إن الله يكلف النفس فوق وسعها» [1].",
       provider: "openrouter",
       model: "google/gemma-4-26b-a4b-it:free",
     }),
@@ -495,7 +526,38 @@ test("Arabic answer still requires exact verse text when it cites a Quran record
 
   assert.equal(answer.status, "error");
   assert.equal(answer.text, null);
-  assert.match(answer.warnings[0].message, /exact_quran/);
+  assert.match(answer.warnings[0].message, /quotes/);
+});
+
+test("Arabic answer rejects a fabricated two-word Quran quotation", async () => {
+  const { generateGroundedAnswer } = loadGroundedAnswerModule({
+    completeLlmText: async () => ({
+      status: "ok",
+      text: "تقول الآية: «فوق وسعها» [1].",
+      provider: "openrouter",
+      model: "google/gemma-4-26b-a4b-it:free",
+    }),
+  });
+
+  const answer = await generateGroundedAnswer({
+    question: "ما معنى الآية؟",
+    language: "arabic",
+    records: [
+      tafsirRecord({
+        id: "quran-1",
+        sourceKind: "quran",
+        collection: "quran",
+        reference: "2:286",
+        verseKey: "2:286",
+        arabicText: "لَا يُكَلِّفُ اللَّهُ نَفْسًا إِلَّا وُسْعَهَا",
+        tafsirText: null,
+      }),
+    ],
+  });
+
+  assert.equal(answer.status, "error");
+  assert.equal(answer.text, null);
+  assert.match(answer.warnings[0].message, /quotes/);
 });
 
 test("answer generation sends a bounded balanced evidence pack with original citation numbers", async () => {
