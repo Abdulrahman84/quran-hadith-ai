@@ -7,6 +7,10 @@ function readHomePage() {
   return fs.readFileSync(path.join(process.cwd(), "src/app/page.tsx"), "utf8");
 }
 
+function readExpandableSourceText() {
+  return fs.readFileSync(path.join(process.cwd(), "src/components/expandable-source-text.tsx"), "utf8");
+}
+
 test("search requests include the selected source filters", () => {
   const pageSource = readHomePage();
 
@@ -63,4 +67,18 @@ test("loading collapses search controls and keeps an accessible edit action", ()
   assert.match(pageSource, /requestAbortRef\.current\?\.abort\(\)/);
   assert.match(pageSource, /home\.editQuestion/);
   assert.match(pageSource, /min-h-\[clamp\(18rem,48svh,36rem\)\]/);
+});
+
+test("long Quran and hadith source text can expand from a five-line preview", () => {
+  const pageSource = readHomePage();
+  const expandableSourceText = readExpandableSourceText();
+  const globalStyles = fs.readFileSync(path.join(process.cwd(), "src/app/globals.css"), "utf8");
+
+  assert.match(pageSource, /record\.sourceKind === "quran" \|\| record\.sourceKind === "hadith"/);
+  assert.match(pageSource, /result\.showMore/);
+  assert.match(pageSource, /result\.showLess/);
+  assert.match(expandableSourceText, /scrollHeight > element\.clientHeight \+ 1/);
+  assert.match(expandableSourceText, /aria-expanded=\{isExpanded\}/);
+  assert.match(expandableSourceText, /aria-controls=\{contentId\}/);
+  assert.match(globalStyles, /-webkit-line-clamp: 5/);
 });

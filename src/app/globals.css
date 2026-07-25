@@ -598,6 +598,13 @@ textarea {
   color: var(--color-ink);
 }
 
+.source-result-text[data-collapsed="true"] {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 5;
+}
+
 .mobile-nav summary {
   list-style: none;
 }

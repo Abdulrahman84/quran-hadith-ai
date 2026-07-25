@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { FormEvent, KeyboardEvent, useEffect, useMemo, useRef, useState } from "react";
 
+import { ExpandableSourceText } from "@/components/expandable-source-text";
 import { useI18n } from "@/components/i18n-provider";
 import type { TranslationKey } from "@/lib/i18n";
 import { hadithCollections, type HadithCollectionSelection } from "@/lib/retrieval/hadith-collections";
@@ -752,9 +753,14 @@ export default function Home() {
                                     {gradeMetadata}
                                   </p>
                                 ) : null}
-                                <p className={`mt-3 whitespace-pre-wrap ${sourceText.textClass}`} dir={sourceText.dir}>
-                                  {sourceText.text}
-                                </p>
+                                <ExpandableSourceText
+                                  className={sourceText.textClass}
+                                  collapsible={record.sourceKind === "quran" || record.sourceKind === "hadith"}
+                                  dir={sourceText.dir}
+                                  showLessLabel={t("result.showLess")}
+                                  showMoreLabel={t("result.showMore")}
+                                  text={sourceText.text}
+                                />
                               </article>
                             );
                           })()
