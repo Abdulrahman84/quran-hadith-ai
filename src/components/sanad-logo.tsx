@@ -17,7 +17,7 @@ export function SanadLogo({ className = "" }: SanadLogoProps) {
           width="900"
         />
       </svg>
-      <circle cx="124.3" cy="53.4" fill="var(--color-red)" r="9" />
+      <circle cx="124.3" cy="53.4" fill="var(--color-gold)" r="9" />
       <svg height="43" viewBox="529 195 301 43" width="301" x="0" y="164">
         <image
           height="251"
