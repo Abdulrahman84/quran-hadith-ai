@@ -16,16 +16,18 @@ export function PolicySectionNav() {
   return (
     <nav
       aria-label={t("policy.nav.label")}
-      className="mt-7 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+      className="mt-9 overflow-x-auto border-y border-[var(--color-border)] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
     >
-      <div className="flex w-max gap-2 rounded-2xl border border-[var(--color-border)] border-t-[3px] border-t-[var(--color-gold)] bg-[var(--color-surface)] p-2 shadow-[0_12px_30px_rgba(23,26,25,0.06)]">
+      <div className="flex w-max">
         {sections.map((section, index) => (
           <a
-            className="group inline-flex min-h-11 items-center gap-2 whitespace-nowrap rounded-xl border border-transparent px-3 text-sm font-bold text-[var(--color-ink)] transition hover:border-[var(--color-gold)]/45 hover:bg-[var(--color-gold-soft)] sm:px-4"
+            className={`group inline-flex min-h-14 items-center gap-2 whitespace-nowrap px-4 text-sm font-bold text-[var(--color-muted)] transition hover:text-[var(--color-green)] sm:px-5 ${
+              index < sections.length - 1 ? "border-e border-[var(--color-border)]" : ""
+            }`}
             href={section.href}
             key={section.href}
           >
-            <span className="grid h-7 w-7 place-items-center rounded-full bg-[var(--color-ink)] text-[0.65rem] text-[var(--color-gold-on-dark)] transition group-hover:bg-[var(--color-green)]">
+            <span className="font-mono text-[0.65rem] font-bold text-[var(--color-gold)]">
               {String(index + 1).padStart(2, "0")}
             </span>
             {t(section.labelKey)}
