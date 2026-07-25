@@ -41,7 +41,10 @@ function buildCitationPack(records: CitationPackRecord[], language: RetrievalLan
   return records
     .map(({ record, citationNumber }) => {
       const citation = `[${citationNumber}]`;
-      const text = getRecordText(record, language).trim();
+      const text =
+        record.sourceKind === "hadith"
+          ? contentExcerpt(record, language)
+          : getRecordText(record, language).trim();
       const metadata =
         language === "arabic"
           ? arabicRecordMetadata(record)
@@ -300,7 +303,7 @@ function stripArabicHadithTrailingNotes(value: string) {
 }
 
 function excerptArabicText(value: string) {
-  const text = stripArabicNarratorOpening(cleanArabicForExcerpt(value));
+  const text = stripArabicHadithTrailingNotes(stripArabicNarratorOpening(cleanArabicForExcerpt(value)));
   const strongMarkers = ["قال رسول الله", "سمعت رسول الله", "إن رسول الله", "أن رسول الله", "كان رسول الله", "يصف النبي", "عن النبي", "قال النبي"];
   const strongMarkerIndex = findLastArabicPhraseIndex(text, strongMarkers);
 
@@ -344,249 +347,15 @@ function contentExcerpt(record: SourceRecord, language: RetrievalLanguage) {
   return language === "arabic" ? excerptArabicText(text) : excerptEnglishText(text);
 }
 
-function summarizeArabicExcerpt(excerpt: string) {
-  const text = cleanArabicForExcerpt(excerpt).replace(/^قال\s+/, "");
-  const normalized = normalizeArabicForMatching(text);
-
-  if (normalized.includes("اقيمت الصلاة") && normalized.includes("حبسه")) {
-    return "موقفا وقع بعد إقامة الصلاة، حيث عُرض للنبي صلى الله عليه وسلم رجل فحبسه بعد الإقامة";
-  }
-
-  if (normalized.includes("نجمع بين الصلاتين") && normalized.includes("عهد رسول الله")) {
-    return "الجمع بين الصلاتين على عهد رسول الله صلى الله عليه وسلم";
-  }
-
-  if (normalized.includes("افضل الصلاة") && normalized.includes("الصلاة المكتوبة")) {
-    return "أن من الصلاة المذكورة في النص صلاة الليل بعد الصلاة المكتوبة";
-  }
-
-  if (normalized.includes("لا صلاة") && normalized.includes("فاتحة الكتاب")) {
-    return "رواية تربط صحة الصلاة بقراءة فاتحة الكتاب";
-  }
-
-  return text.slice(0, 190);
-}
-
-function summarizeEnglishExcerpt(excerpt: string) {
-  const text = cleanWhitespace(excerpt);
-
-  if (text.includes("prayer") && text.includes("intention")) {
-    return "a report that connects the described action with intention";
-  }
-
-  return text.slice(0, 190);
-}
-
-function summarizeExcerpt(excerpt: string, language: RetrievalLanguage) {
-  return language === "arabic" ? summarizeArabicExcerpt(excerpt) : summarizeEnglishExcerpt(excerpt);
-}
-
-function formatArabicHadithGrade(value: string) {
-  const normalized = value
-    .toLowerCase()
-    .replace(/[_-]+/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-
-  if (normalized.includes("hasan sahih")) {
-    return "حسن صحيح";
-  }
-
-  if (normalized.includes("sahih")) {
-    return "صحيح";
-  }
-
-  if (normalized.includes("hasan")) {
-    return "حسن";
-  }
-
-  if (normalized.includes("daif") || normalized.includes("daeef") || normalized.includes("da'if")) {
-    return "ضعيف";
-  }
-
-  return value;
-}
-
-function isArabicQuranOnlyQuestion(question: string) {
-  const normalized = normalizeArabicForMatching(question.toLowerCase());
-  const tokens = new Set(normalized.replace(/[^\p{L}\p{N}\s]/gu, " ").split(/\s+/).filter(Boolean));
-  const quranTerms = ["قران", "القران", "اية", "الاية", "ايه", "الايه", "سوره", "السوره", "تفسير", "التفسير"];
-  const hadithTerms = ["حديث", "احاديث", "سنه", "السنه"];
-  const mentionsQuran = quranTerms.some((term) => tokens.has(term));
-  const mentionsHadith = hadithTerms.some((term) => tokens.has(term));
-
-  return mentionsQuran && !mentionsHadith;
-}
-
-function exactArabicHadithSummaryLines(records: SourceRecord[], question: string) {
-  if (isArabicQuranOnlyQuestion(question)) {
-    return [];
-  }
-
-  const seen = new Set<string>();
-  const lines: string[] = [];
-
-  records.forEach((record, index) => {
-    if (record.sourceKind !== "hadith") {
-      return;
-    }
-
-    const excerpt = contentExcerpt(record, "arabic");
-    const summary = summarizeArabicExcerpt(excerpt);
-    const key = summary.slice(0, 90);
-
-    if (summary.length < 12) {
-      return;
-    }
-
-    if (seen.has(key)) {
-      return;
-    }
-
-    seen.add(key);
-    const grade = record.grade ? ` درجة السجل: ${formatArabicHadithGrade(record.grade.value)}.` : "";
-    lines.push(`- يذكر ${arabicHadithCollectionName(record)}: ${summary} [${index + 1}].${grade}`);
-  });
-
-  return lines.slice(0, 3);
-}
-
 export function fallbackGroundedSummary(input: GenerateGroundedAnswerInput): GroundedAnswer {
-  const seenExcerpts = new Set<string>();
-  const featuredRecords = input.records
-    .map((record, index) => ({
-      citation: `[${index + 1}]`,
-      grade: record.grade?.value || null,
-      excerpt: contentExcerpt(record, input.language),
-    }))
-    .filter((record) => {
-      const key = summarizeExcerpt(record.excerpt, input.language).slice(0, 90);
-
-      if (seenExcerpts.has(key)) {
-        return false;
-      }
-
-      seenExcerpts.add(key);
-      return true;
-    })
-    .slice(0, 3);
-
-  if (input.language === "arabic") {
-    const quranLines = exactArabicQuranLines(input.records);
-    const tafsirSummaryLines = exactArabicTafsirSummaryLines(input.records);
-    const hadithSummaryLines = exactArabicHadithSummaryLines(input.records, input.question);
-    const genericLines = featuredRecords
-      .map((record) => {
-        const grade = record.grade ? ` درجة السجل: ${record.grade}.` : "";
-        return `- يلخص أحد السجلات ${summarizeExcerpt(record.excerpt, input.language)} ${record.citation}.${grade}`;
-      })
-      .join("\n");
-    const lines =
-      hadithSummaryLines.length > 0
-        ? [
-            `ومن سجلات الحديث:`,
-            hadithSummaryLines.join("\n"),
-            quranLines.length > 0 ? `ومن النص القرآني:\n${quranLines.join("\n")}` : null,
-            tafsirSummaryLines.length > 0 ? `الخلاصة من كتب التفسير:\n${tafsirSummaryLines.join("\n")}` : null,
-          ]
-            .filter(Boolean)
-            .join("\n")
-        : quranLines.length > 0
-          ? [
-              `النص المسترجع:`,
-              quranLines.join("\n"),
-              tafsirSummaryLines.length > 0 ? `الخلاصة من كتب التفسير:\n${tafsirSummaryLines.join("\n")}` : null,
-            ]
-            .filter(Boolean)
-            .join("\n")
-          : genericLines;
-
-    const text = `بالنسبة إلى سؤالك، تعرض السجلات المسترجعة ما يلي:\n${lines}\nهذه صياغة تلخص النصوص المسترجعة فقط، وليست فتوى أو حكما شرعيا مستقلا.`;
-
-    return {
-      status: "ready",
-      text,
-      citations: citationLabelsForText(input.records, input.language, text),
-      warnings: [{ code: "llm_guardrail_fallback", message: "The model output was replaced by a guarded source summary." }],
-    };
-  }
-
-  const lines = featuredRecords
-    .map((record) => {
-      const grade = record.grade ? ` Record grade: ${record.grade}.` : "";
-      return `- One record describes ${summarizeExcerpt(record.excerpt, input.language)} ${record.citation}.${grade}`;
-    })
-    .join("\n");
-
-  const text = `For your question, the retrieved records contain passages related to what you asked:\n${lines}\nThis summarizes only the retrieved text and is not an independent religious ruling.`;
+  void input;
 
   return {
-    status: "ready",
-    text,
-    citations: citationLabelsForText(input.records, input.language, text),
-    warnings: [{ code: "llm_guardrail_fallback", message: "The model output was replaced by a guarded source summary." }],
+    status: "error",
+    text: null,
+    citations: [],
+    warnings: [{ code: "llm_guardrail_fallback", message: "The model output was rejected without repeating source text." }],
   };
-}
-
-function exactArabicQuranLines(records: SourceRecord[]) {
-  const seen = new Set<string>();
-  const lines: string[] = [];
-
-  records.forEach((record, index) => {
-    if (record.sourceKind !== "quran" && record.sourceKind !== "tafsir") {
-      return;
-    }
-
-    const ayahText = cleanWhitespace(record.arabicText);
-
-    if (!ayahText) {
-      return;
-    }
-
-    const reference = record.verseKey || record.reference;
-    const key = `${reference}:${ayahText}`;
-
-    if (seen.has(key)) {
-      return;
-    }
-
-    seen.add(key);
-    const surahPrefix = record.surahName ? `سورة ${record.surahName}، ` : "";
-    const sourceName = record.sourceKind === "quran" ? "القرآن الكريم" : arabicTafsirSourceName(record);
-
-    lines.push(`- في ${sourceName}، ${surahPrefix}الآية ${reference}: ${ayahText} [${index + 1}].`);
-  });
-
-  return lines.slice(0, 3);
-}
-
-function exactArabicTafsirSummaryLines(records: SourceRecord[]) {
-  const seen = new Set<string>();
-  const lines: string[] = [];
-
-  records.forEach((record, index) => {
-    if (record.sourceKind !== "tafsir" || !record.tafsirText) {
-      return;
-    }
-
-    const sourceName = arabicTafsirSourceName(record);
-    const tafsirText = cleanWhitespace(record.tafsirText);
-
-    if (!tafsirText || /[A-Za-z]/.test(tafsirText)) {
-      return;
-    }
-
-    const key = `${sourceName}:${tafsirText.slice(0, 100)}`;
-
-    if (seen.has(key)) {
-      return;
-    }
-
-    seen.add(key);
-    lines.push(`- يذكر ${sourceName}: ${tafsirText.slice(0, 220)} [${index + 1}].`);
-  });
-
-  return lines.slice(0, 2);
 }
 
 function passesGroundingGuardrails(text: string, language: RetrievalLanguage) {
@@ -602,79 +371,34 @@ function passesGroundingGuardrails(text: string, language: RetrievalLanguage) {
     return false;
   }
 
-  if (/[«»"]/.test(text)) {
-    return false;
-  }
-
-  const riskyArabicTerms = ["حرام", "حلال", "واجب", "فرض", "يجوز", "لا يجوز", "ينبغي على المسلم"];
-  const riskyEnglishTerms = ["permissible", "impermissible", "obligatory", "forbidden", "must", "must not"];
+  const riskyArabicTerms = [
+    "حرام",
+    "حلال",
+    "واجب",
+    "فرض",
+    "يجوز",
+    "لا يجوز",
+    "ينبغي على المسلم",
+    "يجب عليك",
+    "عليك أن",
+    "افعل",
+    "لا تفعل",
+    "اترك",
+  ];
+  const riskyEnglishTerms = [
+    "permissible",
+    "impermissible",
+    "obligatory",
+    "forbidden",
+    "must",
+    "must not",
+    "you should",
+    "you need to",
+  ];
   const riskyTerms = language === "arabic" ? riskyArabicTerms : riskyEnglishTerms;
 
   return !riskyTerms.some((term) => text.toLowerCase().includes(term.toLowerCase()));
 }
-
-const arabicAllowedSummaryWords = new Set([
-  "تعرض",
-  "السجلات",
-  "المسترجعة",
-  "النصوص",
-  "تتضمن",
-  "تذكر",
-  "إحدى",
-  "احدى",
-  "رواية",
-  "روايات",
-  "مرتبطة",
-  "بسؤال",
-  "سؤالك",
-  "بالنسبة",
-  "بالنسبه",
-  "إلى",
-  "الى",
-  "بما",
-  "سألت",
-  "سالت",
-  "عنه",
-  "المستخدم",
-  "أبرز",
-  "يظهر",
-  "صياغة",
-  "تلخص",
-  "فقط",
-  "وليست",
-  "فتوى",
-  "حكما",
-  "حكم",
-  "شرعيا",
-  "مستقلا",
-  "درجة",
-  "السجل",
-]);
-
-const englishAllowedSummaryWords = new Set([
-  "the",
-  "retrieved",
-  "records",
-  "contain",
-  "passages",
-  "related",
-  "for",
-  "your",
-  "what",
-  "you",
-  "asked",
-  "question",
-  "user",
-  "summarizes",
-  "only",
-  "text",
-  "independent",
-  "religious",
-  "ruling",
-  "record",
-  "grade",
-  "source",
-]);
 
 function tokenizeForGrounding(value: string, language: RetrievalLanguage) {
   const normalized =
@@ -694,16 +418,104 @@ function tokenizeForGrounding(value: string, language: RetrievalLanguage) {
     .filter((token) => token.length > 2 && !/^\d+$/.test(token));
 }
 
-function passesLexicalGrounding(text: string, input: GenerateGroundedAnswerInput) {
-  const sourceTokens = new Set(
-    input.records.flatMap((record) => tokenizeForGrounding(getRecordText(record, input.language), input.language)),
-  );
-  const allowedWords = input.language === "arabic" ? arabicAllowedSummaryWords : englishAllowedSummaryWords;
-  const unsupportedTokens = tokenizeForGrounding(text, input.language).filter((token) => {
-    return !sourceTokens.has(token) && !allowedWords.has(token);
-  });
+function groundingRecordText(record: SourceRecord, language: RetrievalLanguage) {
+  return record.sourceKind === "hadith" ? contentExcerpt(record, language) : getRecordText(record, language);
+}
 
-  return unsupportedTokens.length <= 4;
+function citationNumbersInText(text: string) {
+  return [...text.matchAll(/\[(\d+)\]/g)]
+    .map((match) => Number.parseInt(match[1] || "", 10))
+    .filter(Number.isInteger);
+}
+
+function answerCitationNumbers(input: GenerateGroundedAnswerInput) {
+  return new Set(selectAnswerRecords(input.records).map((item) => item.citationNumber));
+}
+
+function passesValidCitationGuardrail(text: string, input: GenerateGroundedAnswerInput) {
+  const citationNumbers = citationNumbersInText(text);
+  const validCitationNumbers = answerCitationNumbers(input);
+
+  return (
+    citationNumbers.length > 0
+    && citationNumbers.every((citationNumber) => validCitationNumbers.has(citationNumber))
+  );
+}
+
+const safeUncitedAnswerSentences = {
+  arabic: new Set([
+    "ولفهم الصورة كاملة، يمكن مراجعة سياق الإحالات المرفقة.",
+    "وإذا كانت المسألة تتعلق بحالة شخصية، يمكن عرض الإحالات على عالم مؤهل.",
+  ]),
+  english: new Set([
+    "For fuller context, the cited passages can be reviewed in their surrounding sections.",
+    "If this concerns a personal situation, the citations can be taken to a qualified scholar.",
+  ]),
+} satisfies Record<RetrievalLanguage, Set<string>>;
+
+function isSafeUncitedAnswerSentence(segment: string, language: RetrievalLanguage) {
+  if (safeUncitedAnswerSentences[language].has(segment)) {
+    return true;
+  }
+
+  if (language === "arabic") {
+    return /^(?:و)?يمكن مراجعة سياق (?:هذه )?(?:الأحاديث|النصوص|الإحالات)(?: في المصادر المذكورة)?(?: لمزيد من (?:التأمل|الفهم) في معانيها)?\.$/u.test(
+      segment,
+    );
+  }
+
+  return /^(?:For fuller context, )?(?:you can )?review the (?:cited )?(?:passages|sources|citations)(?: in their surrounding (?:context|sections))?\.$/i.test(
+    segment,
+  );
+}
+
+function answerSegments(text: string) {
+  return text
+    .split(/(?<=[.!؟؛])\s+|\n+/u)
+    .map((segment) => segment.trim())
+    .filter(Boolean);
+}
+
+function passesCitationCoverageGuardrail(text: string, input: GenerateGroundedAnswerInput) {
+  return answerSegments(text).every((segment) => {
+    const citationNumbers = citationNumbersInText(segment);
+    return citationNumbers.length > 0 || isSafeUncitedAnswerSentence(segment, input.language);
+  });
+}
+
+function sentenceAroundRange(text: string, startOffset: number, endOffset: number) {
+  const boundaryCharacters = [".", "!", "?", "؟", "؛", "\n"];
+  const start = Math.max(...boundaryCharacters.map((character) => text.lastIndexOf(character, startOffset - 1))) + 1;
+  const followingBoundaries = boundaryCharacters
+    .map((character) => text.indexOf(character, endOffset))
+    .filter((index) => index >= 0);
+  const end = followingBoundaries.length > 0 ? Math.min(...followingBoundaries) + 1 : text.length;
+
+  return text.slice(start, end).trim();
+}
+
+function passesDirectQuoteGuardrail(text: string, input: GenerateGroundedAnswerInput) {
+  const quotePattern = /«([^»]+)»|“([^”]+)”|"([^"]+)"/gu;
+
+  return [...text.matchAll(quotePattern)].every((match) => {
+    const quotedText = cleanWhitespace(match[1] || match[2] || match[3] || "");
+
+    if (tokenizeForGrounding(quotedText, input.language).length < 3) {
+      return true;
+    }
+
+    const quoteStart = match.index || 0;
+    const sentence = sentenceAroundRange(text, quoteStart, quoteStart + match[0].length);
+    const citationNumbers = citationNumbersInText(sentence);
+
+    return citationNumbers.some((citationNumber) => {
+      const record = input.records[citationNumber - 1];
+      return record
+        ? record.sourceKind !== "hadith"
+          && cleanWhitespace(groundingRecordText(record, input.language)).includes(quotedText)
+        : false;
+    });
+  });
 }
 
 function passesExactQuranGuardrail(text: string, input: GenerateGroundedAnswerInput) {
@@ -711,20 +523,78 @@ function passesExactQuranGuardrail(text: string, input: GenerateGroundedAnswerIn
     return true;
   }
 
-  const quranRecords = input.records.filter((record) => {
-    return (record.sourceKind === "quran" || record.sourceKind === "tafsir") && cleanWhitespace(record.arabicText).length > 0;
-  });
+  const selectedCitationNumbers = answerCitationNumbers(input);
+  const quranRecords = input.records
+    .map((record, index) => ({ citationNumber: index + 1, record }))
+    .filter(({ citationNumber, record }) => {
+      return (
+        selectedCitationNumbers.has(citationNumber)
+        && (record.sourceKind === "quran" || record.sourceKind === "tafsir")
+        && cleanWhitespace(record.arabicText).length > 0
+      );
+    });
 
   if (quranRecords.length === 0) {
     return true;
   }
 
-  return quranRecords.some((record) => {
+  const segments = answerSegments(text);
+  const hasExactQuranText = quranRecords.some(({ record }) => {
     const reference = record.verseKey || record.reference;
     const ayahText = cleanWhitespace(record.arabicText);
-
-    return text.includes(reference) && text.includes(ayahText);
+    return segments.some((segment) => segment.includes(reference) && segment.includes(ayahText));
   });
+
+  if (!hasExactQuranText) {
+    return false;
+  }
+
+  return segments.every((segment) => {
+    const quranCitationNumbers = citationNumbersInText(segment).filter((citationNumber) => {
+      return input.records[citationNumber - 1]?.sourceKind === "quran";
+    });
+
+    return quranCitationNumbers.every((citationNumber) => {
+      const record = input.records[citationNumber - 1];
+      if (!record) return false;
+      const reference = record.verseKey || record.reference;
+      return segment.includes(reference) && segment.includes(cleanWhitespace(record.arabicText));
+    });
+  });
+}
+
+function responseStyleGuide(language: RetrievalLanguage) {
+  if (language === "arabic") {
+    return [
+      "ابدأ بالجواب نفسه، لا بوصف عملية البحث أو السجلات أو طريقة صياغة الإجابة.",
+      "اكتب بلغة عربية ودودة وطبيعية وهادئة، كأنك تشرح المعنى للسائل في حوار مباشر.",
+      "قدّم خلاصة حقيقية تجمع المعاني التي تؤيدها عدة مصادر، وتوضح صلتها بالسؤال، وتذكر التخصيص أو الاختلاف إن وجد. لا تدّع اتفاقا لا تثبته النصوص، ولا تكرر مقتطفات منفصلة أو تسرد أسماء المصادر.",
+      "نوّع بداية الإجابة وتركيب الجمل والروابط في كل مرة. لا تستخدم افتتاحية أو خاتمة ثابتة، ولا تغيّر الحقائق من أجل التنويع.",
+      "يمكن أن تختم بخطوة عملية واحدة فقط. إذا نص مصدر صراحة على عمل، فانسب التوجيه إلى النص مع إحالته، ولا تحوله إلى أمر شخصي أو فتوى.",
+      "إذا لم تنص المصادر على عمل، فلا تقترح ممارسة دينية من عندك؛ اقترح فقط مراجعة سياق الإحالات، أو عرض الحالة الشخصية على عالم مؤهل.",
+      "لا تقل بصوت المساعد: يجب عليك، أو عليك أن، أو افعل، أو لا تفعل.",
+      "لا تبدأ بعبارات مثل: بالنسبة إلى سؤالك، أو تعرض السجلات المسترجعة، أو فيما يلي ما وجدته.",
+      "أمثلة أسلوبية للنبرة والبنية فقط، وليست معلومات يجوز نقلها إلى الإجابة:",
+      "مصدر افتراضي [1]: يربط النص التقدم بخطوة صغيرة. مصدر افتراضي [2]: يربط النص التقدم بالاستمرار.",
+      "غير مناسب: بالنسبة إلى سؤالك، تعرض السجلات المسترجعة نصين عن التقدم.",
+      "أفضل: الفكرة الأساسية أن التقدم يبدأ بخطوة صغيرة ويقوى بالاستمرار [1][2]. ولفهم الصورة كاملة، يمكن مراجعة سياق الإحالتين.",
+    ];
+  }
+
+  return [
+    "Begin with the answer itself, not with the search process, the retrieved records, or how the answer was composed.",
+    "Use friendly, natural, calm prose, as if you are explaining the meaning to the user in a direct conversation.",
+    "Provide a genuine synthesis of meanings supported by multiple sources, explain how they answer the question, and state qualifications or differences when present. Do not manufacture agreement, repeat disconnected excerpts, or list source names.",
+    "Vary the opening, sentence structure, and transitions from one answer to the next. Do not use a fixed first or last sentence, and never vary the facts.",
+    "You may end with at most one practical next step. If a source explicitly states an action, attribute that guidance to the source with a citation; do not turn it into a personal command or fatwa.",
+    "If the sources state no action, do not invent a religious practice. Suggest only reviewing the cited context or taking a personal case to a qualified scholar.",
+    'In your own voice, never say "you must," "you should," "you need to," or issue a direct command.',
+    'Do not begin with phrases such as "For your question," "The retrieved records show," or "Here is what I found."',
+    "The following are style examples only; never copy their facts into an answer:",
+    "Synthetic source [1]: The text connects progress with a small step. Synthetic source [2]: The text connects progress with consistency.",
+    "Poor: For your question, the retrieved records contain two ideas about progress.",
+    "Better: The central idea is that progress begins with a small step and grows through consistency [1][2]. For fuller context, the cited passages can be reviewed in their surrounding sections.",
+  ];
 }
 
 function systemPrompt(language: RetrievalLanguage) {
@@ -734,14 +604,14 @@ function systemPrompt(language: RetrievalLanguage) {
       "استخدم سجلات المصادر المرفقة فقط. لا تضف نص قرآن أو تفسير أو حديث أو درجة أو مصدر من الذاكرة.",
       "لا تصدر فتوى ولا تقدم حكما شرعيا مستقلا. إن كانت السجلات غير كافية فاذكر ذلك بوضوح.",
       "لا تعتبر عناوين الكتب أو الأبواب حكما شرعيا؛ هي بيانات وصفية فقط.",
-      "اكتب إجابة عربية قصيرة تصف ما تحتويه السجلات، لا تجب بصيغة حكم عام.",
+      "اكتب إجابة عربية قصيرة تلخّص المعنى الذي تدعمه النصوص، لا تجب بصيغة حكم عام.",
       "لا تستخدم أي كلمة إنجليزية في الإجابة العربية، بما في ذلك أسماء الأنواع مثل Quran أو Tafsir.",
-      "خاطب السائل مباشرة بصيغة المخاطب مثل: بالنسبة إلى سؤالك.",
       "إذا كان في السجلات آية قرآنية، فاذكر مرجع الآية ونصها العربي كما هو حرفيا من السجل، ولا تعد صياغة النص القرآني ولا تكمله من الذاكرة.",
-      "لخّص المعنى والمضمون المشترك للنصوص المسترجعة، ولا تنقل أسانيد الرواة في الحديث إلا إذا كان السؤال عنها.",
+      "لخّص المعنى والمضمون المشترك للنصوص المسترجعة. لا تنقل ألفاظ الحديث أو مقتطفاته حرفيا، ولا تنقل أسانيد الرواة إلا إذا كان السؤال عنها.",
       "لا تعرض قائمة بأسماء المصادر فقط؛ لخّص مضمون النصوص المسترجعة.",
       "ضع أرقام الاقتباس مثل [1] بجانب كل معلومة مستندة إلى سجل.",
       "لا تذكر أي مصدر غير موجود في الحزمة.",
+      ...responseStyleGuide(language),
     ].join("\n");
   }
 
@@ -750,12 +620,12 @@ function systemPrompt(language: RetrievalLanguage) {
     "Use only the attached retrieved source records. Do not add Quran text, tafsir text, hadith text, grades, or provenance from memory.",
     "Do not issue fatwas or independent religious rulings. If the records are insufficient, say so clearly.",
     "Do not treat book or chapter titles as religious rulings; they are metadata only.",
-    "Write a short answer that describes what the records contain, not a broad ruling.",
-    "Address the asker directly in second person, with wording like: For your question.",
-    "Summarize the shared meaning and content of the retrieved source texts. Do not quote or paraphrase hadith narrator chains unless the question asks about chains.",
+    "Write a short answer that summarizes the meaning supported by the texts, not a broad ruling.",
+    "Summarize the shared meaning and content of the retrieved source texts. Do not reproduce hadith wording or excerpts, and do not quote or paraphrase narrator chains unless the question asks about chains.",
     "Do not only list source names; summarize the content of the retrieved texts.",
     "Place citation markers like [1] beside every sourced claim.",
     "Do not cite any source that is not in the pack.",
+    ...responseStyleGuide(language),
   ].join("\n");
 }
 
@@ -763,10 +633,22 @@ function userPrompt(input: GenerateGroundedAnswerInput) {
   const citationPack = buildCitationPack(selectAnswerRecords(input.records), input.language);
 
   if (input.language === "arabic") {
-    return `السؤال:\n${input.question}\n\nسجلات المصادر المسترجعة:\n${citationPack}\n\nاكتب جملتين أو ثلاثا فقط. خاطب السائل مباشرة وابدأ بعبارة مثل: "بالنسبة إلى سؤالك، تعرض السجلات المسترجعة..." إذا وجدت آية فاذكر رقمها ونصها العربي حرفيا كما ورد في السجل، ولا تكتب أي كلمة إنجليزية. لا تضف تفصيلا غير ظاهر في النصوص.`;
+    return `السؤال:\n${input.question}\n\nالمصادر:\n${citationPack}\n\nاكتب ثلاث أو أربع جمل موجزة وودودة، وابدأ مباشرة بالمعنى الذي يجيب عن السؤال. لا تذكر عملية البحث أو السجلات المسترجعة. اجمع المعاني المتقاربة في خلاصة طبيعية، ثم أضف فائدة عملية لطيفة فقط إن كانت النصوص تدعمها. نوّع الافتتاحية والصياغة، وضع رقم الاقتباس بعد كل معنى أو نصيحة. إذا وجدت آية فاذكر مرجعها ونصها العربي حرفيا كما ورد في السجل، ولا تكتب أي كلمة إنجليزية. لا تضف تفصيلا غير ظاهر في النصوص.`;
   }
 
-  return `Question:\n${input.question}\n\nRetrieved source records:\n${citationPack}\n\nWrite only two or three sentences. Address the asker directly and start with a phrase like: "For your question, the retrieved records show..." Summarize the overall meaning of the retrieved texts, not only the source names and not hadith narrator chains. Do not add details that are not visible in the records.`;
+  return `Question:\n${input.question}\n\nSources:\n${citationPack}\n\nWrite three or four concise, friendly sentences and begin directly with the meaning that answers the question. Do not mention the search process or the retrieved records. Combine related ideas into a natural synthesis, then add a gentle practical takeaway only when the texts support it. Vary the opening and phrasing, and place a citation marker after every claim or suggestion. Summarize the content, not only source names or hadith narrator chains. Do not add details that are not visible in the records.`;
+}
+
+function answerGuardFailure(text: string, input: GenerateGroundedAnswerInput) {
+  const checks = [
+    ["format", passesGroundingGuardrails(text, input.language)],
+    ["citations", passesValidCitationGuardrail(text, input)],
+    ["quotes", passesDirectQuoteGuardrail(text, input)],
+    ["citation_coverage", passesCitationCoverageGuardrail(text, input)],
+    ["exact_quran", passesExactQuranGuardrail(text, input)],
+  ] as const;
+
+  return checks.find(([, passed]) => !passed)?.[0] || null;
 }
 
 export async function generateGroundedAnswer(input: GenerateGroundedAnswerInput): Promise<GroundedAnswer> {
@@ -781,8 +663,8 @@ export async function generateGroundedAnswer(input: GenerateGroundedAnswerInput)
 
   const completion = await completeLlmText({
     task: "answer",
-    maxTokens: 190,
-    temperature: 0.1,
+    maxTokens: 260,
+    temperature: 0.3,
     messages: [
       { role: "system", content: systemPrompt(input.language) },
       { role: "user", content: userPrompt(input) },
@@ -813,8 +695,18 @@ export async function generateGroundedAnswer(input: GenerateGroundedAnswerInput)
     };
   }
 
-  if (!passesGroundingGuardrails(text, input.language) || !passesLexicalGrounding(text, input) || !passesExactQuranGuardrail(text, input)) {
-    return fallbackGroundedSummary(input);
+  const guardFailure = answerGuardFailure(text, input);
+
+  if (guardFailure) {
+    const fallback = fallbackGroundedSummary(input);
+
+    return {
+      ...fallback,
+      warnings: [{
+        code: "llm_guardrail_fallback",
+        message: `The model output was replaced because it failed the ${guardFailure} guard.`,
+      }],
+    };
   }
 
   return {

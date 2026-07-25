@@ -109,7 +109,7 @@ function tafsirRecord(overrides = {}) {
   };
 }
 
-test("fallback answer addresses the asker directly in English", () => {
+test("guard fallback does not repeat source results", () => {
   const { fallbackGroundedSummary } = loadGroundedAnswerModule();
 
   const answer = fallbackGroundedSummary({
@@ -118,178 +118,219 @@ test("fallback answer addresses the asker directly in English", () => {
     records: [sourceRecord()],
   });
 
-  assert.match(answer.text, /^For your question, the retrieved records/);
-  assert.doesNotMatch(answer.text, /user's question/i);
+  assert.equal(answer.status, "error");
+  assert.equal(answer.text, null);
+  assert.deepEqual(Array.from(answer.citations), []);
+  assert.deepEqual(Array.from(answer.warnings.map((warning) => warning.code)), ["llm_guardrail_fallback"]);
 });
 
-test("fallback answer addresses the asker directly in Arabic", () => {
-  const { fallbackGroundedSummary } = loadGroundedAnswerModule();
+test("answer evidence pack includes hadith content without narrator chains or trailing notes", async () => {
+  let userPrompt = "";
+  const { generateGroundedAnswer } = loadGroundedAnswerModule({
+    completeLlmText: async (input) => {
+      userPrompt = input.messages.at(-1).content;
 
-  const answer = fallbackGroundedSummary({
+      return {
+        status: "ok",
+        text: "ترتبط قيمة العمل بالنية التي تصاحبه [1].",
+        provider: "openrouter",
+        model: "google/gemma-4-26b-a4b-it:free",
+      };
+    },
+  });
+  const answer = await generateGroundedAnswer({
     question: "ما حديث النية؟",
+    language: "arabic",
+    records: [
+      sourceRecord({
+        arabicText:
+          "حدثنا ابن أبي عمر، حدثنا سفيان بن عيينة، عن الزهري، عن سالم، عن أبيه قال: إنما الأعمال بالنيات. قال أبو عيسى هذا حديث حسن.",
+      }),
+    ],
+  });
+
+  assert.equal(answer.status, "ready");
+  assert.match(userPrompt, /إنما الأعمال بالنيات/);
+  assert.doesNotMatch(userPrompt, /حدثنا|سفيان بن عيينة|الزهري|قال أبو عيسى/);
+});
+
+test("English answer prompt teaches direct prose with positive and negative examples", async () => {
+  let messages = [];
+  let temperature = null;
+  const { generateGroundedAnswer } = loadGroundedAnswerModule({
+    completeLlmText: async (input) => {
+      messages = input.messages;
+      temperature = input.temperature;
+
+      return {
+        status: "ok",
+        text: "Actions depend upon intentions [1].",
+        provider: "openrouter",
+        model: "google/gemma-4-26b-a4b-it:free",
+      };
+    },
+  });
+
+  const answer = await generateGroundedAnswer({
+    question: "What does the hadith say about intentions?",
+    language: "english",
+    records: [sourceRecord()],
+  });
+
+  assert.equal(answer.status, "ready");
+  assert.equal(temperature, 0.3);
+  assert.match(messages[0].content, /Poor: For your question/);
+  assert.match(messages[0].content, /Better: The central idea is that progress begins/);
+  assert.match(messages[0].content, /Vary the opening, sentence structure, and transitions/);
+  assert.match(messages[0].content, /at most one practical next step/);
+  assert.match(messages[0].content, /qualified scholar/);
+  assert.match(messages[1].content, /begin directly with the meaning that answers the question/i);
+  assert.match(messages[1].content, /three or four concise, friendly sentences/i);
+  assert.match(messages[1].content, /Do not mention the search process or the retrieved records/i);
+});
+
+test("Arabic answer prompt teaches direct prose with positive and negative examples", async () => {
+  let messages = [];
+  const { generateGroundedAnswer } = loadGroundedAnswerModule({
+    completeLlmText: async (input) => {
+      messages = input.messages;
+
+      return {
+        status: "ok",
+        text: "توضح الرواية أن الأعمال بالنيات [1].",
+        provider: "openrouter",
+        model: "google/gemma-4-26b-a4b-it:free",
+      };
+    },
+  });
+
+  const answer = await generateGroundedAnswer({
+    question: "ما أثر النية في العمل؟",
     language: "arabic",
     records: [sourceRecord()],
   });
 
-  assert.match(answer.text, /^بالنسبة إلى سؤالك، تعرض السجلات المسترجعة/);
-  assert.doesNotMatch(answer.text, /سؤال المستخدم/);
+  assert.equal(answer.status, "ready");
+  assert.equal(answer.text, "توضح الرواية أن الأعمال بالنيات [1].");
+  assert.match(messages[0].content, /غير مناسب: بالنسبة إلى سؤالك/);
+  assert.match(messages[0].content, /أفضل: الفكرة الأساسية أن التقدم يبدأ/);
+  assert.match(messages[0].content, /نوّع بداية الإجابة وتركيب الجمل/);
+  assert.match(messages[0].content, /بخطوة عملية واحدة فقط/);
+  assert.match(messages[0].content, /عالم مؤهل/);
+  assert.match(messages[1].content, /وابدأ مباشرة بالمعنى الذي يجيب عن السؤال/);
+  assert.match(messages[1].content, /ثلاث أو أربع جمل موجزة وودودة/);
+  assert.match(messages[1].content, /لا تذكر عملية البحث أو السجلات المسترجعة/);
 });
 
-test("fallback Arabic summary omits narrator-chain openings", () => {
-  const { fallbackGroundedSummary } = loadGroundedAnswerModule();
-
-  const answer = fallbackGroundedSummary({
-    question: "ما حديث النية؟",
-    language: "arabic",
-    records: [
-      sourceRecord({
-        arabicText:
-          "حدثنا ابن أبي عمر، حدثنا سفيان بن عيينة، عن الزهري، عن سالم، عن أبيه قال: إنما الأعمال بالنيات",
-      }),
-    ],
+test("answer generation rejects citation numbers that are not in the source pack", async () => {
+  const { generateGroundedAnswer } = loadGroundedAnswerModule({
+    completeLlmText: async () => ({
+      status: "ok",
+      text: "Actions depend upon intentions [2].",
+      provider: "openrouter",
+      model: "google/gemma-4-26b-a4b-it:free",
+    }),
   });
 
-  assert.doesNotMatch(answer.text, /حدثنا|سفيان|الزهري/);
-  assert.match(answer.text, /إنما الأعمال بالنيات/);
-});
-
-test("fallback Arabic summary prefers hadith matn over trailing notes", () => {
-  const { fallbackGroundedSummary } = loadGroundedAnswerModule();
-
-  const answer = fallbackGroundedSummary({
-    question: "صفات سيدنا محمد",
-    language: "arabic",
-    records: [
-      sourceRecord({
-        arabicText:
-          "حدثنا عمرو الناقد، عن البراء قال كان رسول الله صلى الله عليه وسلم أحسن الناس وجها وأحسنهم خلقا ليس بالطويل ولا بالقصير. قال أبو كريب له شعر.",
-      }),
-    ],
-  });
-
-  assert.match(answer.text, /كان رسول الله صلى الله عليه وسلم أحسن الناس وجها/);
-  assert.doesNotMatch(answer.text, /أبو كريب له شعر/);
-});
-
-test("fallback Arabic summary preserves hamza and alif maqsurah in displayed excerpts", () => {
-  const { fallbackGroundedSummary } = loadGroundedAnswerModule();
-
-  const answer = fallbackGroundedSummary({
-    question: "صفات سيدنا محمد",
-    language: "arabic",
-    records: [
-      sourceRecord({
-        arabicText:
-          "حدثنا قتيبة، عن البراء قال كان رسول الله صلى الله عليه وسلم أحسن الناس وجها، أزهر اللون، ليس بالطويل ولا بالقصير.",
-      }),
-    ],
-  });
-
-  assert.match(answer.text, /صلى الله عليه وسلم/);
-  assert.match(answer.text, /أحسن الناس وجها/);
-  assert.match(answer.text, /أزهر اللون/);
-  assert.doesNotMatch(answer.text, /صلي الله عليه وسلم/);
-  assert.doesNotMatch(answer.text, /احسن الناس وجها/);
-  assert.doesNotMatch(answer.text, /ازهر اللون/);
-});
-
-test("fallback answer can cite tafsir records", () => {
-  const { fallbackGroundedSummary } = loadGroundedAnswerModule();
-
-  const answer = fallbackGroundedSummary({
-    question: "What is the tafsir of Al-Fatihah 1:1?",
+  const answer = await generateGroundedAnswer({
+    question: "What does the hadith say about intentions?",
     language: "english",
-    records: [tafsirRecord()],
+    records: [sourceRecord()],
   });
 
-  assert.match(answer.text, /^For your question, the retrieved records/);
-  assert.deepEqual(Array.from(answer.citations), ["[1] Tafsir 1:1 1:1"]);
+  assert.equal(answer.status, "error");
+  assert.equal(answer.text, null);
+  assert.deepEqual(Array.from(answer.warnings.map((warning) => warning.code)), ["llm_guardrail_fallback"]);
 });
 
-test("fallback Arabic Quran summary mentions the verse and exact ayah text without English labels", () => {
-  const { fallbackGroundedSummary } = loadGroundedAnswerModule();
+test("answer generation rejects an in-range citation that was not shown to the model", async () => {
+  const { generateGroundedAnswer } = loadGroundedAnswerModule({
+    completeLlmText: async () => ({
+      status: "ok",
+      text: "Actions depend upon intentions [13].",
+      provider: "openrouter",
+      model: "google/gemma-4-26b-a4b-it:free",
+    }),
+  });
+  const records = Array.from({ length: 20 }, (_, index) =>
+    sourceRecord({
+      id: `hadith-${index + 1}`,
+      reference: `${index + 1}`,
+      sourceReference: `bukhari:${index + 1}`,
+    }),
+  );
 
-  const answer = fallbackGroundedSummary({
-    question: "تفسير آية كل من عليها فان",
-    language: "arabic",
-    records: [
-      tafsirRecord({
-        sourceKind: "quran",
-        collection: "quran",
-        displayName: "Quran 55:26",
-        reference: "55:26",
-        surahNumber: 55,
-        ayahNumber: 26,
-        surahName: "الرحمن",
-        verseKey: "55:26",
-        arabicText: "كُلُّ مَنْ عَلَيْهَا فَانٍ",
-        tafsirText: null,
-      }),
-      tafsirRecord({
-        collection: "moyassar",
-        displayName: "Tafsir 55:26",
-        reference: "55:26",
-        surahNumber: 55,
-        ayahNumber: 26,
-        surahName: "الرحمن",
-        verseKey: "55:26",
-        arabicText: "كُلُّ مَنْ عَلَيْهَا فَانٍ",
-        tafsirSource: "التفسير الميسر، مجمع الملك فهد لطباعة المصحف الشريف",
-        tafsirText: "كل مَن على وجه الأرض مِن الخلق هالك.",
-      }),
-      sourceRecord({
-        id: "bukhari-unused",
-        sourceKind: "hadith",
-        collection: "bukhari",
-        displayName: "Sahih al-Bukhari",
-        reference: "1",
-      }),
-    ],
+  const answer = await generateGroundedAnswer({
+    question: "What does the hadith say about intentions?",
+    language: "english",
+    records,
   });
 
-  assert.match(answer.text, /في القرآن الكريم، سورة الرحمن، الآية 55:26: كُلُّ مَنْ عَلَيْهَا فَانٍ \[1\]/);
-  assert.match(answer.text, /الخلاصة من كتب التفسير/);
-  assert.match(answer.text, /يذكر التفسير الميسر: كل مَن على وجه الأرض مِن الخلق هالك\. \[2\]/);
-  assert.doesNotMatch(answer.text, /\b(?:Quran|Tafsir)\b/);
-  assert.deepEqual(Array.from(answer.citations), ["[1] القرآن - سورة الرحمن 55:26", "[2] التفسير الميسر - سورة الرحمن 55:26"]);
-  assert.equal(answer.citations.length, 2);
+  assert.equal(answer.status, "error");
+  assert.equal(answer.text, null);
+  assert.deepEqual(Array.from(answer.warnings.map((warning) => warning.code)), ["llm_guardrail_fallback"]);
 });
 
-test("fallback Arabic broad-topic summary includes hadith alongside Quran records", () => {
-  const { fallbackGroundedSummary } = loadGroundedAnswerModule();
-
-  const answer = fallbackGroundedSummary({
-    question: "ما المصادر عن الصبر؟",
-    language: "arabic",
-    records: [
-      tafsirRecord({
-        sourceKind: "quran",
-        collection: "quran",
-        displayName: "Quran 2:153",
-        reference: "2:153",
-        surahNumber: 2,
-        ayahNumber: 153,
-        surahName: "البقرة",
-        verseKey: "2:153",
-        arabicText: "يَا أَيُّهَا الَّذِينَ آمَنُوا اسْتَعِينُوا بِالصَّبْرِ وَالصَّلَاةِ",
-        tafsirText: null,
-      }),
-      sourceRecord({
-        id: "bukhari-sabr",
-        sourceKind: "hadith",
-        collection: "bukhari",
-        displayName: "Sahih al-Bukhari",
-        reference: "2:35",
-        arabicText: "قال رسول الله صلى الله عليه وسلم ومن يتصبر يصبره الله",
-      }),
-    ],
+test("answer generation accepts a synthesized claim and safe context suggestion", async () => {
+  const synthesizedAnswer =
+    "Actions are connected to intentions [1]. For fuller context, the cited passages can be reviewed in their surrounding sections.";
+  const { generateGroundedAnswer } = loadGroundedAnswerModule({
+    completeLlmText: async () => ({
+      status: "ok",
+      text: synthesizedAnswer,
+      provider: "openrouter",
+      model: "google/gemma-4-26b-a4b-it:free",
+    }),
   });
 
-  assert.match(answer.text, /ومن سجلات الحديث/);
-  assert.match(answer.text, /ومن النص القرآني/);
-  assert.match(answer.text, /ومن يتصبر يصبره الله/);
-  assert.ok(answer.text.indexOf("ومن سجلات الحديث") < answer.text.indexOf("ومن النص القرآني"));
-  assert.deepEqual(Array.from(answer.citations), ["[2] صحيح البخاري 2:35", "[1] القرآن - سورة البقرة 2:153"]);
+  const answer = await generateGroundedAnswer({
+    question: "What does the hadith say about intentions?",
+    language: "english",
+    records: [sourceRecord()],
+  });
+
+  assert.equal(answer.text, synthesizedAnswer);
+  assert.deepEqual(Array.from(answer.warnings), []);
+});
+
+test("answer generation rejects a verbatim hadith quotation because source text is shown separately", async () => {
+  const { generateGroundedAnswer } = loadGroundedAnswerModule({
+    completeLlmText: async () => ({
+      status: "ok",
+      text: '"The reward of deeds depends upon the intentions" [1].',
+      provider: "openrouter",
+      model: "google/gemma-4-26b-a4b-it:free",
+    }),
+  });
+
+  const answer = await generateGroundedAnswer({
+    question: "What does the hadith say about intentions?",
+    language: "english",
+    records: [sourceRecord()],
+  });
+
+  assert.equal(answer.status, "error");
+  assert.equal(answer.text, null);
+});
+
+test("answer generation rejects a fabricated direct quotation", async () => {
+  const { generateGroundedAnswer } = loadGroundedAnswerModule({
+    completeLlmText: async () => ({
+      status: "ok",
+      text: '"Every deed is guaranteed a reward by intention" [1].',
+      provider: "openrouter",
+      model: "google/gemma-4-26b-a4b-it:free",
+    }),
+  });
+
+  const answer = await generateGroundedAnswer({
+    question: "What does the hadith say about intentions?",
+    language: "english",
+    records: [sourceRecord()],
+  });
+
+  assert.notEqual(answer.text, '"Every deed is guaranteed a reward by intention" [1].');
+  assert.deepEqual(Array.from(answer.warnings.map((warning) => warning.code)), ["llm_guardrail_fallback"]);
 });
 
 test("answer generation sends a bounded balanced evidence pack with original citation numbers", async () => {
@@ -300,7 +341,7 @@ test("answer generation sends a bounded balanced evidence pack with original cit
 
       return {
         status: "ok",
-        text: "بالنسبة إلى سؤالك، تعرض السجلات المسترجعة نص حديث 1 [1]، ومعه الآية: لَقَدْ كَانَ لَكُمْ فِي رَسُولِ اللَّهِ أُسْوَةٌ حَسَنَةٌ [21].",
+        text: "يجمع النصان بين الحديث والآية: نص حديث 1 [1]. وفي الآية 33:21: لَقَدْ كَانَ لَكُمْ فِي رَسُولِ اللَّهِ أُسْوَةٌ حَسَنَةٌ [21].",
         provider: "openrouter",
         model: "google/gemma-4-26b-a4b-it:free",
       };
@@ -344,7 +385,7 @@ test("answer generation sends a bounded balanced evidence pack with original cit
   assert.ok(answer.citations.includes("[21] القرآن - سورة الأحزاب 33:21"));
 });
 
-test("answer generation falls back to a guarded source summary when the model errors", async () => {
+test("answer generation does not repeat source text when the model errors", async () => {
   const { generateGroundedAnswer } = loadGroundedAnswerModule({
     completeLlmText: async () => ({
       status: "error",
@@ -364,8 +405,9 @@ test("answer generation falls back to a guarded source summary when the model er
     ],
   });
 
-  assert.equal(answer.status, "ready");
-  assert.match(answer.text, /بالنسبة إلى سؤالك/);
+  assert.equal(answer.status, "error");
+  assert.equal(answer.text, null);
+  assert.deepEqual(Array.from(answer.citations), []);
   assert.deepEqual(
     Array.from(answer.warnings.map((warning) => warning.code)),
     ["llm_error", "llm_guardrail_fallback"],
