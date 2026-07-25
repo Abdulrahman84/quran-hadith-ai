@@ -19,6 +19,9 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "سند | Sanad AI",
   description: "A citation-first Quran, tafsir, and Sunnah assistant.",
+  verification: {
+    google: "JVTR0R3N6Hz-1Ce6McU-WJb1hunwhAdq9zzhMLDLPV4",
+  },
   icons: {
     icon: "/brand/sanad-icon-gold-forward.png?v=gold-forward",
     shortcut: "/brand/sanad-icon-gold-forward.png?v=gold-forward",
