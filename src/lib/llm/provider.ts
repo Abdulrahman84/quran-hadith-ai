@@ -15,6 +15,8 @@ type LlmCompletionInput = {
   json?: boolean;
   maxTokens: number;
   temperature: number;
+  acceptText?: (text: string) => boolean;
+  deprioritizeModels?: string[];
 };
 
 type LlmCompletionResult =
@@ -205,6 +207,53 @@ async function completeWithOpenRouter(input: LlmCompletionInput, config: ReturnT
   };
 }
 
+function orderedModels(
+  config: ReturnType<typeof getLlmConfig>,
+  deprioritizeModels: string[] = [],
+) {
+  const models = [...new Set([config.model, ...config.fallbackModels])];
+  const deprioritized = new Set(deprioritizeModels);
+
+  return [
+    ...models.filter((model) => !deprioritized.has(model)),
+    ...models.filter((model) => deprioritized.has(model)),
+  ];
+}
+
+async function completeModelAttempt(
+  input: LlmCompletionInput,
+  config: ReturnType<typeof getLlmConfig>,
+  model: string,
+): Promise<LlmCompletionResult> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), config.timeoutMs);
+
+  try {
+    return await completeWithOpenRouter(input, { ...config, model }, controller.signal);
+  } catch (error) {
+    return {
+      status: "error",
+      error: error instanceof Error ? error.message : "OpenRouter request failed.",
+      provider: config.provider,
+      model,
+    };
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+function rejectedTextResult(
+  config: ReturnType<typeof getLlmConfig>,
+  model: string,
+): LlmCompletionResult {
+  return {
+    status: "error",
+    error: `OpenRouter model ${model} returned text rejected by the caller.`,
+    provider: config.provider,
+    model,
+  };
+}
+
 export async function completeLlmText(input: LlmCompletionInput): Promise<LlmCompletionResult> {
   const config = getLlmConfig(input.task);
 
@@ -217,42 +266,34 @@ export async function completeLlmText(input: LlmCompletionInput): Promise<LlmCom
     };
   }
 
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), config.timeoutMs);
-  const models = [...new Set([config.model, ...config.fallbackModels])];
+  const models = orderedModels(config, input.deprioritizeModels);
   let lastResult: LlmCompletionResult | null = null;
 
   void checkOpenRouterCreditBalanceIfDue();
 
-  try {
-    for (const model of models) {
-      const result = await completeWithOpenRouter(input, { ...config, model }, controller.signal);
+  for (const model of models) {
+    const result = await completeModelAttempt(input, config, model);
 
-      if (result.status === "ok") {
+    if (result.status === "ok") {
+      if (!input.acceptText || input.acceptText(result.text)) {
         return result;
       }
 
-      if (result.httpStatus === 402) {
-        return result;
-      }
-
-      lastResult = result;
+      lastResult = rejectedTextResult(config, model);
+      continue;
     }
 
-    return lastResult || {
-      status: "error",
-      error: "OpenRouter request failed.",
-      provider: config.provider,
-      model: config.model,
-    };
-  } catch (error) {
-    return {
-      status: "error",
-      error: error instanceof Error ? error.message : "OpenRouter request failed.",
-      provider: config.provider,
-      model: config.model,
-    };
-  } finally {
-    clearTimeout(timeout);
+    if (result.status === "error" && result.httpStatus === 402) {
+      return result;
+    }
+
+    lastResult = result;
   }
+
+  return lastResult || {
+    status: "error",
+    error: "OpenRouter request failed.",
+    provider: config.provider,
+    model: config.model,
+  };
 }

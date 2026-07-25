@@ -797,11 +797,18 @@ async function repairGroundedAnswer(
   input: GenerateGroundedAnswerInput,
   rejectedText: string,
   guardFailure: string,
+  rejectedModel: string,
 ) {
   const completion = await completeLlmText({
     task: "answer",
     maxTokens: 420,
     temperature: 0.05,
+    deprioritizeModels: [rejectedModel],
+    acceptText: (candidateText) => {
+      const text = stripThinkingBlocks(candidateText);
+
+      return Boolean(text) && !answerGuardFailure(text, input);
+    },
     messages: [
       { role: "system", content: systemPrompt(input.language) },
       { role: "user", content: userPrompt(input) },
@@ -887,7 +894,7 @@ export async function generateGroundedAnswer(input: GenerateGroundedAnswerInput)
   const guardFailure = answerGuardFailure(text, input);
 
   if (guardFailure) {
-    const repair = await repairGroundedAnswer(input, text, guardFailure);
+    const repair = await repairGroundedAnswer(input, text, guardFailure, completion.model);
 
     if (repair.text) {
       return readyGroundedAnswer(input, repair.text);

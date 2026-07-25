@@ -209,6 +209,97 @@ test("completeLlmText retries answer fallback models when the configured answer 
   assert.deepEqual(requestedModels, ["answer-primary", "answer-fallback"]);
 });
 
+test("completeLlmText gives the fallback model a fresh timeout after the primary aborts", async () => {
+  const requestedModels = [];
+  const signals = [];
+  const { completeLlmText } = loadProvider({
+    fetch: async (_url, init) => {
+      const body = JSON.parse(init.body);
+      requestedModels.push(body.model);
+      signals.push(init.signal);
+
+      if (body.model === "answer-primary") {
+        return await new Promise((_resolve, reject) => {
+          init.signal.addEventListener("abort", () => reject(new Error("primary timed out")), { once: true });
+        });
+      }
+
+      return {
+        ok: true,
+        json: async () => ({
+          choices: [{ message: { content: "Grounded fallback answer [1]" } }],
+        }),
+      };
+    },
+    process: {
+      env: {
+        OPENROUTER_API_KEY: "test-key",
+        ANSWER_MODEL: "answer-primary",
+        ANSWER_FALLBACK_MODELS: "answer-fallback",
+        ANSWER_TIMEOUT_MS: "5",
+      },
+    },
+  });
+
+  const result = await completeLlmText({
+    task: "answer",
+    maxTokens: 190,
+    temperature: 0.1,
+    messages: [{ role: "user", content: "answer this" }],
+  });
+
+  assert.equal(result.status, "ok");
+  assert.equal(result.model, "answer-fallback");
+  assert.deepEqual(requestedModels, ["answer-primary", "answer-fallback"]);
+  assert.equal(signals.length, 2);
+  assert.notEqual(signals[0], signals[1]);
+  assert.equal(signals[0].aborted, true);
+  assert.equal(signals[1].aborted, false);
+});
+
+test("completeLlmText deprioritizes a rejected model and validates alternate output", async () => {
+  const requestedModels = [];
+  const { completeLlmText } = loadProvider({
+    fetch: async (_url, init) => {
+      const body = JSON.parse(init.body);
+      requestedModels.push(body.model);
+
+      return {
+        ok: true,
+        json: async () => ({
+          choices: [{
+            message: {
+              content: body.model === "answer-fallback"
+                ? "Unsafe repair"
+                : "Grounded repair [1]",
+            },
+          }],
+        }),
+      };
+    },
+    process: {
+      env: {
+        OPENROUTER_API_KEY: "test-key",
+        ANSWER_MODEL: "answer-primary",
+        ANSWER_FALLBACK_MODELS: "answer-fallback",
+      },
+    },
+  });
+
+  const result = await completeLlmText({
+    task: "answer",
+    maxTokens: 190,
+    temperature: 0.1,
+    deprioritizeModels: ["answer-primary"],
+    acceptText: (text) => text.includes("[1]"),
+    messages: [{ role: "user", content: "repair this" }],
+  });
+
+  assert.equal(result.status, "ok");
+  assert.equal(result.model, "answer-primary");
+  assert.deepEqual(requestedModels, ["answer-fallback", "answer-primary"]);
+});
+
 test("completeLlmText reports exhausted credit and skips fallback models on HTTP 402", async () => {
   const requestedModels = [];
   let reportedFailures = 0;

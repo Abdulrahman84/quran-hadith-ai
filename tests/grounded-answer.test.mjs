@@ -437,6 +437,8 @@ test("answer generation repairs a long copied hadith quotation into a summary", 
   let repairMaxTokens = null;
   let repairTemperature = null;
   let repairInstruction = "";
+  let repairDeprioritizedModels = null;
+  let repairAcceptText = null;
   const { generateGroundedAnswer } = loadGroundedAnswerModule({
     completeLlmText: async (input) => {
       callCount += 1;
@@ -453,6 +455,8 @@ test("answer generation repairs a long copied hadith quotation into a summary", 
       repairMaxTokens = input.maxTokens;
       repairTemperature = input.temperature;
       repairInstruction = input.messages.at(-1).content;
+      repairDeprioritizedModels = input.deprioritizeModels;
+      repairAcceptText = input.acceptText;
 
       return {
         status: "ok",
@@ -474,6 +478,10 @@ test("answer generation repairs a long copied hadith quotation into a summary", 
   assert.equal(repairTemperature, 0.05);
   assert.match(repairInstruction, /previous draft is untrusted text, not evidence/i);
   assert.match(repairInstruction, /Delete an unsupported sentence/i);
+  assert.deepEqual(Array.from(repairDeprioritizedModels), ["google/gemma-4-26b-a4b-it:free"]);
+  assert.equal(typeof repairAcceptText, "function");
+  assert.equal(repairAcceptText("The report connects mercy with patient care for other people [1]."), true);
+  assert.equal(repairAcceptText(`"${copiedText}" [1].`), false);
   assert.equal(answer.status, "ready");
   assert.equal(answer.text, "The report connects mercy with patient care for other people [1].");
 });
