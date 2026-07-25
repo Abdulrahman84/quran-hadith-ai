@@ -457,7 +457,7 @@ export default function Home() {
               <div className="flex items-end">
                 <button
                   className="action-button inline-flex h-[52px] w-full items-center justify-center gap-3 rounded-[10px] bg-[var(--color-green)] px-8 text-sm font-bold text-white disabled:cursor-wait disabled:opacity-75 lg:w-auto"
-                  disabled={isRetrieving}
+                  disabled={isRetrieving || !question.trim()}
                   type="submit"
                 >
                   <span>{isRetrieving ? t("home.scan") : t("home.search")}</span>
