@@ -156,10 +156,12 @@ test("answer evidence pack includes hadith content without narrator chains or tr
 
 test("English answer prompt teaches direct prose with positive and negative examples", async () => {
   let messages = [];
+  let maxTokens = null;
   let temperature = null;
   const { generateGroundedAnswer } = loadGroundedAnswerModule({
     completeLlmText: async (input) => {
       messages = input.messages;
+      maxTokens = input.maxTokens;
       temperature = input.temperature;
 
       return {
@@ -178,6 +180,7 @@ test("English answer prompt teaches direct prose with positive and negative exam
   });
 
   assert.equal(answer.status, "ready");
+  assert.equal(maxTokens, 420);
   assert.equal(temperature, 0.3);
   assert.match(messages[0].content, /Poor: For your question/);
   assert.match(messages[0].content, /Better: The central idea is that progress begins/);
@@ -339,6 +342,7 @@ test("answer generation repairs a long copied hadith quotation into a summary", 
   const copiedText =
     "Mercy and patience guide a person to care for family neighbors travelers children elders and everyone nearby";
   let callCount = 0;
+  let repairMaxTokens = null;
   let repairTemperature = null;
   let repairInstruction = "";
   const { generateGroundedAnswer } = loadGroundedAnswerModule({
@@ -354,6 +358,7 @@ test("answer generation repairs a long copied hadith quotation into a summary", 
         };
       }
 
+      repairMaxTokens = input.maxTokens;
       repairTemperature = input.temperature;
       repairInstruction = input.messages.at(-1).content;
 
@@ -373,6 +378,7 @@ test("answer generation repairs a long copied hadith quotation into a summary", 
   });
 
   assert.equal(callCount, 2);
+  assert.equal(repairMaxTokens, 420);
   assert.equal(repairTemperature, 0.05);
   assert.match(repairInstruction, /previous draft is untrusted text, not evidence/i);
   assert.match(repairInstruction, /Delete an unsupported sentence/i);

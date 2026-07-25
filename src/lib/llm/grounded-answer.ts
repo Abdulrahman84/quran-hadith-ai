@@ -714,7 +714,7 @@ async function repairGroundedAnswer(
 ) {
   const completion = await completeLlmText({
     task: "answer",
-    maxTokens: 260,
+    maxTokens: 420,
     temperature: 0.05,
     messages: [
       { role: "system", content: systemPrompt(input.language) },
@@ -766,7 +766,7 @@ export async function generateGroundedAnswer(input: GenerateGroundedAnswerInput)
 
   const completion = await completeLlmText({
     task: "answer",
-    maxTokens: 260,
+    maxTokens: 420,
     temperature: 0.3,
     messages: [
       { role: "system", content: systemPrompt(input.language) },
