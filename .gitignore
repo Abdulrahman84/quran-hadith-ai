@@ -24,6 +24,7 @@
 .DS_Store
 *.pem
 .superpowers/
+.superdesign/tmp/
 
 # debug
 npm-debug.log*

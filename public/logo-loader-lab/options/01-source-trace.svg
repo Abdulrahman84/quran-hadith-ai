@@ -1,0 +1,55 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 210 120" fill="none" role="img" aria-labelledby="title desc">
+  <title id="title">Source Trace loader</title>
+  <desc id="desc">A gold evidence line traces the green book while the assistant antenna pulses.</desc>
+  <style>
+    .trace {
+      stroke-dasharray: 1;
+      stroke-dashoffset: 1;
+      animation: draw 2.5s cubic-bezier(.55,.08,.32,1) infinite;
+    }
+    .signal {
+      transform-box: fill-box;
+      transform-origin: center;
+      animation: signal 2.5s ease-in-out infinite;
+    }
+    .eye {
+      transform-box: fill-box;
+      transform-origin: center;
+      animation: blink 4.5s ease-in-out infinite;
+    }
+    .eye-right { animation-delay: .08s; }
+    @keyframes draw {
+      0%, 12% { stroke-dashoffset: 1; opacity: .18; }
+      62%, 88% { stroke-dashoffset: 0; opacity: 1; }
+      100% { stroke-dashoffset: 0; opacity: .22; }
+    }
+    @keyframes signal {
+      0%, 56%, 100% { opacity: .35; transform: scale(.72); }
+      72% { opacity: 1; transform: scale(1.25); }
+    }
+    @keyframes blink {
+      0%, 91%, 97%, 100% { transform: scaleY(1); }
+      94% { transform: scaleY(.12); }
+    }
+    .paused * { animation-play-state: paused !important; }
+    @media (prefers-reduced-motion: reduce) {
+      * { animation: none !important; }
+      .trace { stroke-dashoffset: 0; opacity: 1; }
+    }
+  </style>
+
+  <path d="M42 23c23-3 44 4 63 19 19-15 40-22 63-19v69c-24-1-45 5-63 16-18-11-39-17-63-16Z"
+        stroke="#0B5D3E" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M53 36v46c19 0 36 6 52 17m52-63v46c-19 0-36 6-52 17V44"
+        stroke="#0B5D3E" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" opacity=".72"/>
+  <path class="trace" pathLength="1"
+        d="M42 23c23-3 44 4 63 19 19-15 40-22 63-19v69c-24-1-45 5-63 16-18-11-39-17-63-16Z"
+        stroke="#D6B264" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <path d="M105 44v-9" stroke="#C69A4B" stroke-width="4" stroke-linecap="round"/>
+  <circle class="signal" cx="105" cy="29" r="5.5" fill="#C69A4B"/>
+  <rect x="79" y="43" width="52" height="38" rx="17" fill="#C69A4B"/>
+  <rect x="86" y="50" width="38" height="22" rx="10" fill="#0B5D3E"/>
+  <circle class="eye" cx="96" cy="61" r="3" fill="#FBFAF5"/>
+  <circle class="eye eye-right" cx="114" cy="61" r="3" fill="#FBFAF5"/>
+</svg>

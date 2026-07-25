@@ -4,7 +4,6 @@ import Image from "next/image";
 import { FormEvent, KeyboardEvent, useEffect, useMemo, useRef, useState } from "react";
 
 import { useI18n } from "@/components/i18n-provider";
-import { SiteHeader } from "@/components/site-header";
 import type { TranslationKey } from "@/lib/i18n";
 import { hadithCollections, type HadithCollectionSelection } from "@/lib/retrieval/hadith-collections";
 import { formatHadithGrade, formatSourceRecordTitle } from "@/lib/retrieval/source-display";
@@ -314,45 +313,44 @@ export default function Home() {
   }
 
   return (
-    <main className="relative min-h-screen bg-[var(--color-sand)] pt-20 text-[var(--color-ink)] sm:pt-24">
+    <main className="relative min-h-screen overflow-x-clip bg-[var(--color-sand)] pt-20 text-[var(--color-ink)]">
       <div className="source-grid" aria-hidden="true" />
 
-      <SiteHeader />
-
       <section
-        className={`relative z-10 mx-auto flex w-full max-w-5xl flex-col items-center px-5 text-center sm:px-8 ${
-          hasScenario ? "py-4" : "min-h-[calc(100vh-80px)] justify-center py-12"
+        className={`relative z-10 mx-auto flex w-full max-w-[920px] flex-col items-center px-4 text-center sm:px-8 ${
+          hasScenario ? "py-4 sm:py-8" : "min-h-[calc(100vh-80px)] py-8 sm:py-10"
         }`}
       >
         {!hasScenario ? (
           <>
-            <p className="animate-rise text-xs font-semibold uppercase tracking-[0.24em] text-[var(--color-green-soft)]">
+            <p className="animate-rise inline-flex items-center gap-2 rounded-full border border-[var(--color-green)]/10 bg-[var(--color-green)]/5 px-4 py-2 text-xs font-bold text-[var(--color-green)]">
+              <span className="h-2 w-2 rounded-full bg-[var(--color-green)]" aria-hidden="true" />
               {t("home.eyebrow")}
             </p>
-            <h1 className="animate-rise mt-5 text-balance text-4xl font-bold leading-tight text-[var(--color-green)] [animation-delay:80ms] sm:text-6xl">
+            <h1 className="animate-rise mt-4 text-balance text-[2.15rem] font-bold leading-[1.2] tracking-tight text-[var(--color-ink)] [animation-delay:80ms] sm:mt-5 sm:text-[3.5rem]">
               {t("home.title")}
             </h1>
           </>
         ) : null}
 
         <form
-          className={`search-shell animate-rise w-full max-w-4xl rounded-2xl bg-[var(--color-surface)]/95 p-2.5 text-start shadow-[0_20px_54px_rgba(22,58,95,0.09)] backdrop-blur ${
-            hasScenario ? "" : "mt-8 [animation-delay:160ms]"
+          className={`search-shell animate-rise w-full overflow-hidden text-start ${
+            hasScenario ? "" : "mt-5 sm:mt-6 [animation-delay:160ms]"
           }`}
           onSubmit={handleSubmit}
         >
-          <label className="sr-only" htmlFor="question">
-            {t("home.inputLabel")}
-          </label>
-          <div className="grid gap-2.5 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-start">
-            <div className="flex min-h-14 items-start gap-3 rounded-xl bg-[var(--color-primary-soft)] px-4 py-2.5 ring-1 ring-[var(--color-green)]/10 transition focus-within:bg-[var(--color-surface)] focus-within:ring-[var(--color-gold)]">
-              <span className="mt-0.5 grid h-9 w-9 shrink-0 place-items-center rounded-full bg-[var(--color-surface)] text-[var(--color-green)] shadow-sm" aria-hidden="true">
-                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24">
-                  <path d="m20 20-4.5-4.5M18 10.5a7.5 7.5 0 1 1-15 0 7.5 7.5 0 0 1 15 0Z" stroke="currentColor" strokeLinecap="round" strokeWidth="2" />
-                </svg>
-              </span>
+          <div className="p-4 sm:p-6">
+            <div>
+              <label className="text-sm font-bold text-[var(--color-muted)]" htmlFor="question">
+                {t("home.inputLabel")}
+              </label>
+            </div>
+
+            <div className="mt-3">
               <textarea
-                className="query-textarea min-h-9 min-w-0 flex-1 resize-none bg-transparent py-1.5 text-base font-semibold leading-6 text-[var(--color-green)] outline-none placeholder:text-[var(--color-muted)]/78"
+                className={`query-textarea w-full min-w-0 resize-none bg-transparent text-lg font-semibold leading-8 text-[var(--color-ink)] outline-none placeholder:text-[var(--color-muted)]/50 ${
+                  hasScenario ? "min-h-12" : "min-h-14 sm:min-h-16"
+                }`}
                 id="question"
                 onChange={(event) => {
                   resizeQuestionField(event.currentTarget);
@@ -368,74 +366,81 @@ export default function Home() {
               />
             </div>
 
-            <div className="grid gap-2.5 sm:grid-cols-2 lg:col-span-2 lg:row-start-2">
-              <div className="relative flex h-14 items-center rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-4 shadow-sm">
-                <label className="sr-only" htmlFor="hadith-collection">
+            <div className="mt-5 grid gap-4 border-t border-[var(--color-border)] pt-5 sm:gap-5 md:grid-cols-2 lg:grid-cols-[1fr_1fr_auto]">
+              <div className="grid gap-2 text-start">
+                <label className="text-xs font-bold text-[var(--color-muted)]" htmlFor="hadith-collection">
                   {t("home.hadithCollectionLabel")}
                 </label>
-                <select
-                  className="w-full appearance-none bg-transparent py-2 pe-8 text-sm font-semibold text-[var(--color-green)] outline-none disabled:opacity-60"
-                  id="hadith-collection"
-                  disabled={isRetrieving}
-                  onChange={(event) => handleHadithCollectionChange(event.target.value as HadithCollectionSelection)}
-                  value={hadithCollection}
-                >
-                  <option value="all">{t("home.hadithCollectionAll")}</option>
-                  {hadithCollections.map((collection) => (
-                    <option key={collection.id} value={collection.id}>
-                      {language === "ar" ? collection.labelAr : collection.labelEn}
-                    </option>
-                  ))}
-                </select>
-                <svg className="pointer-events-none absolute end-4 h-4 w-4 text-[var(--color-green)]/70" fill="none" viewBox="0 0 24 24" aria-hidden="true">
-                  <path d="m6 9 6 6 6-6" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" />
-                </svg>
+                <div className="relative">
+                  <select
+                    className="filter-select disabled:cursor-wait disabled:opacity-60"
+                    id="hadith-collection"
+                    disabled={isRetrieving}
+                    onChange={(event) => handleHadithCollectionChange(event.target.value as HadithCollectionSelection)}
+                    value={hadithCollection}
+                  >
+                    <option value="all">{t("home.hadithCollectionAll")}</option>
+                    {hadithCollections.map((collection) => (
+                      <option key={collection.id} value={collection.id}>
+                        {language === "ar" ? collection.labelAr : collection.labelEn}
+                      </option>
+                    ))}
+                  </select>
+                  <svg className="pointer-events-none absolute end-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--color-gold)]" fill="none" viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="m6 9 6 6 6-6" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" />
+                  </svg>
+                </div>
               </div>
 
-              <div className="relative flex h-14 items-center rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-4 shadow-sm">
-                <label className="sr-only" htmlFor="tafsir-source">
+              <div className="grid gap-2 text-start">
+                <label className="text-xs font-bold text-[var(--color-muted)]" htmlFor="tafsir-source">
                   {t("home.tafsirSourceLabel")}
                 </label>
-                <select
-                  className="w-full appearance-none bg-transparent py-2 pe-8 text-sm font-semibold text-[var(--color-green)] outline-none disabled:opacity-60"
-                  id="tafsir-source"
+                <div className="relative">
+                  <select
+                    className="filter-select disabled:cursor-wait disabled:opacity-60"
+                    id="tafsir-source"
+                    disabled={isRetrieving}
+                    onChange={(event) => handleTafsirSourceChange(event.target.value as TafsirSourceSelection)}
+                    value={tafsirSource}
+                  >
+                    <option value="all">{t("home.tafsirSourceAll")}</option>
+                    {tafsirSources.map((source) => (
+                      <option key={source.id} value={source.id}>
+                        {language === "ar" ? source.labelAr : source.labelEn}
+                      </option>
+                    ))}
+                  </select>
+                  <svg className="pointer-events-none absolute end-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--color-gold)]" fill="none" viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="m6 9 6 6 6-6" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" />
+                  </svg>
+                </div>
+              </div>
+
+              <div className="flex items-end">
+                <button
+                  className="action-button inline-flex h-[52px] w-full items-center justify-center gap-3 rounded-[10px] bg-[var(--color-green)] px-8 text-sm font-bold text-white disabled:cursor-wait disabled:opacity-75 lg:w-auto"
                   disabled={isRetrieving}
-                  onChange={(event) => handleTafsirSourceChange(event.target.value as TafsirSourceSelection)}
-                  value={tafsirSource}
+                  type="submit"
                 >
-                  <option value="all">{t("home.tafsirSourceAll")}</option>
-                  {tafsirSources.map((source) => (
-                    <option key={source.id} value={source.id}>
-                      {language === "ar" ? source.labelAr : source.labelEn}
-                    </option>
-                  ))}
-                </select>
-                <svg className="pointer-events-none absolute end-4 h-4 w-4 text-[var(--color-green)]/70" fill="none" viewBox="0 0 24 24" aria-hidden="true">
-                  <path d="m6 9 6 6 6-6" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" />
-                </svg>
+                  <span>{isRetrieving ? t("home.scan") : t("home.search")}</span>
+                  <svg className="h-5 w-5 rtl:rotate-180" fill="none" viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" />
+                  </svg>
+                </button>
               </div>
             </div>
-
-            <button
-              className="inline-flex h-14 items-center justify-center gap-2 rounded-xl border border-[var(--color-green)] bg-[var(--color-green)] px-5 text-sm font-bold text-white transition duration-300 hover:bg-[var(--color-ink)] disabled:cursor-wait disabled:opacity-75 lg:col-start-2 lg:row-start-1"
-              disabled={isRetrieving}
-              type="submit"
-            >
-              <svg className="h-5 w-5 rtl:rotate-180" fill="none" viewBox="0 0 24 24" aria-hidden="true">
-                <path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" />
-              </svg>
-              <span>{isRetrieving ? t("home.scan") : t("home.search")}</span>
-            </button>
           </div>
+
         </form>
 
         {!hasScenario ? (
           <>
-            <div className="animate-rise mt-5 w-full max-w-3xl overflow-x-auto pb-1 [animation-delay:220ms] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-              <div className="flex w-max min-w-full justify-start gap-2 sm:justify-center">
+            <div className="animate-rise mt-5 w-full max-w-3xl [animation-delay:220ms]">
+              <div className="flex w-full flex-wrap justify-center gap-2">
                 {suggestionKeys.map((suggestionKey) => (
                   <button
-                    className="chip shrink-0 whitespace-nowrap"
+                    className="chip w-full justify-center whitespace-normal text-center sm:w-auto"
                     key={suggestionKey}
                     onClick={() => void runSearch(t(suggestionKey))}
                     type="button"
@@ -446,11 +451,12 @@ export default function Home() {
               </div>
             </div>
 
-            <div className="animate-rise mt-8 w-full max-w-3xl rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)]/92 p-5 shadow-[0_12px_32px_rgba(22,58,95,0.05)] [animation-delay:300ms]">
-              <p className="text-sm font-bold tracking-[0.08em] text-[var(--color-green)]">
+            <div className="animate-rise relative mt-8 w-full max-w-3xl overflow-hidden rounded-3xl border border-[var(--color-gold)]/40 bg-[var(--color-gold)]/10 p-5 shadow-inner [animation-delay:300ms] sm:mt-10 sm:p-9">
+              <span className="absolute -end-7 -top-7 h-28 w-28 rounded-full border border-[var(--color-gold)]/20" aria-hidden="true" />
+              <p className="relative text-base font-bold text-[var(--color-green)]">
                 {t("home.startTitle")}
               </p>
-              <p className="mx-auto mt-3 max-w-xl text-sm font-medium leading-7 text-[var(--color-muted)]">
+              <p className="relative mx-auto mt-3 max-w-xl text-sm font-medium leading-7 text-[var(--color-muted)]">
                 {t("home.startText")}
               </p>
             </div>
@@ -458,7 +464,7 @@ export default function Home() {
         ) : null}
 
         {hasScenario ? (
-          <section className="mt-3 grid w-full max-w-3xl gap-3 text-start">
+          <section className="mt-3 grid w-full gap-3 text-start">
             <div className="animate-rise rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)]/92 px-4 py-3 shadow-[0_14px_34px_rgba(22,58,95,0.05)]">
               <div className="source-trail" aria-label={t("result.routes")}>
                 {sourceRoutes.map((route, index) => (
@@ -474,7 +480,7 @@ export default function Home() {
             </div>
 
             <div className="answer-preview rounded-2xl bg-[var(--color-green)] p-4">
-              <div className="flex items-center justify-between border-b border-white/10 pb-3">
+              <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 pb-3">
                 <div>
                   <h2 className="text-lg font-bold text-white">
                     {isRetrieving ? t("result.tracing") : t("result.recordsTitle")}
@@ -628,7 +634,7 @@ export default function Home() {
                     )}
 
                     {sourceRecords.length > sourcePageSize ? (
-                      <div className="mt-4 flex items-center justify-between gap-3 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)]/80 p-3">
+                      <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)]/80 p-3">
                         <button
                           className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-2 text-xs font-semibold text-[var(--color-green)] disabled:opacity-40"
                           disabled={currentSourcePage === 1}

@@ -30,15 +30,15 @@ export function QuestionResults({ runs, language, status, setStatus, t }: Questi
   const number = new Intl.NumberFormat(locale);
 
   return (
-    <section className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5 shadow-[0_12px_34px_rgba(22,58,95,0.05)] sm:p-6">
+    <section className="rounded-2xl border border-[var(--color-border)] border-t-[3px] border-t-[var(--color-gold)] bg-[var(--color-surface)] p-5 shadow-[0_12px_34px_rgba(23,26,25,0.05)] sm:p-6">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div>
           <div className="flex flex-wrap items-center gap-2">
-            <p className="text-xs font-bold uppercase tracking-[0.16em] text-[var(--color-green-soft)]">
+            <p className="text-xs font-bold text-[var(--color-green)]">
               {t("dashboard.questions.eyebrow")}
             </p>
           </div>
-          <h2 className="mt-2 text-2xl font-bold text-[var(--color-green)]">{t("dashboard.questions.title")}</h2>
+          <h2 className="mt-2 text-2xl font-bold text-[var(--color-ink)]">{t("dashboard.questions.title")}</h2>
           <p className="mt-2 max-w-2xl text-sm font-medium leading-6 text-[var(--color-muted)]">
             {t("dashboard.questions.description")}
           </p>
@@ -48,7 +48,7 @@ export function QuestionResults({ runs, language, status, setStatus, t }: Questi
           {statuses.map((item) => (
             <button
               aria-pressed={status === item}
-              className="rounded-lg border border-[var(--color-border)] px-3 py-2 text-xs font-bold text-[var(--color-green)] transition hover:border-[var(--color-gold)] data-[active=true]:border-[var(--color-green)] data-[active=true]:bg-[var(--color-green)] data-[active=true]:text-white"
+              className="min-h-11 rounded-lg border border-[var(--color-border)] bg-[var(--background)] px-3 py-2 text-xs font-bold text-[var(--color-green)] transition hover:border-[var(--color-gold)] data-[active=true]:border-[var(--color-green)] data-[active=true]:bg-[var(--color-green)] data-[active=true]:text-white"
               data-active={status === item}
               key={item}
               onClick={() => setStatus(item)}
@@ -62,7 +62,7 @@ export function QuestionResults({ runs, language, status, setStatus, t }: Questi
 
       {runs === undefined ? (
         <div className="mt-6 grid gap-3" aria-label={t("dashboard.loading")}>
-          {[0, 1, 2].map((item) => <div className="h-36 animate-pulse rounded-xl bg-[var(--color-primary-soft)]" key={item} />)}
+          {[0, 1, 2].map((item) => <div className="h-36 animate-pulse rounded-xl border-s-[3px] border-s-[var(--color-gold)] bg-[var(--color-gold-soft)]" key={item} />)}
         </div>
       ) : runs.length === 0 ? (
         <p className="mt-6 rounded-xl border border-dashed border-[var(--color-border)] p-8 text-center text-sm font-semibold text-[var(--color-muted)]">
@@ -71,7 +71,7 @@ export function QuestionResults({ runs, language, status, setStatus, t }: Questi
       ) : (
         <div className="mt-6 grid gap-3">
           {runs.map((run) => (
-            <article className="rounded-xl border border-[var(--color-border)] bg-[var(--color-sand)]/65 p-4 sm:p-5" key={run._id}>
+            <article className="rounded-xl border border-[var(--color-border)] border-s-[3px] border-s-[var(--color-gold)] bg-[var(--background)] p-4 sm:p-5" key={run._id}>
               <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
@@ -79,7 +79,7 @@ export function QuestionResults({ runs, language, status, setStatus, t }: Questi
                       {run.isDemo ? t("dashboard.demoBadge") : t("dashboard.liveBadge")}
                     </span>
                   </div>
-                  <p className="mt-2 text-base font-bold leading-7 text-[var(--color-green)]" dir="auto">{run.question}</p>
+                  <p className="mt-2 text-base font-bold leading-7 text-[var(--color-ink)]" dir="auto">{run.question}</p>
                   <p className="mt-1 text-xs font-semibold text-[var(--color-muted)]">
                     {new Intl.DateTimeFormat(locale, { month: "short", day: "numeric", year: "numeric" }).format(new Date(run.occurredAt))}
                   </p>
@@ -89,8 +89,8 @@ export function QuestionResults({ runs, language, status, setStatus, t }: Questi
                 </span>
               </div>
 
-              <div className="mt-4 rounded-xl border border-[var(--color-green)]/10 bg-[var(--color-surface)] p-4">
-                <p className="text-[0.68rem] font-bold uppercase tracking-[0.14em] text-[var(--color-green-soft)]">
+              <div className="mt-4 rounded-xl border border-[var(--color-gold)]/35 bg-[var(--color-gold-soft)]/40 p-4">
+                <p className="text-[0.68rem] font-bold text-[var(--color-green)]">
                   {t("dashboard.questions.result")}
                 </p>
                 <p className="mt-2 text-sm font-semibold leading-7 text-[var(--color-ink)]" dir="auto">

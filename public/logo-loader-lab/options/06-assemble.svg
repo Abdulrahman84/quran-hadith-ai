@@ -1,10 +1,10 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 176 82" fill="none" role="img" aria-labelledby="title desc">
-  <title id="title">Sanad AI loading</title>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 210 120" fill="none" role="img" aria-labelledby="title desc">
+  <title id="title">Reading Loop loader</title>
   <desc id="desc">One page flips across the open book while the assistant blinks and follows it with a subtle glance.</desc>
   <style>
     .turning-page {
       transform-box: view-box;
-      transform-origin: 88px 48px;
+      transform-origin: 105px 65px;
       animation: page-flip 3.8s cubic-bezier(.55,.08,.32,1) infinite;
     }
     .eyes {
@@ -43,8 +43,8 @@
         transform: translateX(0) scaleY(1);
       }
       17% { transform: translateX(0) scaleY(.12); }
-      24%, 37% { transform: translateX(1.5px) scaleY(1); }
-      50%, 65% { transform: translateX(-1.5px) scaleY(1); }
+      24%, 37% { transform: translateX(2px) scaleY(1); }
+      50%, 65% { transform: translateX(-2px) scaleY(1); }
       79% { transform: translateX(0) scaleY(.12); }
     }
     .paused * { animation-play-state: paused !important; }
@@ -55,24 +55,24 @@
     }
   </style>
 
-  <path d="M51 18c14 0 26 3 37 13 11-10 23-13 37-13v49c-15 0-27 4-37 12-10-8-22-12-37-12Z"
-        stroke="#0B5D3E" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/>
-  <path d="M59 27v33c11 1 21 4 29 10m29-43v33c-11 1-21 4-29 10V34"
-        stroke="#18845A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" opacity=".78"/>
+  <path d="M42 23c23-3 44 4 63 19 19-15 40-22 63-19v69c-24-1-45 5-63 16-18-11-39-17-63-16Z"
+        stroke="#0B5D3E" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M53 36v46c19 0 36 6 52 17m52-63v46c-19 0-36 6-52 17V44"
+        stroke="#18845A" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" opacity=".72"/>
 
   <g class="turning-page">
-    <path d="M88 31c11-10 23-13 37-13v49c-15 0-27 4-37 12Z"
-          fill="#FBFAF5" stroke="#D6B264" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
-    <path d="M117 27v33c-11 1-21 4-29 10V34" stroke="#C69A4B" stroke-width="1.6"
+    <path d="M105 42c19-15 40-22 63-19v69c-24-1-45 5-63 16Z"
+          fill="#FBFAF5" stroke="#D6B264" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M157 36v46c-19 0-36 6-52 17V44" stroke="#C69A4B" stroke-width="2.4"
           stroke-linecap="round" stroke-linejoin="round" opacity=".72"/>
   </g>
 
-  <path d="M88 30v-7" stroke="#C69A4B" stroke-width="3" stroke-linecap="round"/>
-  <circle cx="88" cy="19" r="4" fill="#C69A4B"/>
-  <rect x="69" y="30" width="38" height="28" rx="13" fill="#C69A4B"/>
-  <rect x="75" y="36" width="26" height="15" rx="7" fill="#0B5D3E"/>
+  <path d="M105 44v-9" stroke="#C69A4B" stroke-width="4" stroke-linecap="round"/>
+  <circle cx="105" cy="29" r="5.5" fill="#C69A4B"/>
+  <rect x="79" y="43" width="52" height="38" rx="17" fill="#C69A4B"/>
+  <rect x="86" y="50" width="38" height="22" rx="10" fill="#0B5D3E"/>
   <g class="eyes">
-    <circle cx="82" cy="43.5" r="2" fill="#FBFAF5"/>
-    <circle cx="94" cy="43.5" r="2" fill="#FBFAF5"/>
+    <circle cx="96" cy="61" r="3" fill="#FBFAF5"/>
+    <circle cx="114" cy="61" r="3" fill="#FBFAF5"/>
   </g>
 </svg>

@@ -1,0 +1,57 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 210 120" fill="none" role="img" aria-labelledby="title desc">
+  <title id="title">Calm Focus loader</title>
+  <desc id="desc">The open book and assistant breathe gently while a quiet signal expands from the antenna.</desc>
+  <style>
+    .mark {
+      transform-box: fill-box;
+      transform-origin: center;
+      animation: breathe 3.4s ease-in-out infinite;
+    }
+    .signal-ring {
+      transform-box: fill-box;
+      transform-origin: center;
+      animation: ring 3.4s ease-out infinite;
+    }
+    .signal-ring-two { animation-delay: .55s; }
+    .eye {
+      transform-box: fill-box;
+      transform-origin: center;
+      animation: blink 5.1s ease-in-out infinite;
+    }
+    .eye-right { animation-delay: .07s; }
+    @keyframes breathe {
+      0%, 100% { transform: translateY(1px) scale(.985); }
+      50% { transform: translateY(-1px) scale(1.015); }
+    }
+    @keyframes ring {
+      0%, 18% { opacity: 0; transform: scale(.25); }
+      28% { opacity: .78; }
+      62%, 100% { opacity: 0; transform: scale(1.7); }
+    }
+    @keyframes blink {
+      0%, 90%, 96%, 100% { transform: scaleY(1); }
+      93% { transform: scaleY(.12); }
+    }
+    .paused * { animation-play-state: paused !important; }
+    @media (prefers-reduced-motion: reduce) {
+      * { animation: none !important; }
+      .signal-ring { opacity: .34; transform: scale(1); }
+    }
+  </style>
+
+  <g class="mark">
+    <path d="M42 23c23-3 44 4 63 19 19-15 40-22 63-19v69c-24-1-45 5-63 16-18-11-39-17-63-16Z"
+          stroke="#0B5D3E" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M53 36v46c19 0 36 6 52 17m52-63v46c-19 0-36 6-52 17V44"
+          stroke="#18845A" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" opacity=".72"/>
+
+    <path d="M105 44v-9" stroke="#C69A4B" stroke-width="4" stroke-linecap="round"/>
+    <circle cx="105" cy="29" r="5.5" fill="#C69A4B"/>
+    <circle class="signal-ring" cx="105" cy="29" r="8.5" stroke="#D6B264" stroke-width="2"/>
+    <circle class="signal-ring signal-ring-two" cx="105" cy="29" r="8.5" stroke="#D6B264" stroke-width="2"/>
+    <rect x="79" y="43" width="52" height="38" rx="17" fill="#C69A4B"/>
+    <rect x="86" y="50" width="38" height="22" rx="10" fill="#0B5D3E"/>
+    <circle class="eye" cx="96" cy="61" r="3" fill="#FBFAF5"/>
+    <circle class="eye eye-right" cx="114" cy="61" r="3" fill="#FBFAF5"/>
+  </g>
+</svg>

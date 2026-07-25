@@ -17,20 +17,20 @@ export function ProvenanceCard({ index, titleKey, originKey, useKey, visibleKey,
 
   return (
     <details
-      className="animate-rise group rounded-xl border border-[var(--color-border)] bg-[var(--color-sand)] p-4"
+      className="animate-rise group rounded-xl border border-[var(--color-border)] border-s-[3px] border-s-[var(--color-gold)] bg-[var(--background)] p-4 transition open:bg-[var(--color-gold-soft)]/35"
       style={{ animationDelay: `${index * 80}ms` }}
     >
       <summary className="flex min-h-12 cursor-pointer list-none items-center gap-3 rounded-lg outline-none marker:hidden focus-visible:ring-2 focus-visible:ring-[var(--color-green)] [&::-webkit-details-marker]:hidden">
-        <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-[var(--color-green)] text-sm font-bold text-[var(--color-gold-on-dark)]">
+        <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-[var(--color-ink)] text-sm font-bold text-[var(--color-gold-on-dark)]">
           {String(index + 1).padStart(2, "0")}
         </span>
         <span className="min-w-0 flex-1">
-          <span className="block text-lg font-bold leading-7 text-[var(--color-green)]">{t(titleKey)}</span>
-          <span className="block text-sm font-semibold leading-6 text-[var(--color-green-soft)]">{t(originKey)}</span>
+          <span className="block text-lg font-bold leading-7 text-[var(--color-ink)]">{t(titleKey)}</span>
+          <span className="block text-sm font-semibold leading-6 text-[var(--color-green)]">{t(originKey)}</span>
         </span>
         <svg
           aria-hidden="true"
-          className="h-5 w-5 shrink-0 text-[var(--color-green)] transition-transform group-open:rotate-180"
+          className="h-5 w-5 shrink-0 text-[var(--color-gold)] transition-transform group-open:rotate-180"
           fill="none"
           viewBox="0 0 24 24"
         >
@@ -50,7 +50,7 @@ export function ProvenanceCard({ index, titleKey, originKey, useKey, visibleKey,
 function ProvenanceField({ label, text }: { label: string; text: string }) {
   return (
     <div>
-      <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--color-green)]/70">{label}</p>
+      <p className="text-xs font-bold text-[var(--color-green)]">{label}</p>
       <p className="mt-2 text-sm font-medium leading-7 text-[var(--color-muted)]">{text}</p>
     </div>
   );

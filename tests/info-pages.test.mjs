@@ -11,12 +11,13 @@ function readProjectFile(filePath) {
 
 test("main and information pages share the same site header", () => {
   assert.ok(fs.existsSync(path.join(process.cwd(), "src/components/site-header.tsx")));
+  const layoutSource = readProjectFile("src/app/layout.tsx");
+
+  assert.match(layoutSource, /import \{ SiteHeader \} from "@\/components\/site-header";/);
+  assert.match(layoutSource, /<SiteHeader \/>/);
 
   for (const pagePath of appPages) {
     const pageSource = readProjectFile(pagePath);
-
-    assert.match(pageSource, /import \{ SiteHeader \} from "@\/components\/site-header";/);
-    assert.match(pageSource, /<SiteHeader \/>/);
     assert.doesNotMatch(pageSource, /<header className=/);
   }
 });

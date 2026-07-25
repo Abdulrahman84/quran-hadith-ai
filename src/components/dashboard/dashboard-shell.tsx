@@ -32,22 +32,22 @@ export function DashboardShell() {
   const runs = useQuery(api.questionRuns.listRecent, isAuthenticated ? { limit: 12, scope, status } : "skip");
 
   if (isLoading) {
-    return <div className="relative z-10 mx-auto mt-24 h-44 w-full max-w-lg animate-pulse rounded-2xl bg-[var(--color-primary-soft)]" aria-label={t("dashboard.loading")} />;
+    return <div className="relative z-10 mx-auto mt-24 h-44 w-full max-w-lg animate-pulse rounded-2xl border-t-4 border-t-[var(--color-gold)] bg-[var(--color-gold-soft)]" aria-label={t("dashboard.loading")} />;
   }
 
   if (!isAuthenticated) return <AdminSignIn t={t} />;
 
   return (
-    <div className="relative z-10 mx-auto w-full max-w-6xl px-5 py-8 sm:px-8 sm:py-10">
+    <div className="relative z-10 mx-auto w-full max-w-6xl px-5 pb-16 pt-12 sm:px-8 sm:pt-16">
       <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
         <div>
           <div className="flex flex-wrap items-center gap-2">
-            <p className="text-xs font-bold uppercase tracking-[0.22em] text-[var(--color-green-soft)]">{t("dashboard.eyebrow")}</p>
-            <span className="rounded-md border border-[var(--color-green)]/20 bg-[var(--color-primary-soft)] px-2 py-1 text-[0.65rem] font-bold text-[var(--color-green)]">
+            <p className="text-xs font-bold text-[var(--color-green)]">{t("dashboard.eyebrow")}</p>
+            <span className="rounded-md border border-[var(--color-gold)]/50 bg-[var(--color-gold-soft)] px-2 py-1 text-[0.65rem] font-bold text-[var(--color-ink)]">
               {t("dashboard.liveBadge")}
             </span>
           </div>
-          <h1 className="mt-4 text-balance text-3xl font-bold leading-tight text-[var(--color-green)] sm:text-5xl">{t("dashboard.title")}</h1>
+          <h1 className="mt-5 text-balance text-4xl font-bold leading-[1.18] text-[var(--color-ink)] sm:text-6xl">{t("dashboard.title")}</h1>
           <p className="mt-3 max-w-3xl text-sm font-medium leading-7 text-[var(--color-muted)] sm:text-base">
             {t("dashboard.intro")}
           </p>
@@ -59,7 +59,7 @@ export function DashboardShell() {
             {scopes.map((item) => (
               <button
                 aria-pressed={scope === item}
-                className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-xs font-bold text-[var(--color-green)] transition hover:border-[var(--color-gold)] data-[active=true]:border-[var(--color-green)] data-[active=true]:bg-[var(--color-green)] data-[active=true]:text-white"
+                className="min-h-11 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-xs font-bold text-[var(--color-green)] transition hover:border-[var(--color-gold)] data-[active=true]:border-[var(--color-green)] data-[active=true]:bg-[var(--color-green)] data-[active=true]:text-white"
                 data-active={scope === item}
                 key={item}
                 onClick={() => setScope(item)}
@@ -69,7 +69,7 @@ export function DashboardShell() {
               </button>
             ))}
             <button
-              className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-xs font-bold text-[var(--color-red)] transition hover:border-[var(--color-red)]"
+              className="min-h-11 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-xs font-bold text-[var(--color-red)] transition hover:border-[var(--color-red)]"
               onClick={() => void signOut()}
               type="button"
             >
@@ -82,7 +82,7 @@ export function DashboardShell() {
       <div className="mt-8">
         {stats === undefined ? (
           <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4" aria-label={t("dashboard.loading")}>
-            {[0, 1, 2, 3].map((item) => <div className="h-40 animate-pulse rounded-2xl bg-[var(--color-primary-soft)]" key={item} />)}
+            {[0, 1, 2, 3].map((item) => <div className="h-40 animate-pulse rounded-2xl border-t-[3px] border-t-[var(--color-gold)] bg-[var(--color-gold-soft)]" key={item} />)}
           </div>
         ) : (
           <StatsGrid language={language} stats={stats} t={t} />
@@ -90,7 +90,7 @@ export function DashboardShell() {
       </div>
 
       {stats !== undefined ? (
-        <div className="mt-3 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)]/80 px-4 py-3 text-xs font-semibold leading-5 text-[var(--color-muted)]">
+        <div className="mt-3 rounded-xl border border-[var(--color-border)] border-s-[3px] border-s-[var(--color-gold)] bg-[var(--color-surface)]/80 px-4 py-3 text-xs font-semibold leading-5 text-[var(--color-muted)]">
           {t("dashboard.dataNotice")} · {stats.liveCount} {t("dashboard.scope.live")} · {stats.demoCount} {t("dashboard.scope.demo")}
         </div>
       ) : null}
@@ -98,8 +98,8 @@ export function DashboardShell() {
       <div className="mt-4 grid gap-4 lg:grid-cols-[minmax(0,1.35fr)_minmax(280px,0.65fr)]">
         {stats === undefined ? (
           <>
-            <div className="h-72 animate-pulse rounded-2xl bg-[var(--color-primary-soft)]" />
-            <div className="h-72 animate-pulse rounded-2xl bg-[var(--color-primary-soft)]" />
+            <div className="h-72 animate-pulse rounded-2xl border-t-[3px] border-t-[var(--color-gold)] bg-[var(--color-gold-soft)]" />
+            <div className="h-72 animate-pulse rounded-2xl border-t-[3px] border-t-[var(--color-gold)] bg-[var(--color-gold-soft)]" />
           </>
         ) : (
           <>

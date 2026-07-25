@@ -18,11 +18,11 @@ export function SourceMix({ language, sources, t }: SourceMixProps) {
   ];
 
   return (
-    <article className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5 shadow-[0_12px_34px_rgba(22,58,95,0.05)]">
-      <p className="text-xs font-bold uppercase tracking-[0.16em] text-[var(--color-green-soft)]">
+    <article className="rounded-2xl border border-[var(--color-border)] border-t-[3px] border-t-[var(--color-gold)] bg-[var(--color-surface)] p-5 shadow-[0_12px_34px_rgba(23,26,25,0.05)]">
+      <p className="text-xs font-bold text-[var(--color-green)]">
         {t("dashboard.sources.eyebrow")}
       </p>
-      <h2 className="mt-2 text-xl font-bold text-[var(--color-green)]">{t("dashboard.sources.title")}</h2>
+      <h2 className="mt-2 text-xl font-bold text-[var(--color-ink)]">{t("dashboard.sources.title")}</h2>
 
       <div className="mt-7 grid gap-5">
         {rows.map((row) => {
@@ -37,7 +37,7 @@ export function SourceMix({ language, sources, t }: SourceMixProps) {
                 </span>
               </div>
               <div
-                className="h-2.5 overflow-hidden rounded-full bg-[var(--color-primary-soft)]"
+                className="h-2.5 overflow-hidden rounded-full border border-[var(--color-border)] bg-[var(--background)]"
                 role="progressbar"
                 aria-label={row.label}
                 aria-valuemin={0}

@@ -1,0 +1,56 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 210 120" fill="none" role="img" aria-labelledby="title desc">
+  <title id="title">Page Turn loader</title>
+  <desc id="desc">The right book page turns gently while the assistant blinks.</desc>
+  <style>
+    .page-right {
+      transform-box: fill-box;
+      transform-origin: left center;
+      animation: turn 2.9s cubic-bezier(.55,.08,.32,1) infinite;
+    }
+    .eye {
+      transform-box: fill-box;
+      transform-origin: center;
+      animation: blink 2.9s ease-in-out infinite;
+    }
+    .eye-right { animation-delay: .06s; }
+    .signal {
+      transform-box: fill-box;
+      transform-origin: center;
+      animation: settle 2.9s ease-in-out infinite;
+    }
+    @keyframes turn {
+      0%, 18%, 82%, 100% { transform: perspective(180px) rotateY(0deg); }
+      48% { transform: perspective(180px) rotateY(-24deg) translateX(-2px); }
+    }
+    @keyframes blink {
+      0%, 42%, 49%, 100% { transform: scaleY(1); }
+      46% { transform: scaleY(.1); }
+    }
+    @keyframes settle {
+      0%, 36%, 65%, 100% { transform: scale(1); }
+      49% { transform: scale(1.18); }
+    }
+    .paused * { animation-play-state: paused !important; }
+    @media (prefers-reduced-motion: reduce) {
+      * { animation: none !important; }
+    }
+  </style>
+
+  <path d="M42 23c23-3 44 4 63 19v66c-18-11-39-17-63-16Z"
+        stroke="#0B5D3E" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M53 36v46c19 0 36 6 52 17" stroke="#0B5D3E" stroke-width="3.5"
+        stroke-linecap="round" stroke-linejoin="round" opacity=".72"/>
+  <g class="page-right">
+    <path d="M105 42c19-15 40-22 63-19v69c-24-1-45 5-63 16Z"
+          fill="#FBFAF5" stroke="#0B5D3E" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M157 36v46c-19 0-36 6-52 17V44" stroke="#0B5D3E" stroke-width="3.5"
+          stroke-linecap="round" stroke-linejoin="round" opacity=".72"/>
+  </g>
+
+  <path d="M105 44v-9" stroke="#C69A4B" stroke-width="4" stroke-linecap="round"/>
+  <circle class="signal" cx="105" cy="29" r="5.5" fill="#C69A4B"/>
+  <rect x="79" y="43" width="52" height="38" rx="17" fill="#C69A4B"/>
+  <rect x="86" y="50" width="38" height="22" rx="10" fill="#0B5D3E"/>
+  <circle class="eye" cx="96" cy="61" r="3" fill="#FBFAF5"/>
+  <circle class="eye eye-right" cx="114" cy="61" r="3" fill="#FBFAF5"/>
+</svg>

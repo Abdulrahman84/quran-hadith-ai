@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist_Mono, IBM_Plex_Sans_Arabic } from "next/font/google";
 import { ConvexClientProvider } from "@/components/convex-client-provider";
 import { I18nProvider } from "@/components/i18n-provider";
+import { SiteHeader } from "@/components/site-header";
 import "./globals.css";
 
 const ibmPlexSansArabic = IBM_Plex_Sans_Arabic({
@@ -16,12 +17,12 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "سند AI",
+  title: "سند | Sanad AI",
   description: "A citation-first Quran, tafsir, and Sunnah assistant.",
   icons: {
-    icon: "/favicon.png?v=midnight-manuscript",
-    shortcut: "/favicon.png?v=midnight-manuscript",
-    apple: "/brand/sanad-icon.png?v=midnight-manuscript",
+    icon: "/brand/sanad-icon-gold-forward.png?v=gold-forward",
+    shortcut: "/brand/sanad-icon-gold-forward.png?v=gold-forward",
+    apple: "/brand/sanad-icon-gold-forward.png?v=gold-forward",
   },
 };
 
@@ -39,7 +40,10 @@ export default function RootLayout({
     >
       <body className="min-h-full flex flex-col">
         <ConvexClientProvider>
-          <I18nProvider>{children}</I18nProvider>
+          <I18nProvider>
+            <SiteHeader />
+            {children}
+          </I18nProvider>
         </ConvexClientProvider>
       </body>
     </html>

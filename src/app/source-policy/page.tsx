@@ -3,7 +3,6 @@
 import { useI18n } from "@/components/i18n-provider";
 import { PolicySectionNav } from "@/components/policy-section-nav";
 import { ProvenanceCard } from "@/components/provenance-card";
-import { SiteHeader } from "@/components/site-header";
 import type { TranslationKey } from "@/lib/i18n";
 
 const ruleKeys: TranslationKey[] = [
@@ -140,16 +139,15 @@ export default function SourcePolicy() {
   const { t } = useI18n();
 
   return (
-    <main className="relative min-h-screen overflow-hidden bg-[var(--color-sand)] pt-20 text-[var(--color-ink)] sm:pt-24">
+    <main className="relative min-h-screen overflow-hidden bg-[var(--background)] pt-20 text-[var(--color-ink)] sm:pt-24">
       <div className="source-grid" aria-hidden="true" />
-      <SiteHeader />
 
-      <section className="relative z-10 mx-auto max-w-6xl px-5 py-8 sm:px-8 sm:py-10">
-        <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[var(--color-green-soft)]">{t("policy.eyebrow")}</p>
-        <h1 className="mt-4 max-w-4xl text-balance text-3xl font-bold leading-tight text-[var(--color-green)] sm:text-5xl">
+      <section className="relative z-10 mx-auto max-w-6xl px-5 pb-10 pt-12 sm:px-8 sm:pb-12 sm:pt-16">
+        <p className="text-xs font-bold text-[var(--color-green)]">{t("policy.eyebrow")}</p>
+        <h1 className="mt-5 max-w-4xl text-balance text-4xl font-bold leading-[1.18] text-[var(--color-ink)] sm:text-6xl">
           {t("policy.title")}
         </h1>
-        <p className="mt-4 max-w-3xl text-base font-medium leading-7 text-[var(--color-muted)] sm:text-lg sm:leading-8">
+        <p className="mt-5 max-w-3xl text-base font-medium leading-8 text-[var(--color-muted)] sm:text-lg sm:leading-9">
           {t("policy.intro")}
         </p>
         <PolicySectionNav />
@@ -157,10 +155,10 @@ export default function SourcePolicy() {
 
       <section className="relative z-10 mx-auto max-w-6xl scroll-mt-24 px-5 pb-10 sm:px-8" id="trust-flow">
         <div className="mb-4">
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--color-green-soft)]">
+          <p className="text-xs font-bold text-[var(--color-green)]">
             {t("policy.flow.eyebrow")}
           </p>
-          <h2 className="mt-3 text-2xl font-bold leading-tight text-[var(--color-green)] sm:text-3xl">
+          <h2 className="mt-3 text-2xl font-bold leading-tight text-[var(--color-ink)] sm:text-3xl">
             {t("policy.flow.title")}
           </h2>
           <p className="mt-3 max-w-3xl text-sm font-medium leading-7 text-[var(--color-muted)]">{t("policy.flow.text")}</p>
@@ -169,11 +167,11 @@ export default function SourcePolicy() {
         <div className="grid gap-3 lg:grid-cols-3">
           {trustFlowItems.map((item, index) => (
             <article
-              className="animate-rise rounded-2xl border border-[var(--color-green)] bg-[var(--color-green)] p-5 text-[var(--color-sand)] shadow-[0_18px_42px_rgba(22,58,95,0.14)]"
+              className="animate-rise rounded-2xl border border-[var(--color-green)] border-t-4 border-t-[var(--color-gold)] bg-[var(--color-green)] p-5 text-[var(--color-sand)] shadow-[0_18px_42px_rgba(11,93,62,0.14)]"
               key={item.titleKey}
               style={{ animationDelay: `${index * 80}ms` }}
             >
-              <div className="grid h-12 w-12 place-items-center rounded-full border border-[var(--color-gold)]/60 bg-white/8 text-[var(--color-gold-on-dark)]">
+              <div className="grid h-12 w-12 place-items-center rounded-full bg-[var(--color-gold)] text-[var(--color-ink)]">
                 <FlowIcon type={item.icon} />
               </div>
               <h3 className="mt-4 text-xl font-bold text-white">{t(item.titleKey)}</h3>
@@ -185,10 +183,10 @@ export default function SourcePolicy() {
 
       <section className="relative z-10 mx-auto max-w-6xl scroll-mt-24 px-5 pb-10 sm:px-8" id="approved-sources">
         <div className="mb-4">
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--color-green-soft)]">
+          <p className="text-xs font-bold text-[var(--color-green)]">
             {t("policy.sources.eyebrow")}
           </p>
-          <h2 className="mt-3 text-2xl font-bold leading-tight text-[var(--color-green)] sm:text-3xl">
+          <h2 className="mt-3 text-2xl font-bold leading-tight text-[var(--color-ink)] sm:text-3xl">
             {t("policy.sources.title")}
           </h2>
           <p className="mt-3 max-w-3xl text-sm font-medium leading-7 text-[var(--color-muted)]">{t("policy.sources.text")}</p>
@@ -197,16 +195,19 @@ export default function SourcePolicy() {
         <div className="grid gap-3 lg:grid-cols-3">
           {sourceGroups.map((group, index) => (
             <article
-              className="animate-rise rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5 shadow-[0_10px_28px_rgba(22,58,95,0.04)]"
+              className="animate-rise rounded-2xl border border-[var(--color-border)] border-t-[3px] border-t-[var(--color-gold)] bg-[var(--color-surface)] p-5 shadow-[0_10px_28px_rgba(23,26,25,0.05)]"
               key={group.titleKey}
               style={{ animationDelay: `${index * 80}ms` }}
             >
-              <h3 className="text-xl font-bold text-[var(--color-green)]">{t(group.titleKey)}</h3>
+              <div className="flex items-center justify-between gap-3">
+                <h3 className="text-xl font-bold text-[var(--color-ink)]">{t(group.titleKey)}</h3>
+                <span aria-hidden="true" className="h-2.5 w-2.5 shrink-0 rounded-full bg-[var(--color-gold)]" />
+              </div>
               <p className="mt-2 text-sm font-medium leading-7 text-[var(--color-muted)]">{t(group.textKey)}</p>
               <div className="mt-4 flex flex-wrap gap-2">
                 {group.itemKeys.map((itemKey) => (
                   <span
-                    className="rounded-lg border border-[var(--color-border)] bg-[var(--color-gold-soft)] px-3 py-1.5 text-xs font-semibold text-[var(--color-green)]"
+                    className="rounded-lg border border-[var(--color-gold)]/45 bg-[var(--color-gold-soft)] px-3 py-1.5 text-xs font-semibold text-[var(--color-ink)]"
                     key={itemKey}
                   >
                     {t(itemKey)}
@@ -219,17 +220,18 @@ export default function SourcePolicy() {
       </section>
 
       <section className="relative z-10 mx-auto max-w-6xl scroll-mt-24 px-5 pb-10 sm:px-8" id="guardrails">
-        <div className="relative overflow-hidden rounded-2xl bg-[var(--color-green)] p-5 text-[var(--color-sand)] shadow-[0_24px_60px_rgba(22,58,95,0.20)] sm:p-7">
-          <div className="absolute inset-x-0 top-0 h-px bg-[var(--color-gold)]/60" aria-hidden="true" />
+        <div className="relative overflow-hidden rounded-[1.75rem] border border-[var(--color-ink)] border-t-4 border-t-[var(--color-gold)] bg-[var(--color-ink)] p-5 text-[var(--color-sand)] shadow-[0_24px_60px_rgba(23,26,25,0.20)] sm:p-7">
           <div className="pointer-events-none absolute inset-0 opacity-[0.08]" aria-hidden="true">
             <div className="h-full w-full bg-[linear-gradient(90deg,currentColor_1px,transparent_1px),linear-gradient(0deg,currentColor_1px,transparent_1px)] bg-[size:46px_46px]" />
           </div>
 
           <div className="relative grid gap-8 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.15fr)]">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--color-gold-on-dark)]">
+              <div>
+                <p className="text-xs font-bold text-[var(--color-gold-on-dark)]">
                 {t("policy.boundary.title")}
-              </p>
+                </p>
+              </div>
               <h2 className="mt-4 max-w-xl text-3xl font-bold leading-tight text-white sm:text-4xl">
                 {t("policy.guardrails.title")}
               </h2>
@@ -239,7 +241,7 @@ export default function SourcePolicy() {
             <div className="grid gap-3 md:grid-cols-3">
               {boundarySteps.map((step, index) => (
                 <article
-                  className="animate-rise relative rounded-xl border border-white/12 bg-white/8 p-4"
+                  className="animate-rise relative rounded-xl border border-[var(--color-gold)]/22 bg-[var(--color-gold)]/8 p-4"
                   key={step.titleKey}
                   style={{ animationDelay: `${index * 80}ms` }}
                 >
@@ -249,7 +251,7 @@ export default function SourcePolicy() {
                       aria-hidden="true"
                     />
                   ) : null}
-                  <div className="grid h-11 w-11 place-items-center rounded-full bg-[var(--color-gold)] text-[var(--color-green)]">
+                  <div className="grid h-11 w-11 place-items-center rounded-full bg-[var(--color-gold)] text-[var(--color-ink)]">
                     <FlowIcon type={step.icon} />
                   </div>
                   <p className="mt-4 text-base font-semibold leading-7 text-white">{t(step.titleKey)}</p>
@@ -261,7 +263,7 @@ export default function SourcePolicy() {
           <div className="relative mt-7 grid gap-2 border-t border-white/12 pt-5 lg:grid-cols-2">
             {ruleKeys.map((ruleKey, index) => (
               <article
-                className={`animate-rise flex gap-3 rounded-xl border border-white/10 bg-[var(--color-green)]/55 p-4 ${index === ruleKeys.length - 1 ? "lg:col-span-2" : ""}`}
+                className={`animate-rise flex gap-3 rounded-xl border border-[var(--color-gold)]/18 bg-white/5 p-4 ${index === ruleKeys.length - 1 ? "lg:col-span-2" : ""}`}
                 key={ruleKey}
                 style={{ animationDelay: `${index * 80}ms` }}
               >
@@ -276,13 +278,13 @@ export default function SourcePolicy() {
       </section>
 
       <section className="relative z-10 mx-auto max-w-6xl scroll-mt-24 px-5 pb-16 sm:px-8" id="provenance">
-        <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5 shadow-[0_18px_42px_rgba(22,58,95,0.07)] sm:p-6">
+        <div className="rounded-2xl border border-[var(--color-border)] border-t-[3px] border-t-[var(--color-gold)] bg-[var(--color-surface)] p-5 shadow-[0_18px_42px_rgba(23,26,25,0.07)] sm:p-6">
           <div className="grid gap-6 lg:grid-cols-[320px_minmax(0,1fr)]">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--color-green-soft)]">
+              <p className="text-xs font-bold text-[var(--color-green)]">
                 {t("policy.provenance.eyebrow")}
               </p>
-              <h2 className="mt-3 text-2xl font-bold leading-tight text-[var(--color-green)]">
+              <h2 className="mt-3 text-2xl font-bold leading-tight text-[var(--color-ink)]">
                 {t("policy.provenance.title")}
               </h2>
               <p className="mt-3 text-sm font-medium leading-7 text-[var(--color-muted)]">

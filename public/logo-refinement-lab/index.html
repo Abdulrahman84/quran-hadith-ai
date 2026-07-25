@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Sanad AI — Original Logo Refinements</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <header class="hero">
+      <p class="eyebrow">Original artwork · restrained refinement</p>
+      <h1>Choose the color treatment</h1>
+      <p class="intro">
+        All six options use the exact original book, robot, Arabic lettering, spacing, and English lockup.
+        Only the Arabic-side “AI” is removed and the palette changes.
+      </p>
+    </header>
+
+    <main>
+      <section class="grid" aria-label="Six original logo refinements">
+        <article class="card">
+          <span class="number">01</span>
+          <div class="preview"><img src="./variants/01-original-clean.png?v=2" alt="Original blue and gold logo without Arabic-side AI" /></div>
+          <h2>Original Clean</h2>
+          <p>Exact legacy blue and gold. Only the Arabic-side “AI” is removed.</p>
+          <button type="button" data-option="01 — Original Clean">Choose 01</button>
+        </article>
+
+        <article class="card">
+          <span class="number">02</span>
+          <div class="preview"><img src="./variants/02-syrian-civic.png?v=2" alt="Original logo in Syrian civic green, gold, and red" /></div>
+          <h2>Syrian Civic</h2>
+          <p>The site palette applied directly to the untouched original artwork.</p>
+          <button type="button" data-option="02 — Syrian Civic">Choose 02</button>
+        </article>
+
+        <article class="card">
+          <span class="number">03</span>
+          <div class="preview"><img src="./variants/03-deep-green.png?v=2" alt="Original logo in deep green and brighter gold" /></div>
+          <h2>Deep Green</h2>
+          <p>A more formal green with brighter gold for stronger small-size contrast.</p>
+          <button type="button" data-option="03 — Deep Green">Choose 03</button>
+        </article>
+
+        <article class="card">
+          <span class="number">04</span>
+          <div class="preview"><img src="./variants/04-gold-forward.png?v=2" alt="Original logo in civic green with stronger gold" /></div>
+          <h2>Gold Forward</h2>
+          <p>The agreed green with a richer, more visible gold treatment.</p>
+          <button type="button" data-option="04 — Gold Forward">Choose 04</button>
+        </article>
+
+        <article class="card">
+          <span class="number">05</span>
+          <div class="preview"><img src="./variants/05-civic-ink.png?v=2" alt="Original logo in civic black and gold" /></div>
+          <h2>Civic Ink</h2>
+          <p>Near-black structure and type, with gold and red carrying the identity.</p>
+          <button type="button" data-option="05 — Civic Ink">Choose 05</button>
+        </article>
+
+        <article class="card">
+          <span class="number">06</span>
+          <div class="preview"><img src="./variants/06-forest-antique.png?v=2" alt="Original logo in forest green and antique gold" /></div>
+          <h2>Forest Antique</h2>
+          <p>A softer heritage treatment with muted green, antique gold, and deep red.</p>
+          <button type="button" data-option="06 — Forest Antique">Choose 06</button>
+        </article>
+      </section>
+
+      <aside class="selection" aria-live="polite">
+        <span>Current selection</span>
+        <strong id="selection-value">None yet</strong>
+      </aside>
+    </main>
+
+    <script src="./lab.js"></script>
+  </body>
+</html>
