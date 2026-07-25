@@ -1,6 +1,7 @@
 import { generateGroundedAnswer } from "@/lib/llm/grounded-answer";
 import { recordQuestionRun } from "@/lib/analytics/record-question-run";
 import { isHadithCollectionSelection } from "@/lib/retrieval/hadith-collections";
+import { assessQuotationMatch } from "@/lib/retrieval/quotation-match";
 import { searchSources } from "@/lib/retrieval/source-router";
 import { isTafsirSourceSelection } from "@/lib/retrieval/tafsir-sources";
 import type { GroundedAnswer, RetrievalResponse } from "@/lib/retrieval/types";
@@ -67,20 +68,22 @@ export async function POST(request: Request) {
   }
 
   const response = await searchSources(question, language, { tafsirSource, hadithCollection });
+  const quotationMatch = assessQuotationMatch(question, language, response.records);
   const answer = await generateGroundedAnswer({
     question,
     language,
     records: response.records,
+    quotationMatch,
   });
 
   await recordQuestionRun({
     question,
     language,
-    response: { ...response, answer },
+    response: { ...response, answer, quotationMatch },
     durationMs: Date.now() - startedAt,
   });
 
-  return Response.json({ ...response, answer } satisfies RetrievalResponse, {
+  return Response.json({ ...response, answer, quotationMatch } satisfies RetrievalResponse, {
     status: response.status === "error" ? 502 : 200,
   });
 }

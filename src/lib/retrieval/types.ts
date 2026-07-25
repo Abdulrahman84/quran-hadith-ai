@@ -53,6 +53,12 @@ export type GroundedAnswer = {
   warnings: RetrievalWarning[];
 };
 
+export type QuotationMatch = {
+  state: "normal" | "literal" | "similar";
+  matchedRecordIds: string[];
+  unmatchedCandidateTexts: string[];
+};
+
 export type RetrievalResponse = {
   status: RetrievalStatus;
   query: string;
@@ -60,6 +66,7 @@ export type RetrievalResponse = {
   sourceMode: SourceMode;
   records: SourceRecord[];
   answer?: GroundedAnswer;
+  quotationMatch?: QuotationMatch;
   warnings: RetrievalWarning[];
   provenanceNotes: string[];
 };

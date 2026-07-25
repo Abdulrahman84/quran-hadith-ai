@@ -183,13 +183,17 @@ test("English answer prompt teaches direct prose with positive and negative exam
   assert.equal(maxTokens, 420);
   assert.equal(temperature, 0.3);
   assert.match(messages[0].content, /Poor: For your question/);
-  assert.match(messages[0].content, /Better: The central idea is that progress begins/);
+  assert.match(messages[0].content, /Better: The two citations support that progress begins/);
   assert.match(messages[0].content, /Vary the opening, sentence structure, and transitions/);
   assert.match(messages[0].content, /at most one practical next step/);
   assert.match(messages[0].content, /qualified scholar/);
-  assert.match(messages[1].content, /begin directly with the meaning that answers the question/i);
-  assert.match(messages[1].content, /three or four concise, friendly sentences/i);
-  assert.match(messages[1].content, /Do not mention the search process or the retrieved records/i);
+  assert.match(messages[0].content, /retrieved results do not establish the claim/i);
+  assert.match(messages[0].content, /Match the conclusion to the exact verification requested/i);
+  assert.match(messages[0].content, /wording appears in a retrieved record/i);
+  assert.match(messages[0].content, /review the original source texts below/i);
+  assert.match(messages[1].content, /Usually write three to five concise, friendly sentences/i);
+  assert.match(messages[1].content, /begin with the verification conclusion/i);
+  assert.match(messages[1].content, /review the original source texts below/i);
 });
 
 test("Arabic answer prompt teaches direct prose with positive and negative examples", async () => {
@@ -216,13 +220,101 @@ test("Arabic answer prompt teaches direct prose with positive and negative examp
   assert.equal(answer.status, "ready");
   assert.equal(answer.text, "توضح الرواية أن الأعمال بالنيات [1].");
   assert.match(messages[0].content, /غير مناسب: بالنسبة إلى سؤالك/);
-  assert.match(messages[0].content, /أفضل: الفكرة الأساسية أن التقدم يبدأ/);
+  assert.match(messages[0].content, /أفضل: تؤيد الإحالتان أن التقدم يبدأ/);
   assert.match(messages[0].content, /نوّع بداية الإجابة وتركيب الجمل/);
   assert.match(messages[0].content, /بخطوة عملية واحدة فقط/);
   assert.match(messages[0].content, /عالم مؤهل/);
-  assert.match(messages[1].content, /وابدأ مباشرة بالمعنى الذي يجيب عن السؤال/);
-  assert.match(messages[1].content, /ثلاث أو أربع جمل موجزة وودودة/);
-  assert.match(messages[1].content, /لا تذكر عملية البحث أو السجلات المسترجعة/);
+  assert.match(messages[0].content, /النتائج المسترجعة لا تثبت الادعاء/u);
+  assert.match(messages[0].content, /طابق نتيجة التحقق مع ما طلبه المستخدم تحديدا/u);
+  assert.match(messages[0].content, /وجود هذا اللفظ في ذلك السجل فقط/u);
+  assert.match(messages[0].content, /نصوص المصادر الأصلية أدناه/u);
+  assert.match(messages[1].content, /ثلاث إلى خمس جمل موجزة وودودة/u);
+  assert.match(messages[1].content, /فابدأ بنتيجة التحقق/u);
+  assert.match(messages[1].content, /مراجعة نصوص المصادر الأصلية أدناه/u);
+});
+
+test("similar quotation matches are treated as untrusted wording in the answer prompt", async () => {
+  let userPrompt = "";
+  const { generateGroundedAnswer } = loadGroundedAnswerModule({
+    completeLlmText: async (input) => {
+      userPrompt = input.messages.at(-1).content;
+
+      return {
+        status: "ok",
+        text: "توضح المصادر المسترجعة معنى قريبا يتعلق بمكانة الصلاة [1].",
+        provider: "openrouter",
+        model: "google/gemma-4-26b-a4b-it:free",
+      };
+    },
+  });
+
+  const answer = await generateGroundedAnswer({
+    question: "حديث: الصلاة عماد الدين",
+    language: "arabic",
+    records: [sourceRecord()],
+    quotationMatch: {
+      state: "similar",
+      matchedRecordIds: [],
+      unmatchedCandidateTexts: ["الصلاة عماد الدين"],
+    },
+  });
+
+  assert.equal(answer.status, "ready");
+  assert.match(userPrompt, /نص غير موثوق لم يوجد حرفيا في النتائج المسترجعة/u);
+  assert.match(userPrompt, /لا تصحح النص من الذاكرة/u);
+});
+
+test("literal quotation matches do not imply authenticity or grade", async () => {
+  let userPrompt = "";
+  const { generateGroundedAnswer } = loadGroundedAnswerModule({
+    completeLlmText: async (input) => {
+      userPrompt = input.messages.at(-1).content;
+
+      return {
+        status: "ok",
+        text: "يظهر هذا اللفظ في السجل المسترجع، لكن درجة الرواية غير متاحة فيه [1]. وللتحقق من اللفظ والسياق الكامل، راجع نصوص المصادر الأصلية أدناه.",
+        provider: "openrouter",
+        model: "google/gemma-4-26b-a4b-it:free",
+      };
+    },
+  });
+
+  const answer = await generateGroundedAnswer({
+    question: "حديث: إنما الأعمال بالنيات",
+    language: "arabic",
+    records: [sourceRecord({ grade: null })],
+    quotationMatch: {
+      state: "literal",
+      matchedRecordIds: ["bukhari-1"],
+      unmatchedCandidateTexts: [],
+    },
+  });
+
+  assert.equal(answer.status, "ready");
+  assert.match(userPrompt, /يثبت وجوده في السجل فقط/u);
+  assert.match(userPrompt, /لا تعتبر المطابقة وحدها إثباتا لصحة النسبة أو درجة الحديث/u);
+});
+
+test("verification closing may direct the user to original sources without a citation", async () => {
+  const text =
+    "The retrieved report supports that actions are connected to intentions [1]. To verify the exact wording and full context, review the original source texts below.";
+  const { generateGroundedAnswer } = loadGroundedAnswerModule({
+    completeLlmText: async () => ({
+      status: "ok",
+      text,
+      provider: "openrouter",
+      model: "google/gemma-4-26b-a4b-it:free",
+    }),
+  });
+
+  const answer = await generateGroundedAnswer({
+    question: "Does the report connect actions to intentions?",
+    language: "english",
+    records: [sourceRecord()],
+  });
+
+  assert.equal(answer.status, "ready");
+  assert.equal(answer.text, text);
 });
 
 test("answer generation rejects citation numbers that are not in the source pack", async () => {
@@ -433,6 +525,192 @@ test("answer generation rejects a fabricated direct quotation", async () => {
 
   assert.notEqual(answer.text, '"Every deed is guaranteed a reward by intention" [1].');
   assert.deepEqual(Array.from(answer.warnings.map((warning) => warning.code)), ["llm_guardrail_fallback"]);
+});
+
+test("answer generation allows the user's unmatched wording when clearly caveated", async () => {
+  const text = "لا تثبت المصادر أن عبارة «الصلاة عماد الدين» صحيحة، لكنها تعرض أحاديث قريبة عن مكانة الصلاة [1].";
+  const { generateGroundedAnswer } = loadGroundedAnswerModule({
+    completeLlmText: async () => ({
+      status: "ok",
+      text,
+      provider: "openrouter",
+      model: "google/gemma-4-26b-a4b-it:free",
+    }),
+  });
+
+  const answer = await generateGroundedAnswer({
+    question: "هل حديث الصلاة عماد الدين صحيح؟",
+    language: "arabic",
+    quotationMatch: {
+      state: "similar",
+      matchedRecordIds: [],
+      unmatchedCandidateTexts: ["الصلاة عماد الدين"],
+    },
+    records: [sourceRecord()],
+  });
+
+  assert.equal(answer.status, "ready");
+  assert.equal(answer.text, text);
+});
+
+test("answer generation still rejects unmatched user wording presented as verified", async () => {
+  const text = "تؤكد المصادر أن «الصلاة عماد الدين» حديث صحيح [1].";
+  const { generateGroundedAnswer } = loadGroundedAnswerModule({
+    completeLlmText: async () => ({
+      status: "ok",
+      text,
+      provider: "openrouter",
+      model: "google/gemma-4-26b-a4b-it:free",
+    }),
+  });
+
+  const answer = await generateGroundedAnswer({
+    question: "هل حديث الصلاة عماد الدين صحيح؟",
+    language: "arabic",
+    quotationMatch: {
+      state: "similar",
+      matchedRecordIds: [],
+      unmatchedCandidateTexts: ["الصلاة عماد الدين"],
+    },
+    records: [sourceRecord()],
+  });
+
+  assert.equal(answer.status, "error");
+  assert.equal(answer.text, null);
+  assert.match(answer.warnings[0].message, /quotes/);
+});
+
+test("caveated user quotations cannot pivot to positive attribution", async () => {
+  const drafts = [
+    {
+      language: "arabic",
+      question: "هل وردت آية الصلاة عماد الدين؟",
+      candidate: "الصلاة عماد الدين",
+      text: "العبارة «الصلاة عماد الدين» لا تثبت مجرد معنى قريب، بل هي آية صحيحة [1].",
+    },
+    {
+      language: "english",
+      question: "Is the phrase prayer is the pillar of religion an authentic hadith?",
+      candidate: "prayer is the pillar of religion",
+      text: 'The wording "prayer is the pillar of religion" is not merely similar; it is authentic Quran [1].',
+    },
+  ];
+
+  for (const draft of drafts) {
+    const { generateGroundedAnswer } = loadGroundedAnswerModule({
+      completeLlmText: async () => ({
+        status: "ok",
+        text: draft.text,
+        provider: "openrouter",
+        model: "google/gemma-4-26b-a4b-it:free",
+      }),
+    });
+    const answer = await generateGroundedAnswer({
+      question: draft.question,
+      language: draft.language,
+      quotationMatch: {
+        state: "similar",
+        matchedRecordIds: [],
+        unmatchedCandidateTexts: [draft.candidate],
+      },
+      records: [sourceRecord()],
+    });
+
+    assert.equal(answer.status, "error");
+    assert.match(answer.warnings[0].message, /quotes/);
+  }
+});
+
+test("natural wording-not-found caveats remain allowed", async () => {
+  const drafts = [
+    {
+      language: "arabic",
+      question: "هل ورد حديث الصلاة عماد الدين؟",
+      candidate: "الصلاة عماد الدين",
+      text: "لم نجد هذه العبارة حرفيا «الصلاة عماد الدين» في الأدلة المرفقة [1].",
+    },
+    {
+      language: "english",
+      question: "Hadith: prayer is the pillar of religion",
+      candidate: "prayer is the pillar of religion",
+      text: 'The exact wording "prayer is the pillar of religion" could not be found in the cited evidence [1].',
+    },
+  ];
+
+  for (const draft of drafts) {
+    const { generateGroundedAnswer } = loadGroundedAnswerModule({
+      completeLlmText: async () => ({
+        status: "ok",
+        text: draft.text,
+        provider: "openrouter",
+        model: "google/gemma-4-26b-a4b-it:free",
+      }),
+    });
+    const answer = await generateGroundedAnswer({
+      question: draft.question,
+      language: draft.language,
+      quotationMatch: {
+        state: "similar",
+        matchedRecordIds: [],
+        unmatchedCandidateTexts: [draft.candidate],
+      },
+      records: [sourceRecord()],
+    });
+
+    assert.equal(answer.status, "ready");
+    assert.equal(answer.text, draft.text);
+  }
+});
+
+test("caveat exception applies only to the matcher candidate", async () => {
+  const text = "لم نجد هذا النص «حديث الصلاة عماد» في الأدلة المرفقة [1].";
+  const { generateGroundedAnswer } = loadGroundedAnswerModule({
+    completeLlmText: async () => ({
+      status: "ok",
+      text,
+      provider: "openrouter",
+      model: "google/gemma-4-26b-a4b-it:free",
+    }),
+  });
+
+  const answer = await generateGroundedAnswer({
+    question: "هل حديث الصلاة عماد الدين صحيح؟",
+    language: "arabic",
+    quotationMatch: {
+      state: "similar",
+      matchedRecordIds: [],
+      unmatchedCandidateTexts: ["الصلاة عماد الدين"],
+    },
+    records: [sourceRecord()],
+  });
+
+  assert.equal(answer.status, "error");
+  assert.match(answer.warnings[0].message, /quotes/);
+});
+
+test("literal match state does not permit a different fabricated quotation", async () => {
+  const { generateGroundedAnswer } = loadGroundedAnswerModule({
+    completeLlmText: async () => ({
+      status: "ok",
+      text: "تؤكد الرواية أن «كل عمل مضمون الأجر» [1].",
+      provider: "openrouter",
+      model: "google/gemma-4-26b-a4b-it:free",
+    }),
+  });
+
+  const answer = await generateGroundedAnswer({
+    question: "حديث: إنما الأعمال بالنيات",
+    language: "arabic",
+    quotationMatch: {
+      state: "literal",
+      matchedRecordIds: ["bukhari-1"],
+      unmatchedCandidateTexts: [],
+    },
+    records: [sourceRecord()],
+  });
+
+  assert.equal(answer.status, "error");
+  assert.match(answer.warnings[0].message, /quotes/);
 });
 
 test("Arabic answer may summarize cited hadith when uncited Quran records are also available", async () => {

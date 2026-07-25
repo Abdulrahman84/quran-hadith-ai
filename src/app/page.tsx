@@ -218,6 +218,8 @@ export default function Home() {
   const [sourcePage, setSourcePage] = useState(1);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const loadingPanelRef = useRef<HTMLDivElement>(null);
+  const loadingSummaryRef = useRef<HTMLDivElement>(null);
+  const requestAbortRef = useRef<AbortController | null>(null);
 
   const hasScenario = isRetrieving || Boolean(submittedQuestion) || retrieval !== null || requestError.length > 0;
 
@@ -246,6 +248,14 @@ export default function Home() {
   const totalSourcePages = Math.max(1, Math.ceil(sourceRecords.length / sourcePageSize));
   const currentSourcePage = Math.min(sourcePage, totalSourcePages);
   const visibleSourceRecords = sourceRecords.slice((currentSourcePage - 1) * sourcePageSize, currentSourcePage * sourcePageSize);
+  const loadingFilterLabels = [
+    hadithCollection === "all"
+      ? null
+      : hadithCollections.find((collection) => collection.id === hadithCollection)?.[language === "ar" ? "labelAr" : "labelEn"],
+    tafsirSource === "all"
+      ? null
+      : tafsirSources.find((source) => source.id === tafsirSource)?.[language === "ar" ? "labelAr" : "labelEn"],
+  ].filter((label): label is string => Boolean(label));
 
   useEffect(() => {
     if (textareaRef.current) {
@@ -261,6 +271,7 @@ export default function Home() {
     const frame = window.requestAnimationFrame(() => {
       const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
+      loadingSummaryRef.current?.focus({ preventScroll: true });
       loadingPanelRef.current?.scrollIntoView({
         behavior: prefersReducedMotion ? "auto" : "smooth",
         block: "start",
@@ -288,6 +299,9 @@ export default function Home() {
     setRequestErrorHelp("result.checkPaths");
     setSourcePage(1);
     setIsRetrieving(true);
+    requestAbortRef.current?.abort();
+    const requestController = new AbortController();
+    requestAbortRef.current = requestController;
 
     try {
       const [response] = await Promise.all([
@@ -300,9 +314,15 @@ export default function Home() {
             hadithCollection: selectedHadithCollection,
             tafsirSource: selectedTafsirSource,
           }),
+          signal: requestController.signal,
         }),
         new Promise((resolve) => window.setTimeout(resolve, minimumLoadingMs)),
       ]);
+
+      if (requestController.signal.aborted) {
+        return;
+      }
+
       const payload = (await response.json()) as RetrievalResponse;
 
       if (!response.ok) {
@@ -313,10 +333,26 @@ export default function Home() {
 
       setRetrieval(payload);
     } catch (error) {
+      if (requestController.signal.aborted) {
+        return;
+      }
+
       setRequestError(error instanceof Error ? error.message : "The source retrieval request failed.");
     } finally {
-      setIsRetrieving(false);
+      if (requestAbortRef.current === requestController) {
+        requestAbortRef.current = null;
+        setIsRetrieving(false);
+      }
     }
+  }
+
+  function handleEditQuestion() {
+    requestAbortRef.current?.abort();
+    requestAbortRef.current = null;
+    setIsRetrieving(false);
+    setSubmittedQuestion("");
+    setRetrieval(null);
+    setRequestError("");
   }
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -371,12 +407,51 @@ export default function Home() {
         ) : null}
 
         <form
-          className={`search-shell animate-rise w-full overflow-hidden text-start ${
+          className={`search-shell animate-rise w-full overflow-hidden text-start transition-all duration-300 ${
             hasScenario ? "" : "mt-5 sm:mt-6 [animation-delay:160ms]"
           }`}
           onSubmit={handleSubmit}
         >
-          <div className="p-4 sm:p-6">
+          {isRetrieving ? (
+            <div className="flex min-h-[4.5rem] items-center gap-3 px-4 py-3 sm:px-5">
+              <div
+                aria-atomic="true"
+                aria-live="polite"
+                className="min-w-0 flex-1 outline-none focus:outline-none focus-visible:outline-none"
+                ref={loadingSummaryRef}
+                role="status"
+                tabIndex={-1}
+              >
+                <p className="text-[0.7rem] font-bold uppercase tracking-[0.14em] text-[var(--color-green-soft)]">
+                  {t("result.tracing")}
+                </p>
+                <p
+                  className="mt-1 line-clamp-1 whitespace-pre-wrap text-sm font-semibold text-[var(--color-ink)]"
+                  dir={language === "ar" ? "rtl" : "ltr"}
+                >
+                  {submittedQuestion}
+                </p>
+                {loadingFilterLabels.length ? (
+                  <div className="mt-2 flex flex-wrap gap-1.5">
+                    {loadingFilterLabels.map((label) => (
+                      <span className="source-detail-badge" key={label}>
+                        {label}
+                      </span>
+                    ))}
+                  </div>
+                ) : null}
+              </div>
+              <span className="pulse-dot shrink-0" aria-hidden="true" />
+              <button
+                className="shrink-0 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-xs font-bold text-[var(--color-green)] transition hover:border-[var(--color-green)]/35"
+                onClick={handleEditQuestion}
+                type="button"
+              >
+                {t("home.editQuestion")}
+              </button>
+            </div>
+          ) : (
+            <div className="p-4 sm:p-6">
             <div>
               <label className="text-sm font-bold text-[var(--color-muted)]" htmlFor="question">
                 {t("home.inputLabel")}
@@ -467,7 +542,8 @@ export default function Home() {
                 </button>
               </div>
             </div>
-          </div>
+            </div>
+          )}
 
         </form>
 
@@ -502,22 +578,26 @@ export default function Home() {
 
         {hasScenario ? (
           <section className="mt-3 grid w-full gap-3 text-start">
-            <div className="animate-rise rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)]/92 px-4 py-3 shadow-[0_14px_34px_rgba(22,58,95,0.05)]">
-              <div className="source-trail" aria-label={t("result.routes")}>
-                {sourceRoutes.map((route, index) => (
-                  <span className="contents" key={route.id}>
-                    <span className="source-trail-item" data-active={activeRoutes[route.id]}>
-                      <span className="source-trail-dot" aria-hidden="true" />
-                      <span>{t(route.labelKey)}</span>
+            {!isRetrieving ? (
+              <div className="animate-rise rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)]/92 px-4 py-3 shadow-[0_14px_34px_rgba(22,58,95,0.05)]">
+                <div className="source-trail" aria-label={t("result.routes")}>
+                  {sourceRoutes.map((route, index) => (
+                    <span className="contents" key={route.id}>
+                      <span className="source-trail-item" data-active={activeRoutes[route.id]}>
+                        <span className="source-trail-dot" aria-hidden="true" />
+                        <span>{t(route.labelKey)}</span>
+                      </span>
+                      {index < sourceRoutes.length - 1 ? <span className="source-trail-separator" aria-hidden="true" /> : null}
                     </span>
-                    {index < sourceRoutes.length - 1 ? <span className="source-trail-separator" aria-hidden="true" /> : null}
-                  </span>
-                ))}
+                  ))}
+                </div>
               </div>
-            </div>
+            ) : null}
 
             <div
-              className="answer-preview scroll-mt-24 rounded-2xl bg-[var(--color-green)] p-4"
+              className={`answer-preview scroll-mt-24 flex flex-col rounded-2xl bg-[var(--color-green)] p-4 ${
+                isRetrieving ? "min-h-[clamp(18rem,48svh,36rem)]" : ""
+              }`}
               ref={loadingPanelRef}
             >
               <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 pb-3">
@@ -532,9 +612,13 @@ export default function Home() {
                 <span className="pulse-dot" aria-hidden="true" />
               </div>
 
-              <div className="mt-4 rounded-xl border border-[var(--color-gold)]/55 bg-[var(--color-sand)] p-4 text-[var(--color-ink)]">
+              <div
+                className={`mt-4 rounded-xl border border-[var(--color-gold)]/55 bg-[var(--color-sand)] p-4 text-[var(--color-ink)] ${
+                  isRetrieving ? "flex flex-1 items-center justify-center" : ""
+                }`}
+              >
                 {isRetrieving ? (
-                  <div className="source-loading" role="status" aria-live="polite">
+                  <div className="source-loading">
                     <Image
                       alt=""
                       aria-hidden="true"
@@ -562,6 +646,11 @@ export default function Home() {
                     {retrieval?.status === "empty" ? (
                       <p className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] p-3 text-sm font-semibold leading-7 text-[var(--color-muted)]">
                         {t("result.empty")}
+                      </p>
+                    ) : null}
+                    {retrieval?.quotationMatch?.state === "similar" ? (
+                      <p className="mb-3 rounded-lg border border-[var(--color-gold)]/40 bg-[var(--color-gold-soft)] p-3 text-sm font-semibold leading-7 text-[var(--color-ink)]">
+                        {t("result.similarSourceNotice")}
                       </p>
                     ) : null}
                     {retrieval?.answer?.status === "ready" && retrieval.answer.text ? (

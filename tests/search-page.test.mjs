@@ -47,3 +47,20 @@ test("English source cards fall back to original Arabic when translation is miss
   assert.match(pageSource, /const direction: "ltr" \| "rtl" = record\.englishText \? "ltr" : "rtl"/);
   assert.match(pageSource, /dir: direction/);
 });
+
+test("similar quotation matches show a deterministic notice above the answer", () => {
+  const pageSource = readHomePage();
+
+  assert.match(pageSource, /retrieval\?\.quotationMatch\?\.state === "similar"/);
+  assert.match(pageSource, /result\.similarSourceNotice/);
+});
+
+test("loading collapses search controls and keeps an accessible edit action", () => {
+  const pageSource = readHomePage();
+
+  assert.match(pageSource, /ref=\{loadingSummaryRef\}/);
+  assert.match(pageSource, /role="status"/);
+  assert.match(pageSource, /requestAbortRef\.current\?\.abort\(\)/);
+  assert.match(pageSource, /home\.editQuestion/);
+  assert.match(pageSource, /min-h-\[clamp\(18rem,48svh,36rem\)\]/);
+});

@@ -1,10 +1,11 @@
 import { completeLlmText } from "./provider";
-import type { GroundedAnswer, RetrievalLanguage, SourceRecord } from "@/lib/retrieval/types";
+import type { GroundedAnswer, QuotationMatch, RetrievalLanguage, SourceRecord } from "@/lib/retrieval/types";
 
 type GenerateGroundedAnswerInput = {
   question: string;
   language: RetrievalLanguage;
   records: SourceRecord[];
+  quotationMatch?: QuotationMatch;
 };
 
 type CitationPackRecord = {
@@ -186,7 +187,7 @@ function citationLabelsForText(records: SourceRecord[], language: RetrievalLangu
   return uniqueUsedIndexes.map((index) => allLabels[index - 1]).filter((label): label is string => Boolean(label));
 }
 
-function selectAnswerRecords(records: SourceRecord[]): CitationPackRecord[] {
+function selectAnswerRecords(records: SourceRecord[], prioritizedRecordIds: string[] = []): CitationPackRecord[] {
   const selected = new Map<string, CitationPackRecord>();
 
   function add(record: SourceRecord, index: number, limit = 12) {
@@ -200,6 +201,12 @@ function selectAnswerRecords(records: SourceRecord[]): CitationPackRecord[] {
     });
   }
 
+  const prioritizedIds = new Set(prioritizedRecordIds);
+  records.forEach((record, index) => {
+    if (prioritizedIds.has(record.id)) {
+      add(record, index);
+    }
+  });
   records.forEach((record, index) => {
     if (record.sourceKind === "hadith") {
       add(record, index, 6);
@@ -429,7 +436,10 @@ function citationNumbersInText(text: string) {
 }
 
 function answerCitationNumbers(input: GenerateGroundedAnswerInput) {
-  return new Set(selectAnswerRecords(input.records).map((item) => item.citationNumber));
+  return new Set(
+    selectAnswerRecords(input.records, input.quotationMatch?.matchedRecordIds)
+      .map((item) => item.citationNumber),
+  );
 }
 
 function passesValidCitationGuardrail(text: string, input: GenerateGroundedAnswerInput) {
@@ -446,10 +456,16 @@ const safeUncitedAnswerSentences = {
   arabic: new Set([
     "ولفهم الصورة كاملة، يمكن مراجعة سياق الإحالات المرفقة.",
     "وإذا كانت المسألة تتعلق بحالة شخصية، يمكن عرض الإحالات على عالم مؤهل.",
+    "وللتحقق من اللفظ والسياق الكامل، راجع نصوص المصادر الأصلية أدناه.",
+    "ويمكنك مراجعة المصادر أدناه للتأكد من النص الكامل وسياقه.",
+    "أما اللفظ الكامل وتفاصيل السياق فتجدها في المصادر الأصلية أدناه.",
   ]),
   english: new Set([
     "For fuller context, the cited passages can be reviewed in their surrounding sections.",
     "If this concerns a personal situation, the citations can be taken to a qualified scholar.",
+    "To verify the exact wording and full context, review the original source texts below.",
+    "You can check the sources below for the complete text and its context.",
+    "The original sources below provide the full wording and surrounding context.",
   ]),
 } satisfies Record<RetrievalLanguage, Set<string>>;
 
@@ -496,6 +512,71 @@ function sentenceAroundRange(text: string, startOffset: number, endOffset: numbe
   return text.slice(start, end).trim();
 }
 
+function isCaveatedQuestionQuotation(
+  sentence: string,
+  quotedText: string,
+  input: GenerateGroundedAnswerInput,
+) {
+  if (input.quotationMatch?.state !== "similar") {
+    return false;
+  }
+
+  const normalizedQuote = input.language === "arabic"
+    ? normalizeArabicForMatching(quotedText)
+    : cleanWhitespace(quotedText).toLowerCase();
+  const isUnmatchedCandidate = input.quotationMatch.unmatchedCandidateTexts.some((candidateText) => {
+    const normalizedCandidate = input.language === "arabic"
+      ? normalizeArabicForMatching(candidateText)
+      : cleanWhitespace(candidateText).toLowerCase();
+
+    return normalizedCandidate === normalizedQuote;
+  });
+
+  if (!normalizedQuote || !isUnmatchedCandidate) {
+    return false;
+  }
+
+  if (input.language === "arabic") {
+    const normalizedSentence = normalizeArabicForMatching(sentence)
+      .replace(/["«»“”]/gu, "");
+    const quoteIndex = normalizedSentence.indexOf(normalizedQuote);
+    const localContext = normalizedSentence.slice(
+      Math.max(0, quoteIndex - 140),
+      quoteIndex + normalizedQuote.length + 140,
+    );
+    const afterQuote = normalizedSentence.slice(quoteIndex + normalizedQuote.length);
+    const hasVerificationTarget = /(?:اللفظ|لفظ|العبارة|عبارة|الصياغة|صياغة|النص|نص|الصحة|صحة|النسبة|نسبة)/u.test(localContext);
+    const hasNegativeVerification = /(?:لا|لم)\s+(?:تثبت|يثبت|تؤكد|يؤكد|تتضمن|يتضمن|ترد|يرد|توجد|يوجد|تظهر|يظهر|نجد|نعثر)|(?:ليس|ليست|غير)\s+(?:ثابت|ثابتة|صحيح|صحيحة|موثق|موثقة|موجود|موجودة)|لا\s+تكفي[\s\S]{0,80}لاثبات/u.test(
+      localContext,
+    );
+    const reversesToPositiveAttribution = /(?:لكن|بل|غير ان|مع ذلك)(?:\s+\S+){0,10}\s+(?:صحيح|صحيحة|ثابت|ثابتة|موثق|موثقة|حديث\s+صحيح|اية\s+صحيحة|ورد\s+عن|منسوب\s+الى|من\s+القران)/u.test(
+      afterQuote,
+    );
+
+    return hasVerificationTarget && hasNegativeVerification && !reversesToPositiveAttribution;
+  }
+
+  const normalizedSentence = cleanWhitespace(sentence).toLowerCase()
+    .replace(/["«»“”]/gu, "");
+  const quoteIndex = normalizedSentence.indexOf(normalizedQuote);
+  const localContext = normalizedSentence.slice(
+    Math.max(0, quoteIndex - 160),
+    quoteIndex + normalizedQuote.length + 160,
+  );
+  const afterQuote = normalizedSentence.slice(quoteIndex + normalizedQuote.length);
+  const hasVerificationTarget = /\b(?:wording|phrase|quotation|quote|text|authenticity|attribution)\b/i.test(
+    localContext,
+  );
+  const hasNegativeVerification = /\b(?:cannot|can't|could not|couldn't|does not|doesn't|did not|is not|isn't|was not|wasn't)\s+(?:verify|authenticate|establish|support|confirm|find|match)|\b(?:could not be found|couldn't be found|cannot be verified|can't be verified|not established|not verified|not authenticated|not supported|not found|no exact match|unverified|unsupported|insufficient to establish)\b/i.test(
+    localContext,
+  );
+  const reversesToPositiveAttribution = /\b(?:but|however|yet)\b(?:\s+\S+){0,10}\s+(?:authentic|authenticated|verified|established|correctly attributed|quran says|hadith says|is (?:quran|a hadith))/i.test(
+    afterQuote,
+  );
+
+  return hasVerificationTarget && hasNegativeVerification && !reversesToPositiveAttribution;
+}
+
 function passesDirectQuoteGuardrail(text: string, input: GenerateGroundedAnswerInput) {
   const quotePattern = /«([^»]+)»|“([^”]+)”|"([^"]+)"/gu;
 
@@ -507,6 +588,10 @@ function passesDirectQuoteGuardrail(text: string, input: GenerateGroundedAnswerI
     const hasQuranCitation = citationNumbers.some((citationNumber) => {
       return input.records[citationNumber - 1]?.sourceKind === "quran";
     });
+
+    if (isCaveatedQuestionQuotation(sentence, quotedText, input)) {
+      return true;
+    }
 
     if (
       tokenizeForGrounding(quotedText, input.language).length < 3
@@ -544,13 +629,40 @@ function passesDirectQuoteGuardrail(text: string, input: GenerateGroundedAnswerI
   });
 }
 
+function verificationGuide(language: RetrievalLanguage) {
+  if (language === "arabic") {
+    return [
+      "إذا كان طلب المستخدم للتحقق من ادعاء أو نسبة أو صحة نص، فابدأ بنتيجة تحقق واضحة ثم فسّر سببها من الأدلة المرفقة.",
+      "طابق نتيجة التحقق مع ما طلبه المستخدم تحديدا: فإذا سأل عن صحة النص أو نسبته أو درجته، فقل صراحة هل تثبت بيانات السجلات المسترجعة الصحة أو النسبة أو الدرجة، ولا تكتف بالحديث عن تشابه اللفظ أو الموضوع.",
+      "استخدم معنى «تؤيد المصادر» فقط عندما تثبت السجلات المسترجعة جوهر الادعاء مباشرة. واستخدم «تؤيده جزئيا» عندما تثبت أجزاء محددة منه فقط، وبيّن الأجزاء المثبتة وغير المثبتة.",
+      "استخدم معنى «تعارضه المصادر» فقط عند وجود نص مسترجع يخالف الادعاء صراحة. أما غياب الدليل أو نقصه أو غموضه أو اختلاف الصياغة فمعناه أن النتائج المسترجعة لا تثبت الادعاء، وليس أنها تعارضه.",
+      "ظهور اللفظ في سجل مسترجع يثبت وجود هذا اللفظ في ذلك السجل فقط؛ ولا يثبت صحة النسبة أو درجة الحديث أو حكما شرعيا إلا إذا صرحت بيانات السجل بذلك.",
+      "لا تذكر درجة حديث إلا إذا نسبها السجل المسترجع إلى مصدرها. وإن لم تتوفر الدرجة، فقل إن الأدلة المسترجعة لا تثبت الدرجة أو الصحة.",
+      "إذا كان السؤال مفتوحا للتفسير أو الفهم وليس للتحقق من ادعاء، فأجب عنه مباشرة بالمعنى المدعوم وحدوده من دون فرض صيغة التأييد أو التعارض.",
+      "اجعل الشرح كافيا لفهم النتيجة وسببها قبل فتح بطاقات المصادر: قدّم خلاصة حاسمة بالمعنى، وأهم القيود، والإحالات، من دون نسخ النصوص الأصلية أو الأسانيد أو بيانات البطاقات كاملة.",
+    ];
+  }
+
+  return [
+    "When the user asks to verify a claim, attribution, quotation, or authenticity, begin with a clear verification conclusion and then explain why from the attached evidence.",
+    "Match the conclusion to the exact verification requested: if the user asks about authenticity, attribution, or grade, explicitly say whether the retrieved record metadata establishes that dimension rather than discussing only wording or topical similarity.",
+    'Use "the sources support this" only when the retrieved records directly establish the material claim. Use "partially support" when only identified parts are established, and name the supported and unsupported parts.',
+    'Use "the sources contradict this" only when a retrieved text explicitly conflicts with the claim. Missing, incomplete, ambiguous, or differently worded evidence means the retrieved results do not establish the claim; it is not a contradiction.',
+    "A wording match establishes only that the wording appears in a retrieved record. It does not establish authenticity, grade, attribution, or a legal ruling unless the retrieved metadata explicitly does so.",
+    "Report a hadith grade only when a retrieved record attributes it to its source. If no grade is available, say that the retrieved evidence does not establish the grade or authenticity.",
+    "For an open explanatory question rather than a verification claim, answer directly with the supported meaning and its limits instead of forcing support-or-contradiction language.",
+    "Make the explanation sufficient to understand the conclusion and its reason before opening the source cards: give a decisive paraphrase, key qualifications, and citations without copying full source wording, narrator chains, or card metadata.",
+  ];
+}
+
 function responseStyleGuide(language: RetrievalLanguage) {
   if (language === "arabic") {
     return [
       "ابدأ بالجواب نفسه، لا بوصف عملية البحث أو السجلات أو طريقة صياغة الإجابة.",
       "اكتب بلغة عربية ودودة وطبيعية وهادئة، كأنك تشرح المعنى للسائل في حوار مباشر.",
-      "قدّم خلاصة حقيقية تجمع المعاني التي تؤيدها عدة مصادر، وتوضح صلتها بالسؤال، وتذكر التخصيص أو الاختلاف إن وجد. لا تدّع اتفاقا لا تثبته النصوص، ولا تكرر مقتطفات منفصلة أو تسرد أسماء المصادر.",
+      "قدّم خلاصة حقيقية تجمع المعاني التي تؤيدها المصادر، وتوضح صلتها بنتيجة التحقق أو بالسؤال، وتذكر التخصيص أو الاختلاف إن وجد. لا تدّع اتفاقا لا تثبته النصوص، ولا تكرر مقتطفات منفصلة أو تسرد أسماء المصادر.",
       "نوّع بداية الإجابة وتركيب الجمل والروابط في كل مرة. لا تستخدم افتتاحية أو خاتمة ثابتة، ولا تغيّر الحقائق من أجل التنويع.",
+      "اختم بدعوة ودودة إلى مراجعة نصوص المصادر الأصلية أدناه للتحقق من اللفظ الكامل والسياق. نوّع صياغة هذه الدعوة ولا تجعلها خاتمة آلية ثابتة.",
       "يمكن أن تختم بخطوة عملية واحدة فقط. إذا نص مصدر صراحة على عمل، فانسب التوجيه إلى النص مع إحالته، ولا تحوله إلى أمر شخصي أو فتوى.",
       "إذا لم تنص المصادر على عمل، فلا تقترح ممارسة دينية من عندك؛ اقترح فقط مراجعة سياق الإحالات، أو عرض الحالة الشخصية على عالم مؤهل.",
       "لا تقل بصوت المساعد: يجب عليك، أو عليك أن، أو افعل، أو لا تفعل.",
@@ -558,15 +670,16 @@ function responseStyleGuide(language: RetrievalLanguage) {
       "أمثلة أسلوبية للنبرة والبنية فقط، وليست معلومات يجوز نقلها إلى الإجابة:",
       "مصدر افتراضي [1]: يربط النص التقدم بخطوة صغيرة. مصدر افتراضي [2]: يربط النص التقدم بالاستمرار.",
       "غير مناسب: بالنسبة إلى سؤالك، تعرض السجلات المسترجعة نصين عن التقدم.",
-      "أفضل: الفكرة الأساسية أن التقدم يبدأ بخطوة صغيرة ويقوى بالاستمرار [1][2]. ولفهم الصورة كاملة، يمكن مراجعة سياق الإحالتين.",
+      "أفضل: تؤيد الإحالتان أن التقدم يبدأ بخطوة صغيرة ويقوى بالاستمرار [1][2]. يوضح ذلك سبب النتيجة من دون تكرار النصين. وللتحقق من اللفظ والسياق الكامل، راجع نصوص المصادر الأصلية أدناه.",
     ];
   }
 
   return [
     "Begin with the answer itself, not with the search process, the retrieved records, or how the answer was composed.",
     "Use friendly, natural, calm prose, as if you are explaining the meaning to the user in a direct conversation.",
-    "Provide a genuine synthesis of meanings supported by multiple sources, explain how they answer the question, and state qualifications or differences when present. Do not manufacture agreement, repeat disconnected excerpts, or list source names.",
+    "Provide a genuine synthesis of meanings supported by the sources, explain how they support the verification conclusion or answer the question, and state qualifications or differences when present. Do not manufacture agreement, repeat disconnected excerpts, or list source names.",
     "Vary the opening, sentence structure, and transitions from one answer to the next. Do not use a fixed first or last sentence, and never vary the facts.",
+    "End with a friendly invitation to review the original source texts below for the exact wording and full context. Vary the wording of this invitation rather than using a fixed mechanical closing.",
     "You may end with at most one practical next step. If a source explicitly states an action, attribute that guidance to the source with a citation; do not turn it into a personal command or fatwa.",
     "If the sources state no action, do not invent a religious practice. Suggest only reviewing the cited context or taking a personal case to a qualified scholar.",
     'In your own voice, never say "you must," "you should," "you need to," or issue a direct command.',
@@ -574,7 +687,7 @@ function responseStyleGuide(language: RetrievalLanguage) {
     "The following are style examples only; never copy their facts into an answer:",
     "Synthetic source [1]: The text connects progress with a small step. Synthetic source [2]: The text connects progress with consistency.",
     "Poor: For your question, the retrieved records contain two ideas about progress.",
-    "Better: The central idea is that progress begins with a small step and grows through consistency [1][2]. For fuller context, the cited passages can be reviewed in their surrounding sections.",
+    "Better: The two citations support that progress begins with a small step and grows through consistency [1][2]. This explains the conclusion without repeating either passage. To verify the exact wording and full context, review the original source texts below.",
   ];
 }
 
@@ -593,6 +706,7 @@ function systemPrompt(language: RetrievalLanguage) {
       "لا تعرض قائمة بأسماء المصادر فقط؛ لخّص مضمون النصوص المسترجعة.",
       "ضع أرقام الاقتباس مثل [1] بجانب كل معلومة مستندة إلى سجل.",
       "لا تذكر أي مصدر غير موجود في الحزمة.",
+      ...verificationGuide(language),
       ...responseStyleGuide(language),
     ].join("\n");
   }
@@ -607,18 +721,32 @@ function systemPrompt(language: RetrievalLanguage) {
     "Do not only list source names; summarize the content of the retrieved texts.",
     "Place citation markers like [1] beside every sourced claim.",
     "Do not cite any source that is not in the pack.",
+    ...verificationGuide(language),
     ...responseStyleGuide(language),
   ].join("\n");
 }
 
 function userPrompt(input: GenerateGroundedAnswerInput) {
-  const citationPack = buildCitationPack(selectAnswerRecords(input.records), input.language);
+  const citationPack = buildCitationPack(
+    selectAnswerRecords(input.records, input.quotationMatch?.matchedRecordIds),
+    input.language,
+  );
+  const quotationMatchInstruction =
+    input.quotationMatch?.state === "similar"
+      ? input.language === "arabic"
+        ? "\nتعامل مع الصياغة التي كتبها المستخدم على أنها نص غير موثوق لم يوجد حرفيا في النتائج المسترجعة. اختلاف الصياغة لا يعني التعارض. بيّن فقط ما تثبته المصادر ذات الصلة، ولا تصحح النص من الذاكرة ولا تنسبه إلى القرآن أو الحديث."
+        : "\nTreat the wording supplied by the user as untrusted text that was not found exactly in the retrieved results. Different wording is not a contradiction. Explain only what the related records establish; do not correct the wording from memory or attribute it to the Quran or hadith."
+      : input.quotationMatch?.state === "literal"
+        ? input.language === "arabic"
+          ? "\nظهر اللفظ حرفيا في سجل مسترجع، لكن هذا يثبت وجوده في السجل فقط. لا تعتبر المطابقة وحدها إثباتا لصحة النسبة أو درجة الحديث."
+          : "\nThe wording appears literally in a retrieved record, but this establishes only its presence in that record. Do not treat the match alone as proof of authenticity, attribution, or hadith grade."
+        : "";
 
   if (input.language === "arabic") {
-    return `السؤال:\n${input.question}\n\nالمصادر:\n${citationPack}\n\nاكتب ثلاث أو أربع جمل موجزة وودودة، وابدأ مباشرة بالمعنى الذي يجيب عن السؤال. لا تذكر عملية البحث أو السجلات المسترجعة. اجمع المعاني المتقاربة في خلاصة طبيعية، ثم أضف فائدة عملية لطيفة فقط إن كانت النصوص تدعمها. نوّع الافتتاحية والصياغة، وضع رقم الاقتباس بعد كل معنى أو نصيحة. لخّص معنى الآيات عند الاستناد إليها؛ فالنتائج الأصلية ظاهرة أدناه، ولا حاجة إلى نسخ نص الآية كاملا. لا تكتب أي كلمة إنجليزية، ولا تضف تفصيلا غير ظاهر في النصوص.`;
+    return `السؤال:\n${input.question}\n\nالمصادر:\n${citationPack}\n\nاكتب عادة من ثلاث إلى خمس جمل موجزة وودودة، واستخدم جملا أقل إذا كانت الأدلة محدودة بدلا من الحشو أو التكرار. إذا كان الطلب للتحقق، فابدأ بنتيجة التحقق ثم اشرح الأدلة الحاسمة وحدودها بما يكفي لفهم السبب. وإذا كان سؤالا مفتوحا، فابدأ مباشرة بالمعنى الذي يجيب عنه. لا تذكر عملية البحث أو السجلات المسترجعة بصيغة تقنية. اجمع المعاني المتقاربة في خلاصة طبيعية، وضع رقم الاقتباس بعد كل نتيجة أو معنى مستند إلى مصدر. لخّص معنى الآيات عند الاستناد إليها؛ فالنتائج الأصلية ظاهرة أدناه، ولا حاجة إلى نسخ نص الآية كاملا. اختم بدعوة موجزة ومتنوعة إلى مراجعة نصوص المصادر الأصلية أدناه للتحقق من اللفظ الكامل والسياق. لا تكتب أي كلمة إنجليزية، ولا تضف تفصيلا غير ظاهر في النصوص.${quotationMatchInstruction}`;
   }
 
-  return `Question:\n${input.question}\n\nSources:\n${citationPack}\n\nWrite three or four concise, friendly sentences and begin directly with the meaning that answers the question. Do not mention the search process or the retrieved records. Combine related ideas into a natural synthesis, then add a gentle practical takeaway only when the texts support it. Vary the opening and phrasing, and place a citation marker after every claim or suggestion. Summarize the content, not only source names or hadith narrator chains. Do not add details that are not visible in the records.`;
+  return `Question:\n${input.question}\n\nSources:\n${citationPack}\n\nUsually write three to five concise, friendly sentences; use fewer when evidence is limited rather than adding padding or repetition. For a verification request, begin with the verification conclusion, then explain the decisive evidence and limitations clearly enough to understand why. For an open question, begin directly with the supported answer. Do not describe the search process or retrieved records in technical terms. Combine related ideas into a natural synthesis and place a citation marker after every sourced conclusion or meaning. Summarize the content, not source names or hadith narrator chains. End with a brief, naturally varied invitation to review the original source texts below for the exact wording and full context. Do not add details that are not visible in the records.${quotationMatchInstruction}`;
 }
 
 function answerGuardFailure(text: string, input: GenerateGroundedAnswerInput) {
