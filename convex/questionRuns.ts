@@ -4,6 +4,7 @@ import { paginationOptsValidator, paginationResultValidator } from "convex/serve
 import { internalMutation, query } from "./_generated/server";
 import type { Doc } from "./_generated/dataModel";
 import { requireAdmin } from "./lib/admin";
+import { addRunToStats } from "./runStats";
 
 const statusValidator = v.union(
   v.literal("completed"),
@@ -77,16 +78,22 @@ export const recordRun = internalMutation({
       .withIndex("by_run_id", (q) => q.eq("runId", args.runId))
       .unique();
 
-    if (existingRun) return existingRun._id;
+    if (existingRun) {
+      await addRunToStats(ctx, existingRun);
+      return existingRun._id;
+    }
 
     const sourceCount = args.quranCount + args.tafsirCount + args.hadithCount;
 
-    return await ctx.db.insert("questionRuns", {
+    const runId = await ctx.db.insert("questionRuns", {
       ...args,
       sourceCount,
       occurredAt: Date.now(),
       isDemo: false,
     });
+    const run = await ctx.db.get(runId);
+    await addRunToStats(ctx, run!);
+    return runId;
   },
 });
 

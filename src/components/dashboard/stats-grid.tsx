@@ -15,7 +15,7 @@ export function StatsGrid({ language, stats, t }: StatsGridProps) {
     {
       label: t("dashboard.stat.questions"),
       value: number.format(stats.trackedCount),
-      note: stats.isCapped ? t("dashboard.stat.capped") : t("dashboard.stat.latest"),
+      note: t("dashboard.stat.allTime"),
     },
     {
       label: t("dashboard.stat.completed"),

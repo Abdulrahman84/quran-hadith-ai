@@ -12,7 +12,6 @@ export type DashboardStats = {
   failedCount: number;
   citationCount: number;
   averageSources: number;
-  isCapped: boolean;
   sourceTotals: {
     quran: number;
     tafsir: number;

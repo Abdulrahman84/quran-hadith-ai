@@ -13,6 +13,7 @@ import type * as auth from "../auth.js";
 import type * as http from "../http.js";
 import type * as lib_admin from "../lib/admin.js";
 import type * as questionRuns from "../questionRuns.js";
+import type * as runStats from "../runStats.js";
 
 import type {
   ApiFromModules,
@@ -26,6 +27,7 @@ declare const fullApi: ApiFromModules<{
   http: typeof http;
   "lib/admin": typeof lib_admin;
   questionRuns: typeof questionRuns;
+  runStats: typeof runStats;
 }>;
 
 /**
@@ -54,4 +56,6 @@ export declare const internal: FilterApi<
   FunctionReference<any, "internal">
 >;
 
-export declare const components: {};
+export declare const components: {
+  questionRunStats: import("@convex-dev/aggregate/_generated/component.js").ComponentApi<"questionRunStats">;
+};
