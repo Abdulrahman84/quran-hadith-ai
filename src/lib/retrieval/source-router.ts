@@ -71,9 +71,11 @@ export async function searchSources(
   query: string,
   language: RetrievalLanguage,
   options: { tafsirSource?: TafsirSourceSelection; hadithCollection?: HadithCollectionSelection } = {},
+  onProgress?: (completed: number, total: number) => void,
 ): Promise<RetrievalResponse> {
   const routeDecision = await planSourceRouteDecision(query);
   const routes = routeDecision.routes;
+  onProgress?.(0, routes.length);
 
   if (routes.length === 0) {
     return {
@@ -95,12 +97,18 @@ export async function searchSources(
     };
   }
 
+  let completedRoutes = 0;
   const responses = await Promise.all(
-    routes.map((route) =>
-      route === "tafsir"
-        ? searchTafsirSources(query, language, { tafsirSource: options.tafsirSource })
-        : searchHadithSources(query, language, { collection: options.hadithCollection }),
-    ),
+    routes.map(async (route) => {
+      const response =
+        route === "tafsir"
+          ? await searchTafsirSources(query, language, { tafsirSource: options.tafsirSource })
+          : await searchHadithSources(query, language, { collection: options.hadithCollection });
+
+      completedRoutes += 1;
+      onProgress?.(completedRoutes, routes.length);
+      return response;
+    }),
   );
   const records = responses
     .flatMap((response) => response.records)

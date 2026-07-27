@@ -1,10 +1,10 @@
 "use client";
 
-import Image from "next/image";
 import { FormEvent, KeyboardEvent, useEffect, useMemo, useRef, useState } from "react";
 
 import { ExpandableSourceText } from "@/components/expandable-source-text";
 import { useI18n } from "@/components/i18n-provider";
+import { SearchLoading } from "@/components/search-loading";
 import type { TranslationKey } from "@/lib/i18n";
 import { hadithCollections, type HadithCollectionSelection } from "@/lib/retrieval/hadith-collections";
 import {
@@ -16,6 +16,7 @@ import {
 } from "@/lib/retrieval/source-display";
 import { tafsirSources, type TafsirSourceSelection } from "@/lib/retrieval/tafsir-sources";
 import type { RetrievalResponse, RetrievalWarning } from "@/lib/retrieval/types";
+import { readSearchResponse, searchStreamMediaType, type SearchProgressPhase } from "@/lib/search-stream";
 
 const suggestionKeys: TranslationKey[] = [
   "home.suggestion.intention",
@@ -36,7 +37,6 @@ const resultSourceFilters: Array<{ id: ResultSourceFilter; labelKey: Translation
   { id: "hadith", labelKey: "result.filterHadith" },
 ];
 
-const minimumLoadingMs = 5000;
 const sourcePageSize = 5;
 
 function resizeQuestionField(element: HTMLTextAreaElement) {
@@ -210,6 +210,8 @@ export default function Home() {
   const [question, setQuestion] = useState("");
   const [submittedQuestion, setSubmittedQuestion] = useState("");
   const [isRetrieving, setIsRetrieving] = useState(false);
+  const [searchProgress, setSearchProgress] = useState(0);
+  const [searchProgressPhase, setSearchProgressPhase] = useState<SearchProgressPhase>("starting");
   const [retrieval, setRetrieval] = useState<RetrievalResponse | null>(null);
   const [requestError, setRequestError] = useState("");
   const [requestErrorHelp, setRequestErrorHelp] = useState<TranslationKey>("result.checkPaths");
@@ -257,6 +259,13 @@ export default function Home() {
       ? null
       : tafsirSources.find((source) => source.id === tafsirSource)?.[language === "ar" ? "labelAr" : "labelEn"],
   ].filter((label): label is string => Boolean(label));
+  const progressPhaseLabels: Record<SearchProgressPhase, TranslationKey> = {
+    starting: "result.progressStarting",
+    routing: "result.progressRouting",
+    retrieving: "result.progressRetrieving",
+    answering: "result.progressAnswering",
+    finalizing: "result.progressFinalizing",
+  };
 
   useEffect(() => {
     if (textareaRef.current) {
@@ -299,39 +308,50 @@ export default function Home() {
     setRequestError("");
     setRequestErrorHelp("result.checkPaths");
     setSourcePage(1);
+    setSearchProgress(8);
+    setSearchProgressPhase("starting");
     setIsRetrieving(true);
     requestAbortRef.current?.abort();
     const requestController = new AbortController();
     requestAbortRef.current = requestController;
 
     try {
-      const [response] = await Promise.all([
-        fetch("/api/search", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            language: language === "ar" ? "arabic" : "english",
-            question: trimmed,
-            hadithCollection: selectedHadithCollection,
-            tafsirSource: selectedTafsirSource,
-          }),
-          signal: requestController.signal,
+      const response = await fetch("/api/search", {
+        method: "POST",
+        headers: {
+          Accept: searchStreamMediaType,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          language: language === "ar" ? "arabic" : "english",
+          question: trimmed,
+          hadithCollection: selectedHadithCollection,
+          tafsirSource: selectedTafsirSource,
         }),
-        new Promise((resolve) => window.setTimeout(resolve, minimumLoadingMs)),
-      ]);
+        signal: requestController.signal,
+      });
 
       if (requestController.signal.aborted) {
         return;
       }
 
-      const payload = (await response.json()) as RetrievalResponse;
+      const result = await readSearchResponse(response, (event) => {
+        if (requestController.signal.aborted || requestAbortRef.current !== requestController) {
+          return;
+        }
 
-      if (!response.ok) {
+        setSearchProgress((current) => Math.max(current, event.progress));
+        setSearchProgressPhase(event.phase);
+      });
+      const payload = result.payload;
+
+      if (!result.ok) {
         const warning = payload.warnings.at(0);
         setRequestErrorHelp(warning?.code === "source_tool_router_unavailable" ? "result.checkAiRouter" : "result.checkPaths");
         throw new Error(warning ? t(getWarningKey(warning)) : t("warning.generic"));
       }
 
+      setSearchProgress(100);
       setRetrieval(payload);
     } catch (error) {
       if (requestController.signal.aborted) {
@@ -479,8 +499,8 @@ export default function Home() {
               />
             </div>
 
-            <div className="mt-5 grid gap-4 border-t border-[var(--color-border)] pt-5 sm:gap-5 md:grid-cols-2 lg:grid-cols-[1fr_1fr_auto]">
-              <div className="grid gap-2 text-start">
+            <div className="mt-5 grid grid-cols-2 gap-3 border-t border-[var(--color-border)] pt-5 sm:gap-5 lg:grid-cols-[1fr_1fr_auto]">
+              <div className="grid min-w-0 gap-2 text-start">
                 <label className="text-xs font-bold text-[var(--color-muted)]" htmlFor="hadith-collection">
                   {t("home.hadithCollectionLabel")}
                 </label>
@@ -505,7 +525,7 @@ export default function Home() {
                 </div>
               </div>
 
-              <div className="grid gap-2 text-start">
+              <div className="grid min-w-0 gap-2 text-start">
                 <label className="text-xs font-bold text-[var(--color-muted)]" htmlFor="tafsir-source">
                   {t("home.tafsirSourceLabel")}
                 </label>
@@ -530,7 +550,7 @@ export default function Home() {
                 </div>
               </div>
 
-              <div className="flex items-end">
+              <div className="col-span-2 flex items-end lg:col-span-1">
                 <button
                   className="action-button inline-flex h-[52px] w-full items-center justify-center gap-3 rounded-[10px] bg-[var(--color-green)] px-8 text-sm font-bold text-white disabled:cursor-wait disabled:opacity-75 lg:w-auto"
                   disabled={isRetrieving || !question.trim()}
@@ -619,19 +639,11 @@ export default function Home() {
                 }`}
               >
                 {isRetrieving ? (
-                  <div className="source-loading">
-                    <Image
-                      alt=""
-                      aria-hidden="true"
-                      className="source-loading-mark"
-                      height={82}
-                      src="/assets/sanad-ai-loader.svg?v=midnight-manuscript-3"
-                      style={{ height: "auto", width: "min(17rem, 72vw)" }}
-                      unoptimized
-                      width={176}
-                    />
-                    <p>{t("result.loading")}</p>
-                  </div>
+                  <SearchLoading
+                    label={t("result.loading")}
+                    phaseLabel={t(progressPhaseLabels[searchProgressPhase])}
+                    progress={searchProgress}
+                  />
                 ) : requestError ? (
                   <div role="alert">
                     <p className="text-xs font-bold uppercase tracking-[0.16em] text-[var(--color-red)]">

@@ -69,6 +69,28 @@ test("loading collapses search controls and keeps an accessible edit action", ()
   assert.match(pageSource, /min-h-\[clamp\(18rem,48svh,36rem\)\]/);
 });
 
+test("search loading uses streamed server progress without a fixed minimum delay", () => {
+  const pageSource = readHomePage();
+  const loadingSource = fs.readFileSync(path.join(process.cwd(), "src/components/search-loading.tsx"), "utf8");
+  const streamSource = fs.readFileSync(path.join(process.cwd(), "src/lib/search-stream.ts"), "utf8");
+
+  assert.match(pageSource, /Accept: searchStreamMediaType/);
+  assert.match(pageSource, /readSearchResponse\(response/);
+  assert.doesNotMatch(pageSource, /minimumLoadingMs/);
+  assert.doesNotMatch(pageSource, /window\.setTimeout/);
+  assert.match(loadingSource, /role="progressbar"/);
+  assert.match(loadingSource, /aria-valuenow=\{safeProgress\}/);
+  assert.match(streamSource, /TextDecoder/);
+  assert.match(streamSource, /decoder\.decode\(value, \{ stream: !done \}\)/);
+});
+
+test("mobile source filters use equal-width columns above the full-width search action", () => {
+  const pageSource = readHomePage();
+
+  assert.match(pageSource, /grid grid-cols-2 gap-3/);
+  assert.match(pageSource, /col-span-2 flex items-end lg:col-span-1/);
+});
+
 test("long Quran and hadith source text can expand from a five-line preview", () => {
   const pageSource = readHomePage();
   const expandableSourceText = readExpandableSourceText();

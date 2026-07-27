@@ -508,6 +508,55 @@ textarea {
   text-transform: uppercase;
 }
 
+.search-progress-copy {
+  display: grid;
+  justify-items: center;
+  gap: 0.3rem;
+  text-align: center;
+}
+
+.search-progress-copy span {
+  color: var(--color-green);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.search-progress {
+  display: grid;
+  width: min(20rem, 72vw);
+  grid-template-columns: minmax(0, 1fr) 3rem;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.search-progress-track {
+  height: 0.55rem;
+  overflow: hidden;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-green) 13%, transparent);
+}
+
+.search-progress-fill {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--color-gold), var(--color-green));
+  transition: width 420ms ease-out;
+}
+
+.search-progress strong {
+  color: var(--color-green);
+  font-size: 0.9rem;
+  font-variant-numeric: tabular-nums;
+  text-align: end;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .search-progress-fill {
+    transition: none;
+  }
+}
+
 .citation-card {
   border-radius: 1rem;
   border: 1px solid color-mix(in srgb, white 16%, transparent);
