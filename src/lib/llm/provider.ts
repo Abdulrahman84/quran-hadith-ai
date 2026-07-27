@@ -53,7 +53,7 @@ type OpenRouterResponse = {
 };
 
 const defaultOpenRouterBaseUrl = "https://openrouter.ai/api/v1";
-const defaultOpenRouterModel = "google/gemini-3.1-flash-lite";
+const defaultOpenRouterModel = "google/gemini-3.5-flash-lite";
 
 function readPositiveInt(value: string | undefined, fallback: number) {
   const parsed = Number.parseInt(value || "", 10);
