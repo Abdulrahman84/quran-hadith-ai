@@ -8,6 +8,22 @@ type HadithQueryPlan = {
   warning: string | null;
 };
 
+const HADITH_QUERY_LIMIT = 8;
+
+function uniqueQueries(queries: string[]) {
+  return [...new Set(queries.filter(Boolean))];
+}
+
+function selectRetrievalQueries(fallbackQueries: string[], plannedQuery: string, aiQueries: string[]) {
+  const curatedQueries = fallbackQueries.filter((query) => query !== plannedQuery);
+
+  return uniqueQueries([
+    ...curatedQueries.slice(0, HADITH_QUERY_LIMIT - 1),
+    plannedQuery,
+    ...aiQueries,
+  ]).slice(0, HADITH_QUERY_LIMIT);
+}
+
 function parseJsonObject(value: string) {
   const stripped = value
     .replace(/<think>[\s\S]*?<\/think>/gi, "")
@@ -122,7 +138,7 @@ export async function planHadithRetrievalQueries(
   const aiPlan = await planWithLlm(query, language);
 
   return {
-    queries: [...new Set([...fallbackQueries, ...aiPlan.queries])],
+    queries: selectRetrievalQueries(fallbackQueries, plannedQuery, aiPlan.queries),
     planner: aiPlan.planner,
     warning: aiPlan.warning,
   };

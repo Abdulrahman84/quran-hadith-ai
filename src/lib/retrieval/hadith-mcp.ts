@@ -49,7 +49,7 @@ type SearchAttempt = {
 const DEFAULT_HADITH_MCP_ROOT = "/Users/abdulrahman/Projects/hadith-mcp";
 const DEFAULT_HADITH_MCP_DB_PATH = `${DEFAULT_HADITH_MCP_ROOT}/data/generated/hadith-meeatif.sqlite`;
 const DEFAULT_HADITH_MCP_CLI = `${DEFAULT_HADITH_MCP_ROOT}/packages/hadith-mcp/dist/cli.js`;
-const HADITH_SEARCH_LIMIT = 20;
+const HADITH_SEARCH_LIMIT = 12;
 const HADITH_RESULT_LIMIT = 5;
 
 function getHadithMcpConfig() {
@@ -257,6 +257,7 @@ export async function searchHadithSources(
           warnings: records.length > 0 ? [] : [{ code: "no_hadith_results", message: "No hadith records matched this query." }],
           provenanceNotes: [
             `Hadith candidates collected: ${candidates.size}.`,
+            `Hadith retrieval budget: up to ${hadithQueryPlan.queries.length} queries with ${HADITH_SEARCH_LIMIT} candidates each.`,
             "Hadith reranker: matn-aware lexical rerank.",
             ...(collection === "all" ? [] : [`Hadith collection filter: ${collection}.`]),
             `Hadith query planner: ${hadithQueryPlan.planner}.`,
