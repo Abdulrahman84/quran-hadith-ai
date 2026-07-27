@@ -13,11 +13,34 @@ function getRunStatus(response: RetrievalResponse) {
   return "needs_review" as const;
 }
 
-export async function recordQuestionRun(input: RecordQuestionRunInput) {
-  const siteUrl = process.env.NEXT_PUBLIC_CONVEX_SITE_URL;
-  const ingestSecret = process.env.DASHBOARD_INGEST_SECRET;
+function getConvexSiteUrl() {
+  const explicitSiteUrl = process.env.NEXT_PUBLIC_CONVEX_SITE_URL;
+  if (explicitSiteUrl) return new URL(explicitSiteUrl).origin;
 
-  if (!siteUrl || !ingestSecret) return;
+  const deploymentUrl = process.env.NEXT_PUBLIC_CONVEX_URL;
+  if (!deploymentUrl) return null;
+
+  const url = new URL(deploymentUrl);
+  if (!url.hostname.endsWith(".convex.cloud")) return null;
+
+  url.hostname = `${url.hostname.slice(0, -".convex.cloud".length)}.convex.site`;
+  return url.origin;
+}
+
+export async function recordQuestionRun(input: RecordQuestionRunInput) {
+  const ingestSecret = process.env.DASHBOARD_INGEST_SECRET;
+  let siteUrl: string | null = null;
+
+  try {
+    siteUrl = getConvexSiteUrl();
+  } catch (error) {
+    console.error("[analytics] Invalid Convex URL configuration.", error);
+  }
+
+  if (!siteUrl || !ingestSecret) {
+    console.error("[analytics] Question tracking is not configured.");
+    return;
+  }
 
   const counts = input.response.records.reduce(
     (total, record) => ({
@@ -28,7 +51,7 @@ export async function recordQuestionRun(input: RecordQuestionRunInput) {
   );
 
   try {
-    await fetch(`${siteUrl}/analytics/record`, {
+    const response = await fetch(`${siteUrl}/analytics/record`, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${ingestSecret}`,
@@ -48,8 +71,15 @@ export async function recordQuestionRun(input: RecordQuestionRunInput) {
         durationMs: input.durationMs,
       }),
       cache: "no-store",
+      signal: AbortSignal.timeout(4000),
     });
-  } catch {
+
+    if (!response.ok) {
+      const responseBody = (await response.text()).slice(0, 200);
+      console.error(`[analytics] Question tracking failed with ${response.status}: ${responseBody}`);
+    }
+  } catch (error) {
     // Analytics must never make source retrieval fail.
+    console.error("[analytics] Question tracking request failed.", error);
   }
 }

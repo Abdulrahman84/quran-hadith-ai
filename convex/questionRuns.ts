@@ -1,8 +1,9 @@
 import { v } from "convex/values";
-import { getAuthUserId } from "@convex-dev/auth/server";
+import { paginationOptsValidator, paginationResultValidator } from "convex/server";
 
 import { internalMutation, query } from "./_generated/server";
 import type { Doc } from "./_generated/dataModel";
+import { requireAdmin } from "./lib/admin";
 
 const statusValidator = v.union(
   v.literal("completed"),
@@ -10,7 +11,7 @@ const statusValidator = v.union(
   v.literal("failed"),
 );
 
-const exampleStatusValidator = v.union(
+const filterStatusValidator = v.union(
   v.literal("all"),
   v.literal("completed"),
   v.literal("needs_review"),
@@ -31,7 +32,6 @@ const questionRunResult = v.object({
   warningCount: v.number(),
   durationMs: v.number(),
   occurredAt: v.number(),
-  isDemo: v.boolean(),
 });
 
 function presentRun(run: Doc<"questionRuns">) {
@@ -49,8 +49,11 @@ function presentRun(run: Doc<"questionRuns">) {
     warningCount: run.warningCount,
     durationMs: run.durationMs,
     occurredAt: run.occurredAt,
-    isDemo: run.isDemo,
   };
+}
+
+function normalizeSearch(search: string) {
+  return search.trim().slice(0, 200).split(/\s+/).slice(0, 16).join(" ");
 }
 
 export const recordRun = internalMutation({
@@ -87,68 +90,66 @@ export const recordRun = internalMutation({
   },
 });
 
-export const listRecent = query({
+export const listPaginated = query({
   args: {
-    limit: v.number(),
-    scope: v.union(v.literal("all"), v.literal("live"), v.literal("demo")),
-    status: exampleStatusValidator,
+    paginationOpts: paginationOptsValidator,
+    search: v.string(),
+    status: filterStatusValidator,
   },
-  returns: v.array(questionRunResult),
+  returns: paginationResultValidator(questionRunResult),
   handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
-    const user = userId ? await ctx.db.get(userId) : null;
-    const adminEmail = process.env.ADMIN_EMAIL?.trim().toLowerCase();
+    await requireAdmin(ctx);
 
-    if (!user?.email || !adminEmail || user.email.toLowerCase() !== adminEmail) {
-      throw new Error("Administrator access required.");
-    }
+    const search = normalizeSearch(args.search);
+    let result;
 
-    const limit = Math.min(Math.max(Math.floor(args.limit), 1), 20);
-
-    if (args.scope === "all") {
-      if (args.status === "all") {
-        const runs = await ctx.db
-          .query("questionRuns")
-          .withIndex("by_occurred_at")
-          .order("desc")
-          .take(limit);
-
-        return runs.map(presentRun);
-      }
-
+    if (search.length > 0) {
       const selectedStatus = args.status;
-
-      const runs = await ctx.db
+      result = await ctx.db
         .query("questionRuns")
-        .withIndex("by_status_and_occurred_at", (q) => q.eq("status", selectedStatus))
+        .withSearchIndex("search_question", (q) => {
+          const liveSearch = q.search("question", search).eq("isDemo", false);
+          return selectedStatus === "all" ? liveSearch : liveSearch.eq("status", selectedStatus);
+        })
+        .paginate(args.paginationOpts);
+    } else if (args.status === "all") {
+      result = await ctx.db
+        .query("questionRuns")
+        .withIndex("by_is_demo_and_occurred_at", (q) => q.eq("isDemo", false))
         .order("desc")
-        .take(limit);
-
-      return runs.map(presentRun);
+        .paginate(args.paginationOpts);
+    } else {
+      const selectedStatus = args.status;
+      result = await ctx.db
+        .query("questionRuns")
+        .withIndex("by_is_demo_status_and_occurred_at", (q) =>
+          q.eq("isDemo", false).eq("status", selectedStatus),
+        )
+        .order("desc")
+        .paginate(args.paginationOpts);
     }
 
-    const isDemo = args.scope === "demo";
+    return { ...result, page: result.page.map(presentRun) };
+  },
+});
 
-    if (args.status === "all") {
-      const runs = await ctx.db
-        .query("questionRuns")
-        .withIndex("by_is_demo_and_occurred_at", (q) => q.eq("isDemo", isDemo))
-        .order("desc")
-        .take(limit);
-
-      return runs.map(presentRun);
-    }
-
-    const selectedStatus = args.status;
-
-    const runs = await ctx.db
+export const removeDemoRuns = internalMutation({
+  args: {},
+  returns: v.object({
+    deletedCount: v.number(),
+    hasMore: v.boolean(),
+  }),
+  handler: async (ctx) => {
+    const demoRuns = await ctx.db
       .query("questionRuns")
-      .withIndex("by_is_demo_status_and_occurred_at", (q) =>
-        q.eq("isDemo", isDemo).eq("status", selectedStatus),
-      )
-      .order("desc")
-      .take(limit);
+      .withIndex("by_is_demo_and_occurred_at", (q) => q.eq("isDemo", true))
+      .take(500);
 
-    return runs.map(presentRun);
+    await Promise.all(demoRuns.map((run) => ctx.db.delete(run._id)));
+
+    return {
+      deletedCount: demoRuns.length,
+      hasMore: demoRuns.length === 500,
+    };
   },
 });

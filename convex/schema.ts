@@ -32,5 +32,9 @@ export default defineSchema({
     .index("by_occurred_at", ["occurredAt"])
     .index("by_status_and_occurred_at", ["status", "occurredAt"])
     .index("by_is_demo_and_occurred_at", ["isDemo", "occurredAt"])
-    .index("by_is_demo_status_and_occurred_at", ["isDemo", "status", "occurredAt"]),
+    .index("by_is_demo_status_and_occurred_at", ["isDemo", "status", "occurredAt"])
+    .searchIndex("search_question", {
+      searchField: "question",
+      filterFields: ["isDemo", "status"],
+    }),
 });

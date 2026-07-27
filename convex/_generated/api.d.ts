@@ -11,8 +11,8 @@
 import type * as analytics from "../analytics.js";
 import type * as auth from "../auth.js";
 import type * as http from "../http.js";
+import type * as lib_admin from "../lib/admin.js";
 import type * as questionRuns from "../questionRuns.js";
-import type * as seed from "../seed.js";
 
 import type {
   ApiFromModules,
@@ -24,8 +24,8 @@ declare const fullApi: ApiFromModules<{
   analytics: typeof analytics;
   auth: typeof auth;
   http: typeof http;
+  "lib/admin": typeof lib_admin;
   questionRuns: typeof questionRuns;
-  seed: typeof seed;
 }>;
 
 /**

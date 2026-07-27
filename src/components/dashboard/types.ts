@@ -1,5 +1,9 @@
-export type DashboardScope = "all" | "live" | "demo";
 export type DashboardStatus = "all" | "completed" | "needs_review" | "failed";
+export type DashboardPaginationStatus =
+  | "LoadingFirstPage"
+  | "CanLoadMore"
+  | "LoadingMore"
+  | "Exhausted";
 
 export type DashboardStats = {
   trackedCount: number;
@@ -8,8 +12,6 @@ export type DashboardStats = {
   failedCount: number;
   citationCount: number;
   averageSources: number;
-  demoCount: number;
-  liveCount: number;
   isCapped: boolean;
   sourceTotals: {
     quran: number;
@@ -36,5 +38,4 @@ export type DashboardRun = {
   warningCount: number;
   durationMs: number;
   occurredAt: number;
-  isDemo: boolean;
 };
