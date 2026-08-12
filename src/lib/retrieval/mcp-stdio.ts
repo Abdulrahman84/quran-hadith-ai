@@ -1,6 +1,8 @@
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport, getDefaultEnvironment } from "@modelcontextprotocol/sdk/client/stdio.js";
 
+import { appendMcpStderr } from "./mcp-error";
+
 export type McpCallResult = {
   structuredContent?: unknown;
   content?: Array<{ type?: string; text?: string }>;
@@ -40,6 +42,8 @@ export async function withStdioMcpClient<T>(config: McpStdioConfig, run: (sessio
   try {
     await client.connect(transport);
     return await run({ client, stderr });
+  } catch (error) {
+    throw appendMcpStderr(error, stderr);
   } finally {
     await client.close().catch(() => undefined);
   }

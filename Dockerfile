@@ -37,7 +37,30 @@ RUN npm run build
 RUN npm run build:meeatif-sqlite
 RUN npm prune --omit=dev --workspaces --include-workspace-root
 
-FROM node:22-bookworm-slim AS runner
+FROM python:3.12-slim-bookworm AS tafsir
+
+ARG TAFSIR_MCP_VERSION=1.0.0
+ARG TAFSIR_PYTHON_MCP_VERSION=1.28.1
+ARG TAFSIR_DB_SHA256=10e61f615ab5e6a3440e8ecc8ba1dc2273d12cd9048752760fe53a44d191cc27
+
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends sqlite3 \
+  && rm -rf /var/lib/apt/lists/*
+
+RUN python -m venv /opt/tafsir-mcp
+RUN /opt/tafsir-mcp/bin/pip install --no-cache-dir \
+  "mcp[cli]==$TAFSIR_PYTHON_MCP_VERSION" \
+  "tafsir-mcp==$TAFSIR_MCP_VERSION"
+RUN /opt/tafsir-mcp/bin/python -c "from tafsir.data_loader import get_db_path; print(get_db_path())"
+RUN cd /root/.cache/tafsir-mcp \
+  && echo "$TAFSIR_DB_SHA256  quran.db" | sha256sum -c - \
+  && test "$(sqlite3 quran.db 'PRAGMA quick_check;')" = "ok"
+RUN mkdir -p /opt/tafsir-data \
+  && cp /root/.cache/tafsir-mcp/quran.db /opt/tafsir-data/quran.db \
+  && test "$(sqlite3 /opt/tafsir-data/quran.db 'PRAGMA journal_mode=DELETE;')" = "delete" \
+  && test "$(sqlite3 /opt/tafsir-data/quran.db 'PRAGMA quick_check;')" = "ok"
+
+FROM python:3.12-slim-bookworm AS runner
 
 WORKDIR /app
 
@@ -53,8 +76,9 @@ ENV HADITH_MCP_CWD=/opt/hadith-mcp
 ENV HADITH_MCP_CLI_PATH=/opt/hadith-mcp/packages/hadith-mcp/dist/cli.js
 ENV HADITH_MCP_DB_PATH=/opt/hadith-mcp/data/generated/hadith-meeatif.sqlite
 
-ENV TAFSIR_MCP_COMMAND=uvx
-ENV TAFSIR_MCP_ARGS=tafsir-mcp
+ENV TAFSIR_MCP_COMMAND=/opt/tafsir-mcp/bin/python
+ENV TAFSIR_MCP_ARGS="-m tafsir.server"
+ENV TAFSIR_DB_PATH=/opt/tafsir-data/quran.db
 
 ENV OPENROUTER_MODEL=google/gemini-3.1-flash-lite
 ENV OPENROUTER_APP_NAME="Sanad AI"
@@ -66,18 +90,25 @@ ENV HADITH_QUERY_PLANNER_ENABLED=true
 ENV HADITH_QUERY_PLANNER_MODEL=google/gemini-3.1-flash-lite
 
 RUN apt-get update \
-  && apt-get install -y --no-install-recommends ca-certificates sqlite3 python3 python3-pip python3-venv \
-  && python3 -m pip install --break-system-packages --no-cache-dir uv \
+  && apt-get install -y --no-install-recommends ca-certificates libstdc++6 sqlite3 \
   && rm -rf /var/lib/apt/lists/*
 
+COPY --from=app /usr/local/bin/node /usr/local/bin/node
 COPY --from=app /app/package.json /app/package-lock.json ./
 COPY --from=app /app/node_modules ./node_modules
 COPY --from=app /app/.next ./.next
 COPY --from=app /app/public ./public
 COPY --from=app /app/next.config.ts ./next.config.ts
+COPY --from=app /app/scripts/smoke-tafsir-mcp.mjs ./scripts/smoke-tafsir-mcp.mjs
 
 COPY --from=hadith /opt/hadith-mcp /opt/hadith-mcp
+COPY --from=tafsir /opt/tafsir-mcp /opt/tafsir-mcp
+COPY --from=tafsir /opt/tafsir-data /opt/tafsir-data
+
+RUN node --version
+RUN test "$(sqlite3 "$TAFSIR_DB_PATH" 'PRAGMA quick_check;')" = "ok"
+RUN node scripts/smoke-tafsir-mcp.mjs
 
 EXPOSE 3000
 
-CMD ["npm", "run", "start"]
+CMD ["node", "node_modules/next/dist/bin/next", "start"]

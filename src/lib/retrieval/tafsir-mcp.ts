@@ -31,7 +31,13 @@ function splitArgs(value: string | undefined, fallback: string[]) {
 
 function getTafsirMcpConfig() {
   const command = process.env.TAFSIR_MCP_COMMAND?.trim() || "uvx";
-  const args = splitArgs(process.env.TAFSIR_MCP_ARGS, ["tafsir-mcp"]);
+  const args = splitArgs(process.env.TAFSIR_MCP_ARGS, [
+    "--with",
+    "mcp==1.28.1",
+    "--from",
+    "tafsir-mcp==1.0.0",
+    "tafsir-mcp",
+  ]);
   const dbPath = process.env.TAFSIR_DB_PATH?.trim();
   const env = dbPath ? { TAFSIR_DB_PATH: dbPath } : undefined;
 

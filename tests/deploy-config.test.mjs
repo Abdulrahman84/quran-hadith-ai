@@ -31,3 +31,22 @@ test("Docker runtime config exposes OpenRouter env instead of legacy Ollama rout
   assert.match(render, /NTFY_TOPIC[\s\S]*sync: false/);
   assert.match(render, /PORT[\s\S]*value: 10000/);
 });
+
+test("Docker image bundles a pinned and verified Tafsir MCP runtime", () => {
+  const dockerfile = read("Dockerfile");
+  const smokeTest = read("scripts/smoke-tafsir-mcp.mjs");
+
+  assert.match(dockerfile, /FROM python:3\.12-slim-bookworm AS tafsir/);
+  assert.match(dockerfile, /TAFSIR_MCP_VERSION=1\.0\.0/);
+  assert.match(dockerfile, /TAFSIR_PYTHON_MCP_VERSION=1\.28\.1/);
+  assert.match(dockerfile, /"mcp\[cli\]==\$TAFSIR_PYTHON_MCP_VERSION"/);
+  assert.match(dockerfile, /TAFSIR_DB_SHA256=10e61f615ab5e6a3440e8ecc8ba1dc2273d12cd9048752760fe53a44d191cc27/);
+  assert.match(dockerfile, /TAFSIR_MCP_COMMAND=\/opt\/tafsir-mcp\/bin\/python/);
+  assert.match(dockerfile, /TAFSIR_DB_PATH=\/opt\/tafsir-data\/quran\.db/);
+  assert.doesNotMatch(dockerfile, /TAFSIR_MCP_COMMAND=uvx/);
+  assert.match(dockerfile, /PRAGMA journal_mode=DELETE/);
+  assert.match(dockerfile, /PRAGMA quick_check/);
+  assert.match(dockerfile, /RUN node scripts\/smoke-tafsir-mcp\.mjs/);
+  assert.match(smokeTest, /client\.listTools\(\)/);
+  assert.match(smokeTest, /name: "fetch_ayah"/);
+});

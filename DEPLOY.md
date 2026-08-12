@@ -20,9 +20,9 @@ Do not deploy this as a serverless/static-only app unless the retrieval layer is
 
 Tafsir MCP currently depends on:
 
-- `uvx`
+- Python 3.12 or newer
 - the `tafsir-mcp` package
-- optional local `TAFSIR_DB_PATH` cache
+- the Quran database selected by `TAFSIR_DB_PATH`
 
 ## Docker
 
@@ -32,7 +32,9 @@ The included `Dockerfile` builds a single image that contains:
 - a cloned and built `hadith-mcp`
 - a generated `hadith-meeatif.sqlite`
 - `sqlite3`
-- Python and `uvx` for Tafsir MCP
+- a pinned Python 3.12 Tafsir MCP runtime and checksum-verified Quran database
+
+The Tafsir package, its compatible MCP SDK, and the database are pinned and prepared during the image build. A container can therefore serve its first Tafsir search without resolving Python dependencies or downloading the 223 MB database at request time.
 
 OpenRouter is required at runtime because the model chooses which MCP source tools to call and drafts answers from retrieved records. The model is not the source of Quran, tafsir, hadith, grades, or provenance; it is the tool router and answer-drafting layer.
 
