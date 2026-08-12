@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="ar">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>سند | Sanad AI - كيف يعمل</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://code.iconify.design/iconify-icon/1.0.7/iconify-icon.min.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap');
+
+    :root {
+      --background: #fbfaf5;
+      --foreground: #171a19;
+      --color-green: #0b5d3e;
+      --color-green-soft: #18845a;
+      --color-gold: #c69a4b;
+      --color-gold-on-dark: #d6b264;
+      --color-sand: #fbfaf5;
+      --color-ink: #171a19;
+      --color-muted: #657068;
+      --color-red: #c63b45;
+      --color-surface: #fffefa;
+      --color-border: #e8e0d2;
+      --color-primary-soft: #e8f2ed;
+      --color-gold-soft: #f6eedc;
+      --font-geist-sans: 'IBM Plex Sans Arabic', sans-serif;
+      --font-geist-mono: 'Geist Mono', monospace;
+    }
+
+    body {
+      background: radial-gradient(circle at 50% -18%, color-mix(in srgb, var(--color-gold) 9%, transparent), transparent 42%), var(--background);
+      color: var(--foreground);
+      font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+      line-height: 1.8;
+      margin: 0;
+    }
+
+    .source-grid {
+      position: absolute;
+      inset: 0;
+      background-image: linear-gradient(to right, color-mix(in srgb, var(--color-border) 60%, transparent) 1px, transparent 1px), linear-gradient(to bottom, color-mix(in srgb, var(--color-border) 60%, transparent) 1px, transparent 1px);
+      background-size: 120px 120px;
+      mask-image: linear-gradient(to bottom, black, transparent 72%);
+      opacity: 0.35;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* Geometric Texture Overlays */
+    .geo-pattern {
+      position: absolute;
+      pointer-events: none;
+      z-index: 0;
+      opacity: 0.05;
+      color: var(--color-gold);
+    }
+
+    .geo-fragment-hero {
+      top: 10%;
+      left: 5%;
+      width: 300px;
+      height: 300px;
+      background-image: radial-gradient(circle at 2px 2px, currentColor 1px, transparent 0);
+      background-size: 40px 40px;
+      mask-image: linear-gradient(45deg, black, transparent 60%);
+    }
+
+    .geo-lattice-corner {
+      bottom: -40px;
+      right: -20px;
+      width: 400px;
+      height: 400px;
+      background-image:
+        linear-gradient(45deg, currentColor 1px, transparent 1px),
+        linear-gradient(-45deg, currentColor 1px, transparent 1px);
+      background-size: 80px 80px;
+      mask-image: radial-gradient(circle at bottom right, black, transparent 70%);
+    }
+
+    .geo-divider-fragment {
+      width: 100%;
+      height: 60px;
+      background-image: repeating-linear-gradient(90deg, transparent, transparent 20px, currentColor 20px, currentColor 21px);
+      mask-image: linear-gradient(to right, transparent, black 20%, black 80%, transparent);
+      opacity: 0.03;
+    }
+
+    .editorial-animate {
+      animation: fade-in-rise 0.6s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+    }
+
+    @keyframes fade-in-rise {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .mono-label {
+      font-family: var(--font-geist-mono);
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+  </style>
+</head>
+<body>
+  <div class="min-h-screen flex flex-col relative">
+    <sd-component componentid="976a816a-5ea3-4253-8675-a64920377384" name="SiteHeader" props='{"activeItem":"how-it-works"}'></sd-component>
+
+    <main class="relative overflow-hidden pt-28 pb-32 text-[var(--color-ink)] sm:pt-40">
+      <div class="source-grid" aria-hidden="true"></div>
+
+      <!-- Background Geometric Fragments -->
+      <div class="geo-pattern geo-fragment-hero" aria-hidden="true"></div>
+
+      <section class="relative z-10 mx-auto max-w-6xl px-6 md:px-12 mb-32">
+        <div class="editorial-animate">
+          <p class="text-xs font-bold text-[var(--color-green)] mb-6 mono-label">كيف يعمل</p>
+          <h1 class="max-w-4xl text-balance text-5xl font-bold tracking-tight leading-[1.1] text-[var(--color-ink)] md:text-7xl mb-10">
+            الإجابة الواثقة لا تكفي.<br>المصدر هو البداية.
+          </h1>
+          <p class="max-w-2xl text-lg md:text-xl font-medium leading-relaxed text-[var(--color-muted)]">
+            أدوات الذكاء الاصطناعي العامة قد تصوغ جوابا مقنعا من غير طريق واضح إلى الدليل. سند AI يعكس المسار: يبدأ بالنص القرآني وكتب التفسير والحديث، ثم يصوغ مما تم استرجاعه فقط.
+          </p>
+        </div>
+      </section>
+
+      <section class="relative z-10 border-y border-[var(--color-border)] bg-white/40 backdrop-blur-sm">
+        <div class="mx-auto max-w-6xl px-6 md:px-12 grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-x-reverse divide-[var(--color-border)]">
+          <div class="py-16 md:py-24 md:pe-16 editorial-animate">
+            <div class="flex items-center gap-3 mb-8">
+              <span class="flex items-center justify-center w-8 h-8 rounded bg-[var(--color-red)]/10 text-[var(--color-red)]">
+                <iconify-icon icon="lucide:alert-triangle" class="text-lg"></iconify-icon>
+              </span>
+              <span class="text-xs font-bold text-[var(--color-muted)] mono-label">المشكلة</span>
+            </div>
+            <h2 class="text-3xl font-bold mb-6 tracking-tight">مشكلة أدوات الذكاء الاصطناعي العامة</h2>
+            <p class="text-base text-[var(--color-muted)] leading-8 mb-8">
+              قد تقدّم إجابة واثقة من غير أن تبيّن هل اعتمدت على آية أو تفسير أو حديث بعينه، وقد تختلط الصياغة بالمعلومة المنسوبة.
+            </p>
+            <div class="ps-6 border-s-2 border-[var(--color-red)]/40">
+              <p class="text-lg font-semibold italic text-[var(--color-ink)]">
+                الخطورة ليست في أن الجواب يبدو ضعيفا، بل في أنه قد يبدو صحيحا بلا أثر واضح.
+              </p>
+            </div>
+          </div>
+
+          <div class="py-16 md:py-24 md:ps-16 editorial-animate relative" style="animation-delay: 100ms">
+            <div class="flex items-center gap-3 mb-8">
+              <span class="flex items-center justify-center w-8 h-8 rounded bg-[var(--color-green)] text-white">
+                <iconify-icon icon="lucide:check-circle" class="text-lg"></iconify-icon>
+              </span>
+              <span class="text-xs font-bold text-[var(--color-green)] mono-label">حل سند AI</span>
+            </div>
+            <h2 class="text-3xl font-bold mb-6 tracking-tight">كيف يحلها سند AI</h2>
+            <p class="text-base text-[var(--color-muted)] leading-8 mb-10">
+              يبدأ من السجلات المسترجعة من القرآن وكتب التفسير والحديث، ثم يصوغ خلاصة قصيرة ويبقي طريق الرجوع إلى المصدر ظاهرا.
+            </p>
+            <ul class="space-y-6">
+              <li class="flex items-start gap-4">
+                <span class="flex-none mt-1 w-5 h-5 flex items-center justify-center">
+                  <div class="w-2 h-2 rounded-full bg-[var(--color-gold)]"></div>
+                </span>
+                <p class="text-sm font-bold">أولا: البحث في النص القرآني وكتب التفسير والحديث</p>
+              </li>
+              <li class="flex items-start gap-4">
+                <span class="flex-none mt-1 w-5 h-5 flex items-center justify-center">
+                  <div class="w-2 h-2 rounded-full bg-[var(--color-gold)]"></div>
+                </span>
+                <p class="text-sm font-bold">ثانيا: صياغة الخلاصة من السجلات المسترجعة فقط</p>
+              </li>
+              <li class="flex items-start gap-4">
+                <span class="flex-none mt-1 w-5 h-5 flex items-center justify-center">
+                  <div class="w-2 h-2 rounded-full bg-[var(--color-gold)]"></div>
+                </span>
+                <p class="text-sm font-bold">ثالثا: إبقاء الاقتباسات والمراجع قابلة للمراجعة</p>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <div class="geo-divider-fragment my-16" aria-hidden="true"></div>
+
+      <section class="relative z-10 mx-auto max-w-6xl px-6 md:px-12 pt-16 pb-48">
+        <div class="geo-pattern geo-lattice-corner" aria-hidden="true"></div>
+        <div class="editorial-animate mb-16 relative z-10">
+          <p class="text-xs font-bold text-[var(--color-green)] mb-4 mono-label">مسار الإجابة</p>
+          <h2 class="text-4xl font-bold tracking-tight mb-6">أربع مراحل واضحة</h2>
+          <p class="max-w-3xl text-base text-[var(--color-muted)]">
+            كل إجابة تمر بمسار ثابت: فهم السؤال، الرجوع إلى المصادر، بناء حزمة أدلة، ثم صياغة خلاصة مربوطة بما تم استرجاعه.
+          </p>
+        </div>
+
+        <div class="relative z-10">
+          <div class="hidden md:block absolute top-[22px] inset-x-0 h-px bg-[var(--color-gold)]/40" aria-hidden="true"></div>
+          <div class="hidden md:block absolute top-[18px] inset-inline-start-0 w-2 h-2 rounded-full border border-[var(--color-gold)] bg-[var(--color-background)] z-10"></div>
+          <div class="hidden md:block absolute top-[18px] inset-inline-end-0 w-2 h-2 rounded-full border border-[var(--color-gold)] bg-[var(--color-background)] z-10"></div>
+
+          <div class="grid grid-cols-1 md:grid-cols-4 gap-x-0 gap-y-10 md:gap-y-0 relative">
+            <div class="md:border-e border-[var(--color-border)] last:border-e-0">
+              <div class="flex items-start md:block gap-6">
+                <div class="relative flex-none md:mb-12">
+                  <div class="md:hidden absolute top-0 bottom-0 start-[22px] w-px bg-[var(--color-gold)]/30"></div>
+                  <div class="relative z-10 w-11 h-11 flex items-center justify-center rounded-full border border-[var(--color-gold)] bg-[var(--color-surface)] text-[var(--color-gold)] font-bold mono-label text-sm">01</div>
+                </div>
+                <div class="md:pe-8">
+                  <h3 class="text-xl font-bold mb-3 md:mb-4">فهم المقصود</h3>
+                  <p class="text-sm text-[var(--color-muted)] leading-7">
+                    لا يعامل كل سؤال بالطريقة نفسها. يتم توجيه الطلب إلى مسار القرآن أو التفسير أو الحديث بحسب ألفاظه ومقصده.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div class="md:border-e border-[var(--color-border)] last:border-e-0">
+              <div class="flex items-start md:block gap-6">
+                <div class="relative flex-none md:mb-12">
+                  <div class="md:hidden absolute top-0 bottom-0 start-[22px] w-px bg-[var(--color-gold)]/30"></div>
+                  <div class="relative z-10 w-11 h-11 flex items-center justify-center rounded-full border border-[var(--color-gold)] bg-[var(--color-surface)] text-[var(--color-gold)] font-bold mono-label text-sm">02</div>
+                </div>
+                <div class="md:px-8">
+                  <h3 class="text-xl font-bold mb-3 md:mb-4">استرجاع من المصادر</h3>
+                  <p class="text-sm text-[var(--color-muted)] leading-7">
+                    تأتي النصوص وبياناتها من النص القرآني وكتب التفسير والحديث بدلا من صياغة غير موثقة أو تخمين.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div class="md:border-e border-[var(--color-border)] last:border-e-0">
+              <div class="flex items-start md:block gap-6">
+                <div class="relative flex-none md:mb-12">
+                  <div class="md:hidden absolute top-0 bottom-0 start-[22px] w-px bg-[var(--color-gold)]/30"></div>
+                  <div class="relative z-10 w-11 h-11 flex items-center justify-center rounded-full border border-[var(--color-gold)] bg-[var(--color-surface)] text-[var(--color-gold)] font-bold mono-label text-sm">03</div>
+                </div>
+                <div class="md:px-8">
+                  <h3 class="text-xl font-bold mb-3 md:mb-4">حزمة أدلة</h3>
+                  <p class="text-sm text-[var(--color-muted)] leading-7">
+                    تتحول النتائج إلى حزمة سياق محددة: نص، مرجع، نوع المصدر، ودرجة الحديث عندما يوفرها المصدر.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div class="md:border-e border-[var(--color-border)] last:border-e-0">
+              <div class="flex items-start md:block gap-6">
+                <div class="relative flex-none md:mb-12">
+                  <div class="md:hidden absolute top-0 bottom-0 start-[22px] w-px bg-[var(--color-gold)]/30 invisible"></div>
+                  <div class="relative z-10 w-11 h-11 flex items-center justify-center rounded-full border border-[var(--color-gold)] bg-[var(--color-surface)] text-[var(--color-gold)] font-bold mono-label text-sm">04</div>
+                </div>
+                <div class="md:ps-8">
+                  <h3 class="text-xl font-bold mb-3 md:mb-4">صياغة مضبوطة</h3>
+                  <p class="text-sm text-[var(--color-muted)] leading-7">
+                    طبقة الإجابة تلخص وتربط، لكنها لا تخترع نصا شرعيا أو درجة أو نسبة غير موجودة في السجلات.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+</body>
+</html>
