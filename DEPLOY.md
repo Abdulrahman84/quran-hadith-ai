@@ -79,6 +79,37 @@ https://sanad-ai.onrender.com
 
 Free Render web services can spin down when idle, so the first request after inactivity can take about a minute.
 
+### Keep the free service awake
+
+The repository includes a GitHub Actions workflow that calls the lightweight `/api/health`
+endpoint every 10 minutes. It uses `https://sanad-ai.onrender.com/api/health` by default.
+If the deployed URL differs, add a GitHub repository variable named `KEEP_ALIVE_URL` with
+the full health endpoint URL.
+
+You can test one request locally:
+
+```bash
+KEEP_ALIVE_URL=https://your-service.onrender.com/api/health npm run keep-alive -- --once
+```
+
+Or run the timer on another always-on machine, changing `x` with the interval variable:
+
+```bash
+KEEP_ALIVE_URL=https://your-service.onrender.com/api/health \
+KEEP_ALIVE_INTERVAL_MINUTES=10 \
+npm run keep-alive
+```
+
+The timer must run outside the Render container because the timer stops when Render suspends
+the service. To change the GitHub Actions interval, edit the cron expression in
+`.github/workflows/keep-alive.yml`; `KEEP_ALIVE_INTERVAL_MINUTES` only controls continuous mode.
+
+GitHub scheduled workflows are best-effort and can be delayed. On public repositories, GitHub
+also disables schedules after 60 days without repository activity. Keeping one Render service
+awake all month consumes roughly 720–744 of the workspace's shared 750 free instance-hours,
+and scheduled Actions runs can consume private-repository Actions minutes. For guaranteed uptime,
+use a paid Render instance or a dedicated external uptime monitor.
+
 ### Compose
 
 ```bash
