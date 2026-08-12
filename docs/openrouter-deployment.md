@@ -9,17 +9,17 @@ Set these in `.env.local` for local development or in your hosting provider's se
 ```bash
 OPENROUTER_API_KEY=...
 OPENROUTER_MANAGEMENT_KEY=...
-OPENROUTER_MODEL=google/gemini-3.1-flash-lite
+OPENROUTER_MODEL=google/gemini-3.5-flash-lite
 OPENROUTER_SITE_URL=https://your-domain.example
 OPENROUTER_APP_NAME=Sanad AI
 LLM_TIMEOUT_MS=25000
-ANSWER_MODEL=google/gemini-3.1-flash-lite
+ANSWER_MODEL=google/gemini-3.5-flash-lite
 ANSWER_FALLBACK_MODELS=mistralai/mistral-small-2603
 MCP_TOOL_ROUTER_ENABLED=true
-MCP_TOOL_ROUTER_MODEL=google/gemini-3.1-flash-lite
+MCP_TOOL_ROUTER_MODEL=google/gemini-3.5-flash-lite
 MCP_TOOL_ROUTER_FALLBACK_MODELS=mistralai/mistral-small-2603
 HADITH_QUERY_PLANNER_ENABLED=true
-HADITH_QUERY_PLANNER_MODEL=google/gemini-3.1-flash-lite
+HADITH_QUERY_PLANNER_MODEL=google/gemini-3.5-flash-lite
 HADITH_QUERY_PLANNER_FALLBACK_MODELS=mistralai/mistral-small-2603
 NTFY_TOPIC=use-a-long-random-private-topic
 NTFY_BASE_URL=https://ntfy.sh
