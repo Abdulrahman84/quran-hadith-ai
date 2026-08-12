@@ -34,6 +34,10 @@ function loadQueryPlannerModule() {
 }
 
 function loadHadithQueryPlanner(overrides = {}) {
+  const {
+    completionText = '{"queries":["ليس كمثله شيء"]}',
+    ...sandboxOverrides
+  } = overrides;
   const filename = path.join(process.cwd(), "src/lib/retrieval/hadith-query-planner.ts");
   const sandbox = {
     AbortController,
@@ -55,7 +59,7 @@ function loadHadithQueryPlanner(overrides = {}) {
 
             return {
               status: "ok",
-              text: '{"queries":["ليس كمثله شيء"]}',
+              text: completionText,
               provider: "openrouter",
               model: "google/gemma-4-26b-a4b-it:free",
             };
@@ -66,7 +70,7 @@ function loadHadithQueryPlanner(overrides = {}) {
       return require(id);
     },
     setTimeout,
-    ...overrides,
+    ...sandboxOverrides,
   };
 
   sandbox.exports = sandbox.module.exports;
@@ -114,4 +118,26 @@ test("English intention questions try canonical matn phrases before generic word
     "intention behind actions",
   ]);
   assert.ok(plan.queries.indexOf("on intention with") > plan.queries.indexOf("actions are by intentions"));
+});
+
+test("hadith query planner caps retrieval phrases while retaining curated and planned queries", async () => {
+  const { planHadithRetrievalQueries } = loadHadithQueryPlanner({
+    completionText: JSON.stringify({
+      queries: [
+        "شمائل النبي",
+        "أخلاق النبي",
+        "وصف النبي",
+        "هيئة النبي",
+        "صفة الرسول",
+      ],
+    }),
+  });
+
+  const plannedQuery = "صفات سيدنا محمد";
+  const plan = await planHadithRetrievalQueries(plannedQuery, "arabic", plannedQuery);
+
+  assert.equal(plan.queries.length, 8);
+  assert.ok(plan.queries.includes(plannedQuery));
+  assert.ok(plan.queries.includes("خلق رسول الله"));
+  assert.ok(plan.queries.includes("شمائل النبي"));
 });

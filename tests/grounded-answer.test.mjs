@@ -183,7 +183,12 @@ test("English answer prompt teaches direct prose with positive and negative exam
   assert.equal(maxTokens, 420);
   assert.equal(temperature, 0.3);
   assert.match(messages[0].content, /Poor: For your question/);
-  assert.match(messages[0].content, /Better: The two citations support that progress begins/);
+  assert.match(messages[0].content, /Better: The two citations indicate that progress begins/);
+  assert.match(messages[0].content, /warm, dignified teaching voice of a trusted Islamic educator/i);
+  assert.match(messages[0].content, /Never claim to be a shaykh or scholar/i);
+  assert.match(messages[0].content, /Avoid stock greetings and opening prayers/i);
+  assert.match(messages[0].content, /Do not write like a dry technical report/i);
+  assert.match(messages[0].content, /not as a sermon or a judgment about the user's faith/i);
   assert.match(messages[0].content, /Vary the opening, sentence structure, and transitions/);
   assert.match(messages[0].content, /at most one practical next step/);
   assert.match(messages[0].content, /qualified scholar/);
@@ -192,7 +197,9 @@ test("English answer prompt teaches direct prose with positive and negative exam
   assert.match(messages[0].content, /wording appears in a retrieved record/i);
   assert.match(messages[0].content, /review the original source texts below/i);
   assert.match(messages[1].content, /Usually write three to five concise, friendly sentences/i);
-  assert.match(messages[1].content, /begin with the verification conclusion/i);
+  assert.match(messages[1].content, /recognizable voice of a gentle Islamic teacher/i);
+  assert.match(messages[1].content, /do not open with a cold phrase/i);
+  assert.match(messages[1].content, /begin with a clear conclusion in reassuring human language/i);
   assert.match(messages[1].content, /review the original source texts below/i);
 });
 
@@ -220,7 +227,12 @@ test("Arabic answer prompt teaches direct prose with positive and negative examp
   assert.equal(answer.status, "ready");
   assert.equal(answer.text, "توضح الرواية أن الأعمال بالنيات [1].");
   assert.match(messages[0].content, /غير مناسب: بالنسبة إلى سؤالك/);
-  assert.match(messages[0].content, /أفضل: تؤيد الإحالتان أن التقدم يبدأ/);
+  assert.match(messages[0].content, /أفضل: المعنى الذي تدل عليه الإحالتان أن التقدم يبدأ/);
+  assert.match(messages[0].content, /قريبة من شيخ مسلم موثوق يعلّم برفق ووقار ورحمة/u);
+  assert.match(messages[0].content, /لا تدّع أنك شيخ أو عالم/u);
+  assert.match(messages[0].content, /تجنّب التحيات والأدعية الافتتاحية الجاهزة/u);
+  assert.match(messages[0].content, /لا تجعل الجواب تقريرا تقنيا جافا/u);
+  assert.match(messages[0].content, /كتذكير لطيف يقرّب المعنى إلى القلب/u);
   assert.match(messages[0].content, /نوّع بداية الإجابة وتركيب الجمل/);
   assert.match(messages[0].content, /بخطوة عملية واحدة فقط/);
   assert.match(messages[0].content, /عالم مؤهل/);
@@ -229,7 +241,9 @@ test("Arabic answer prompt teaches direct prose with positive and negative examp
   assert.match(messages[0].content, /وجود هذا اللفظ في ذلك السجل فقط/u);
   assert.match(messages[0].content, /نصوص المصادر الأصلية أدناه/u);
   assert.match(messages[1].content, /ثلاث إلى خمس جمل موجزة وودودة/u);
-  assert.match(messages[1].content, /فابدأ بنتيجة التحقق/u);
+  assert.match(messages[1].content, /نبرة شيخ معلّم رفيق/u);
+  assert.match(messages[1].content, /لا تبدأ بعبارة باردة/u);
+  assert.match(messages[1].content, /فابدأ بنتيجة واضحة بصياغة بشرية مطمئنة/u);
   assert.match(messages[1].content, /مراجعة نصوص المصادر الأصلية أدناه/u);
 });
 
@@ -385,6 +399,52 @@ test("answer generation accepts a synthesized claim and safe context suggestion"
   });
 
   assert.equal(answer.text, synthesizedAnswer);
+  assert.deepEqual(Array.from(answer.warnings), []);
+});
+
+test("Arabic Islamic teaching tone remains compatible with grounding guards", async () => {
+  const text =
+    "بارك الله فيك، تدل الرواية على أن قيمة العمل مرتبطة بالنية [1]. وفي هذا تذكير لطيف بالعناية بالمقصد [1]. وللتحقق من اللفظ والسياق الكامل، راجع نصوص المصادر الأصلية أدناه.";
+  const { generateGroundedAnswer } = loadGroundedAnswerModule({
+    completeLlmText: async () => ({
+      status: "ok",
+      text,
+      provider: "openrouter",
+      model: "google/gemma-4-26b-a4b-it:free",
+    }),
+  });
+
+  const answer = await generateGroundedAnswer({
+    question: "ما أثر النية في العمل؟",
+    language: "arabic",
+    records: [sourceRecord()],
+  });
+
+  assert.equal(answer.status, "ready");
+  assert.equal(answer.text, text);
+  assert.deepEqual(Array.from(answer.warnings), []);
+});
+
+test("English Islamic teaching tone remains compatible with grounding guards", async () => {
+  const text =
+    "The report connects actions to intentions [1]. This offers a gentle reminder—and Allah knows best—to examine the purpose behind an action [1]. To verify the exact wording and full context, review the original source texts below.";
+  const { generateGroundedAnswer } = loadGroundedAnswerModule({
+    completeLlmText: async () => ({
+      status: "ok",
+      text,
+      provider: "openrouter",
+      model: "google/gemma-4-26b-a4b-it:free",
+    }),
+  });
+
+  const answer = await generateGroundedAnswer({
+    question: "What does the hadith teach about intentions?",
+    language: "english",
+    records: [sourceRecord()],
+  });
+
+  assert.equal(answer.status, "ready");
+  assert.equal(answer.text, text);
   assert.deepEqual(Array.from(answer.warnings), []);
 });
 
