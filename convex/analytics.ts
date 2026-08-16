@@ -13,6 +13,19 @@ export const getStats = query({
     failedCount: v.number(),
     citationCount: v.number(),
     averageSources: v.number(),
+    workflowTotals: v.object({
+      general: v.number(),
+      check: v.number(),
+    }),
+    checkTotals: v.object({
+      ayah: v.number(),
+      hadith: v.number(),
+      classified: v.number(),
+      unclassified: v.number(),
+      exact: v.number(),
+      similar: v.number(),
+      notFound: v.number(),
+    }),
     sourceTotals: v.object({
       quran: v.number(),
       tafsir: v.number(),

@@ -19,10 +19,21 @@ const filterStatusValidator = v.union(
   v.literal("failed"),
 );
 
+const runKindValidator = v.union(v.literal("general"), v.literal("check"));
+const checkTypeValidator = v.union(v.literal("ayah"), v.literal("hadith"));
+const checkOutcomeValidator = v.union(
+  v.literal("exact"),
+  v.literal("similar"),
+  v.literal("not_found"),
+);
+
 const questionRunResult = v.object({
   _id: v.id("questionRuns"),
   question: v.string(),
   language: v.union(v.literal("arabic"), v.literal("english")),
+  runKind: runKindValidator,
+  checkType: v.union(checkTypeValidator, v.null()),
+  checkOutcome: v.union(checkOutcomeValidator, v.null()),
   status: statusValidator,
   answerText: v.union(v.string(), v.null()),
   citationCount: v.number(),
@@ -40,6 +51,9 @@ function presentRun(run: Doc<"questionRuns">) {
     _id: run._id,
     question: run.question,
     language: run.language,
+    runKind: run.runKind ?? "general",
+    checkType: run.checkType ?? null,
+    checkOutcome: run.checkOutcome ?? null,
     status: run.status,
     answerText: run.answerText,
     citationCount: run.citationCount,
@@ -62,6 +76,9 @@ export const recordRun = internalMutation({
     runId: v.string(),
     question: v.string(),
     language: v.union(v.literal("arabic"), v.literal("english")),
+    runKind: v.optional(runKindValidator),
+    checkType: v.optional(checkTypeValidator),
+    checkOutcome: v.optional(checkOutcomeValidator),
     status: statusValidator,
     answerText: v.union(v.string(), v.null()),
     citationCount: v.number(),
@@ -73,12 +90,38 @@ export const recordRun = internalMutation({
   },
   returns: v.id("questionRuns"),
   handler: async (ctx, args) => {
+    const runKind = args.runKind ?? "general";
+
+    if (runKind === "general" && (args.checkType || args.checkOutcome)) {
+      throw new Error("General runs cannot include Check metadata.");
+    }
+
+    if (runKind === "check" && !args.checkType) {
+      throw new Error("Check runs require a Check type.");
+    }
+
+    if (runKind === "check" && args.status !== "failed" && !args.checkOutcome) {
+      throw new Error("Successful Check runs require a Check outcome.");
+    }
+
+    if (runKind === "check" && args.status === "failed" && args.checkOutcome) {
+      throw new Error("Failed Check runs cannot include a Check outcome.");
+    }
+
     const existingRun = await ctx.db
       .query("questionRuns")
       .withIndex("by_run_id", (q) => q.eq("runId", args.runId))
       .unique();
 
     if (existingRun) {
+      const existingKind = existingRun.runKind ?? "general";
+      if (
+        existingKind !== runKind
+        || existingRun.checkType !== args.checkType
+        || existingRun.checkOutcome !== args.checkOutcome
+      ) {
+        throw new Error("A run with this ID already exists with different analytics metadata.");
+      }
       await addRunToStats(ctx, existingRun);
       return existingRun._id;
     }
@@ -86,7 +129,20 @@ export const recordRun = internalMutation({
     const sourceCount = args.quranCount + args.tafsirCount + args.hadithCount;
 
     const runId = await ctx.db.insert("questionRuns", {
-      ...args,
+      runId: args.runId,
+      question: args.question,
+      language: args.language,
+      runKind,
+      ...(args.checkType ? { checkType: args.checkType } : {}),
+      ...(args.checkOutcome ? { checkOutcome: args.checkOutcome } : {}),
+      status: args.status,
+      answerText: args.answerText,
+      citationCount: args.citationCount,
+      quranCount: args.quranCount,
+      tafsirCount: args.tafsirCount,
+      hadithCount: args.hadithCount,
+      warningCount: args.warningCount,
+      durationMs: args.durationMs,
       sourceCount,
       occurredAt: Date.now(),
       isDemo: false,

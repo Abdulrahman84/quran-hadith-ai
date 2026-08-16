@@ -10,12 +10,23 @@ const runStatus = v.union(
 
 const runLanguage = v.union(v.literal("arabic"), v.literal("english"));
 
+const runKind = v.union(v.literal("general"), v.literal("check"));
+const checkType = v.union(v.literal("ayah"), v.literal("hadith"));
+const checkOutcome = v.union(
+  v.literal("exact"),
+  v.literal("similar"),
+  v.literal("not_found"),
+);
+
 export default defineSchema({
   ...authTables,
   questionRuns: defineTable({
     runId: v.string(),
     question: v.string(),
     language: runLanguage,
+    runKind: v.optional(runKind),
+    checkType: v.optional(checkType),
+    checkOutcome: v.optional(checkOutcome),
     status: runStatus,
     answerText: v.union(v.string(), v.null()),
     citationCount: v.number(),

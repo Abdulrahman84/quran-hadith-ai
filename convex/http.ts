@@ -6,6 +6,9 @@ import { auth } from "./auth";
 
 type RunStatus = "completed" | "needs_review" | "failed";
 type RunLanguage = "arabic" | "english";
+type RunKind = "general" | "check";
+type CheckType = "ayah" | "hadith";
+type CheckOutcome = "exact" | "similar" | "not_found";
 
 function boundedCount(value: unknown, maximum = 1000) {
   if (typeof value !== "number" || !Number.isFinite(value) || value < 0) return null;
@@ -18,6 +21,18 @@ function isStatus(value: unknown): value is RunStatus {
 
 function isLanguage(value: unknown): value is RunLanguage {
   return value === "arabic" || value === "english";
+}
+
+function isRunKind(value: unknown): value is RunKind {
+  return value === "general" || value === "check";
+}
+
+function isCheckType(value: unknown): value is CheckType {
+  return value === "ayah" || value === "hadith";
+}
+
+function isCheckOutcome(value: unknown): value is CheckOutcome {
+  return value === "exact" || value === "similar" || value === "not_found";
 }
 
 function parseRun(body: unknown) {
@@ -36,6 +51,9 @@ function parseRun(body: unknown) {
   const hadithCount = boundedCount(value.hadithCount);
   const warningCount = boundedCount(value.warningCount);
   const durationMs = boundedCount(value.durationMs, 10 * 60 * 1000);
+  const runKind: RunKind = value.runKind === undefined ? "general" : isRunKind(value.runKind) ? value.runKind : "general";
+  const checkType = isCheckType(value.checkType) ? value.checkType : undefined;
+  const checkOutcome = isCheckOutcome(value.checkOutcome) ? value.checkOutcome : undefined;
 
   if (
     runId.length === 0 ||
@@ -52,10 +70,22 @@ function parseRun(body: unknown) {
     return null;
   }
 
+
+  if (value.runKind !== undefined && !isRunKind(value.runKind)) return null;
+  if (value.checkType !== undefined && !isCheckType(value.checkType)) return null;
+  if (value.checkOutcome !== undefined && !isCheckOutcome(value.checkOutcome)) return null;
+  if (runKind === "general" && (checkType || checkOutcome)) return null;
+  if (runKind === "check" && !checkType) return null;
+  if (runKind === "check" && value.status !== "failed" && !checkOutcome) return null;
+  if (runKind === "check" && value.status === "failed" && checkOutcome) return null;
+
   return {
     runId,
     question,
     language: value.language,
+    runKind,
+    ...(checkType ? { checkType } : {}),
+    ...(checkOutcome ? { checkOutcome } : {}),
     status: value.status,
     answerText,
     citationCount,

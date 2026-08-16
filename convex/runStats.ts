@@ -15,6 +15,12 @@ type Metric =
   | "quran"
   | "tafsir"
   | "hadith"
+  | "workflow:check"
+  | "checkType:ayah"
+  | "checkType:hadith"
+  | "checkOutcome:exact"
+  | "checkOutcome:similar"
+  | "checkOutcome:not_found"
   | "daily";
 
 const runStats = new DirectAggregate<{
@@ -43,7 +49,7 @@ function pointsForRun(run: Doc<"questionRuns">) {
   if (run.isDemo) return [];
 
   const dayStart = Math.floor(run.occurredAt / dayMs) * dayMs;
-  return [
+  const points = [
     point(run, `status:${run.status}`, 0, 1),
     point(run, "citations", 0, run.citationCount),
     point(run, "quran", 0, run.quranCount),
@@ -51,6 +57,14 @@ function pointsForRun(run: Doc<"questionRuns">) {
     point(run, "hadith", 0, run.hadithCount),
     point(run, "daily", dayStart, 1),
   ];
+
+  if (run.runKind === "check") {
+    points.push(point(run, "workflow:check", 0, 1));
+    if (run.checkType) points.push(point(run, `checkType:${run.checkType}`, 0, 1));
+    if (run.checkOutcome) points.push(point(run, `checkOutcome:${run.checkOutcome}`, 0, 1));
+  }
+
+  return points;
 }
 
 export async function addRunToStats(ctx: MutationCtx, run: Doc<"questionRuns">) {
@@ -79,13 +93,34 @@ export async function getRunStats(ctx: QueryCtx, dayStart: number) {
     exact("quran"),
     exact("tafsir"),
     exact("hadith"),
+    exact("workflow:check"),
+    exact("checkType:ayah"),
+    exact("checkType:hadith"),
+    exact("checkOutcome:exact"),
+    exact("checkOutcome:similar"),
+    exact("checkOutcome:not_found"),
     ...dailyStarts.map((start) => exact("daily", start)),
   ]);
 
-  const [completedCount, needsReviewCount, failedCount, citationCount, quran, tafsir, hadith] = totals;
+  const [
+    completedCount,
+    needsReviewCount,
+    failedCount,
+    citationCount,
+    quran,
+    tafsir,
+    hadith,
+    checkCount,
+    ayahCount,
+    hadithCheckCount,
+    exactCount,
+    similarCount,
+    notFoundCount,
+  ] = totals;
   const trackedCount = completedCount + needsReviewCount + failedCount;
   const totalSources = quran + tafsir + hadith;
-  const dailyCounts = totals.slice(7);
+  const classifiedCheckCount = exactCount + similarCount + notFoundCount;
+  const dailyCounts = totals.slice(13);
 
   return {
     trackedCount,
@@ -94,6 +129,19 @@ export async function getRunStats(ctx: QueryCtx, dayStart: number) {
     failedCount,
     citationCount,
     averageSources: trackedCount === 0 ? 0 : Math.round((totalSources / trackedCount) * 10) / 10,
+    workflowTotals: {
+      general: Math.max(0, trackedCount - checkCount),
+      check: Math.min(checkCount, trackedCount),
+    },
+    checkTotals: {
+      ayah: ayahCount,
+      hadith: hadithCheckCount,
+      classified: classifiedCheckCount,
+      unclassified: Math.max(0, checkCount - classifiedCheckCount),
+      exact: exactCount,
+      similar: similarCount,
+      notFound: notFoundCount,
+    },
     sourceTotals: { quran, tafsir, hadith },
     dailyActivity: dailyStarts.map((start, index) => ({ dayStart: start, count: dailyCounts[index] })),
   };
