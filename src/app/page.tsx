@@ -2,9 +2,11 @@
 
 import { FormEvent, KeyboardEvent, useEffect, useMemo, useRef, useState } from "react";
 
-import { ExpandableSourceText } from "@/components/expandable-source-text";
+import { CheckPanel } from "@/components/check/check-panel";
 import { useI18n } from "@/components/i18n-provider";
 import { SearchLoading } from "@/components/search-loading";
+import { SourceRecordText } from "@/components/source-record-text";
+import { WorkflowSwitch, type HomeWorkflow } from "@/components/workflow-switch";
 import type { TranslationKey } from "@/lib/i18n";
 import { hadithCollections, type HadithCollectionSelection } from "@/lib/retrieval/hadith-collections";
 import {
@@ -89,32 +91,6 @@ function getAnswerStatusKey(answer: RetrievalResponse["answer"]): TranslationKey
   }
 
   return "result.answerPending";
-}
-
-function sourceTextForLanguage(
-  record: RetrievalResponse["records"][number],
-  language: string,
-  fallbackText: { arabic: string; english: string },
-) {
-  if (language === "ar") {
-    return {
-      dir: "rtl" as const,
-      text: [record.arabicText, record.sourceKind === "tafsir" ? record.tafsirText : null].filter(Boolean).join("\n\n") || fallbackText.arabic,
-      textClass: "text-right text-base font-semibold leading-8 text-[var(--color-green)]",
-    };
-  }
-
-  const translatedText = [record.englishText, record.sourceKind === "tafsir" ? record.tafsirText : null].filter(Boolean).join("\n\n");
-  const originalText = [record.arabicText, record.sourceKind === "tafsir" ? record.tafsirText : null].filter(Boolean).join("\n\n");
-  const direction: "ltr" | "rtl" = record.englishText ? "ltr" : "rtl";
-
-  return {
-    dir: direction,
-    text: translatedText || originalText || record.arabicText || fallbackText.english,
-    textClass: record.englishText
-      ? "text-left text-sm font-bold leading-6 text-[var(--color-ink)]"
-      : "text-right text-base font-semibold leading-8 text-[var(--color-green)]",
-  };
 }
 
 function sourceKindLabel(record: RetrievalResponse["records"][number], t: (key: TranslationKey) => string) {
@@ -207,6 +183,7 @@ function recordMetadata(record: RetrievalResponse["records"][number], language: 
 
 export default function Home() {
   const { language, t } = useI18n();
+  const [workflow, setWorkflow] = useState<HomeWorkflow>("general");
   const [question, setQuestion] = useState("");
   const [submittedQuestion, setSubmittedQuestion] = useState("");
   const [isRetrieving, setIsRetrieving] = useState(false);
@@ -224,7 +201,7 @@ export default function Home() {
   const loadingSummaryRef = useRef<HTMLDivElement>(null);
   const requestAbortRef = useRef<AbortController | null>(null);
 
-  const hasScenario = isRetrieving || Boolean(submittedQuestion) || retrieval !== null || requestError.length > 0;
+  const hasScenario = workflow === "general" && (isRetrieving || Boolean(submittedQuestion) || retrieval !== null || requestError.length > 0);
 
   const activeRoutes = useMemo(() => {
     const kinds = new Set(retrieval?.records.map((record) => record.sourceKind) ?? []);
@@ -406,6 +383,17 @@ export default function Home() {
     }
   }
 
+  function handleWorkflowChange(nextWorkflow: HomeWorkflow) {
+    if (nextWorkflow === workflow) {
+      return;
+    }
+
+    requestAbortRef.current?.abort();
+    requestAbortRef.current = null;
+    setIsRetrieving(false);
+    setWorkflow(nextWorkflow);
+  }
+
   return (
     <main className="relative min-h-screen overflow-x-clip bg-[var(--color-sand)] pt-20 text-[var(--color-ink)]">
       <div className="source-grid" aria-hidden="true" />
@@ -426,6 +414,11 @@ export default function Home() {
             </h1>
           </>
         ) : null}
+
+        <WorkflowSwitch onChange={handleWorkflowChange} t={t} value={workflow} />
+
+        {workflow === "general" ? (
+          <>
 
         <form
           className={`search-shell animate-rise w-full overflow-hidden text-start transition-all duration-300 ${
@@ -729,10 +722,6 @@ export default function Home() {
                       <div className="mt-4 grid gap-2">
                         {visibleSourceRecords.map((record) => (
                           (() => {
-                            const sourceText = sourceTextForLanguage(record, language, {
-                              arabic: t("result.arabicUnavailable"),
-                              english: t("result.englishUnavailable"),
-                            });
                             const metadata = recordMetadata(record, language, t);
                             const gradeMetadata = recordGradeMetadata(record, language, t);
                             const detailBadge = recordDetailBadge(record, language, t);
@@ -765,14 +754,7 @@ export default function Home() {
                                     {gradeMetadata}
                                   </p>
                                 ) : null}
-                                <ExpandableSourceText
-                                  className={sourceText.textClass}
-                                  collapsible={record.sourceKind === "quran" || record.sourceKind === "hadith"}
-                                  dir={sourceText.dir}
-                                  showLessLabel={t("result.showLess")}
-                                  showMoreLabel={t("result.showMore")}
-                                  text={sourceText.text}
-                                />
+                                <SourceRecordText language={language} record={record} t={t} />
                               </article>
                             );
                           })()
@@ -819,6 +801,10 @@ export default function Home() {
             </div>
           </section>
         ) : null}
+          </>
+        ) : (
+          <CheckPanel />
+        )}
       </section>
     </main>
   );
