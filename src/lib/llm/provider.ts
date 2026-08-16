@@ -2,7 +2,7 @@ import { checkOpenRouterCreditBalanceIfDue, reportOpenRouterCreditFailure } from
 
 export type LlmProvider = "openrouter";
 
-export type LlmTask = "answer" | "router" | "hadith-query-planner";
+export type LlmTask = "answer" | "router" | "hadith-query-planner" | "check-query-planner" | "check-semantic-judge";
 
 export type LlmMessage = {
   role: "system" | "user" | "assistant";
@@ -77,6 +77,10 @@ function taskModelEnv(task: LlmTask) {
     return process.env.HADITH_QUERY_PLANNER_MODEL?.trim() || process.env.MCP_TOOL_ROUTER_MODEL?.trim();
   }
 
+  if (task === "check-query-planner" || task === "check-semantic-judge") {
+    return process.env.CHECK_RETRIEVAL_MODEL?.trim() || process.env.MCP_TOOL_ROUTER_MODEL?.trim();
+  }
+
   return process.env.ANSWER_MODEL?.trim();
 }
 
@@ -87,6 +91,10 @@ function taskFallbackModelsEnv(task: LlmTask) {
 
   if (task === "hadith-query-planner") {
     return splitModelList(process.env.HADITH_QUERY_PLANNER_FALLBACK_MODELS);
+  }
+
+  if (task === "check-query-planner" || task === "check-semantic-judge") {
+    return splitModelList(process.env.CHECK_RETRIEVAL_FALLBACK_MODELS || process.env.MCP_TOOL_ROUTER_FALLBACK_MODELS);
   }
 
   if (task === "answer") {
@@ -105,6 +113,10 @@ function taskTimeoutEnv(task: LlmTask) {
     return process.env.HADITH_QUERY_PLANNER_TIMEOUT_MS;
   }
 
+  if (task === "check-query-planner" || task === "check-semantic-judge") {
+    return process.env.CHECK_RETRIEVAL_TIMEOUT_MS || process.env.MCP_TOOL_ROUTER_TIMEOUT_MS;
+  }
+
   return process.env.ANSWER_TIMEOUT_MS;
 }
 
@@ -118,6 +130,10 @@ function isTaskEnabled(task: LlmTask) {
   }
 
   if (task === "hadith-query-planner" && process.env.HADITH_QUERY_PLANNER_ENABLED?.trim() === "false") {
+    return false;
+  }
+
+  if ((task === "check-query-planner" || task === "check-semantic-judge") && process.env.CHECK_RETRIEVAL_ENABLED?.trim() === "false") {
     return false;
   }
 
