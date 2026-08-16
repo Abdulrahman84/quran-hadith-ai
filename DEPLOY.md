@@ -73,10 +73,10 @@ This repo includes `render.yaml` for a free Render web service that builds the D
 3. When Render prompts for `OPENROUTER_API_KEY`, paste the OpenRouter key.
 4. Apply the Blueprint.
 
-Render will create a public `onrender.com` URL for the service. The configured service name is `sanad-ai`, so the URL is expected to be similar to:
+Render creates a public `onrender.com` URL for the service. This deployment uses the custom domain:
 
 ```text
-https://sanad-ai.onrender.com
+https://sanaddai.com
 ```
 
 Free Render web services can spin down when idle, so the first request after inactivity can take about a minute.
@@ -84,7 +84,7 @@ Free Render web services can spin down when idle, so the first request after ina
 ### Keep the free service awake
 
 The repository includes a GitHub Actions workflow that calls the lightweight `/api/health`
-endpoint every 10 minutes. It uses `https://sanad-ai.onrender.com/api/health` by default.
+endpoint every 10 minutes. It uses `https://sanaddai.com/api/health` by default.
 If the deployed URL differs, add a GitHub repository variable named `KEEP_ALIVE_URL` with
 the full health endpoint URL.
 

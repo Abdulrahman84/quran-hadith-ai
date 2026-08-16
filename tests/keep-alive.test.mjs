@@ -130,6 +130,6 @@ test("deployment schedules the external health ping before Render's idle timeout
 
   assert.match(workflow, /3,13,23,33,43,53 \* \* \* \*/);
   assert.match(workflow, /npm run keep-alive -- --once/);
-  assert.match(workflow, /\/api\/health/);
+  assert.match(workflow, /https:\/\/sanaddai\.com\/api\/health/);
   assert.match(healthRoute, /status: "ok"/);
 });

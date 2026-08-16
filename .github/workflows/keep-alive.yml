@@ -23,6 +23,6 @@ jobs:
           node-version: 22
       - name: Ping health endpoint
         env:
-          KEEP_ALIVE_URL: ${{ vars.KEEP_ALIVE_URL || 'https://sanad-ai.onrender.com/api/health' }}
+          KEEP_ALIVE_URL: ${{ vars.KEEP_ALIVE_URL || 'https://sanaddai.com/api/health' }}
           KEEP_ALIVE_TIMEOUT_SECONDS: 90
         run: npm run keep-alive -- --once
