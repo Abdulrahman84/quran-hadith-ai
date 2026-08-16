@@ -11,6 +11,10 @@ function readExpandableSourceText() {
   return fs.readFileSync(path.join(process.cwd(), "src/components/expandable-source-text.tsx"), "utf8");
 }
 
+function readSourceRecordText() {
+  return fs.readFileSync(path.join(process.cwd(), "src/components/source-record-text.tsx"), "utf8");
+}
+
 test("search requests include the selected source filters", () => {
   const pageSource = readHomePage();
 
@@ -45,11 +49,11 @@ test("source result filter narrows the visible source records", () => {
 });
 
 test("English source cards fall back to original Arabic when translation is missing", () => {
-  const pageSource = readHomePage();
+  const sourceText = readSourceRecordText();
 
-  assert.match(pageSource, /record\.arabicText \|\| fallbackText\.english/);
-  assert.match(pageSource, /const direction: "ltr" \| "rtl" = record\.englishText \? "ltr" : "rtl"/);
-  assert.match(pageSource, /dir: direction/);
+  assert.match(sourceText, /language === "en" && record\.englishText/);
+  assert.match(sourceText, /dir: "rtl" as const/);
+  assert.match(sourceText, /record\.arabicText \|\| t/);
 });
 
 test("similar quotation matches show a deterministic notice above the answer", () => {
@@ -92,13 +96,13 @@ test("mobile source filters use equal-width columns above the full-width search 
 });
 
 test("long Quran and hadith source text can expand from a five-line preview", () => {
-  const pageSource = readHomePage();
+  const sourceText = readSourceRecordText();
   const expandableSourceText = readExpandableSourceText();
   const globalStyles = fs.readFileSync(path.join(process.cwd(), "src/app/globals.css"), "utf8");
 
-  assert.match(pageSource, /record\.sourceKind === "quran" \|\| record\.sourceKind === "hadith"/);
-  assert.match(pageSource, /result\.showMore/);
-  assert.match(pageSource, /result\.showLess/);
+  assert.match(sourceText, /record\.sourceKind === "quran" \|\| record\.sourceKind === "hadith"/);
+  assert.match(sourceText, /result\.showMore/);
+  assert.match(sourceText, /result\.showLess/);
   assert.match(expandableSourceText, /scrollHeight > element\.clientHeight \+ 1/);
   assert.match(expandableSourceText, /aria-expanded=\{isExpanded\}/);
   assert.match(expandableSourceText, /aria-controls=\{contentId\}/);

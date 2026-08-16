@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useLayoutEffect, useRef, useState } from "react";
+import { type ReactNode, useId, useLayoutEffect, useRef, useState } from "react";
 
 type ExpandableSourceTextProps = {
   className: string;
@@ -9,6 +9,7 @@ type ExpandableSourceTextProps = {
   showLessLabel: string;
   showMoreLabel: string;
   text: string;
+  children?: ReactNode;
 };
 
 export function ExpandableSourceText({
@@ -18,9 +19,10 @@ export function ExpandableSourceText({
   showLessLabel,
   showMoreLabel,
   text,
+  children,
 }: ExpandableSourceTextProps) {
   const contentId = useId();
-  const textRef = useRef<HTMLParagraphElement>(null);
+  const textRef = useRef<HTMLDivElement>(null);
   const [expandedText, setExpandedText] = useState<string | null>(null);
   const [overflowingText, setOverflowingText] = useState<string | null>(null);
   const isExpanded = expandedText === text;
@@ -54,15 +56,15 @@ export function ExpandableSourceText({
 
   return (
     <div className="mt-3">
-      <p
+      <div
         className={`source-result-text whitespace-pre-wrap ${className}`}
         data-collapsed={collapsible && !isExpanded}
         dir={dir}
         id={contentId}
         ref={textRef}
       >
-        {text}
-      </p>
+        {children ?? text}
+      </div>
       {hasOverflow ? (
         <button
           aria-controls={contentId}
