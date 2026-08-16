@@ -12,6 +12,19 @@ export type DashboardStats = {
   failedCount: number;
   citationCount: number;
   averageSources: number;
+  workflowTotals: {
+    general: number;
+    check: number;
+  };
+  checkTotals: {
+    ayah: number;
+    hadith: number;
+    classified: number;
+    unclassified: number;
+    exact: number;
+    similar: number;
+    notFound: number;
+  };
   sourceTotals: {
     quran: number;
     tafsir: number;
@@ -27,6 +40,9 @@ export type DashboardRun = {
   _id: string;
   question: string;
   language: "arabic" | "english";
+  runKind: "general" | "check";
+  checkType: "ayah" | "hadith" | null;
+  checkOutcome: "exact" | "similar" | "not_found" | null;
   status: Exclude<DashboardStatus, "all">;
   answerText: string | null;
   citationCount: number;

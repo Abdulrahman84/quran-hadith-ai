@@ -26,6 +26,16 @@ function statusClass(status: DashboardRun["status"]) {
   return "border-[var(--color-red)]/25 bg-[var(--color-error-soft)] text-[var(--color-red)]";
 }
 
+function outcomeKey(outcome: NonNullable<DashboardRun["checkOutcome"]>): TranslationKey {
+  if (outcome === "exact") return "dashboard.check.exact";
+  if (outcome === "similar") return "dashboard.check.similar";
+  return "dashboard.check.notFound";
+}
+
+function checkTypeKey(checkType: NonNullable<DashboardRun["checkType"]>): TranslationKey {
+  return checkType === "ayah" ? "dashboard.check.ayah" : "dashboard.check.hadith";
+}
+
 export function QuestionResultCard({ language, run, t }: QuestionResultCardProps) {
   const number = new Intl.NumberFormat(language === "ar" ? "ar" : "en");
   const occurredAt = new Date(run.occurredAt);
@@ -39,9 +49,16 @@ export function QuestionResultCard({ language, run, t }: QuestionResultCardProps
             <time dateTime={occurredAt.toISOString()}>{dateTimeFormatters[language].format(occurredAt)}</time>
           </p>
         </div>
-        <span className={`w-fit shrink-0 rounded-lg border px-2.5 py-1.5 text-xs font-bold ${statusClass(run.status)}`}>
-          {t(statusKey(run.status))}
-        </span>
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="source-detail-badge">
+            {t(run.runKind === "check" ? "dashboard.workflow.check" : "dashboard.workflow.general")}
+          </span>
+          {run.checkType ? <span className="source-type-badge">{t(checkTypeKey(run.checkType))}</span> : null}
+          {run.checkOutcome ? <span className="source-type-badge">{t(outcomeKey(run.checkOutcome))}</span> : null}
+          <span className={`w-fit shrink-0 rounded-lg border px-2.5 py-1.5 text-xs font-bold ${statusClass(run.status)}`}>
+            {t(statusKey(run.status))}
+          </span>
+        </div>
       </div>
 
       <div className="mt-4 rounded-xl border border-[var(--color-gold)]/35 bg-[var(--color-gold-soft)]/40 p-4">

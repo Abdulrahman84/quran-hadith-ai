@@ -9,6 +9,7 @@ import { useI18n } from "@/components/i18n-provider";
 
 import { ActivityChart } from "./activity-chart";
 import { AdminSignIn } from "./admin-sign-in";
+import { CheckOverview } from "./check-overview";
 import { DashboardHeader } from "./dashboard-header";
 import { QuestionResults } from "./question-results";
 import { SourceMix } from "./source-mix";
@@ -46,17 +47,18 @@ export function DashboardShell() {
 
       <div className="mt-8">
         {stats === undefined ? (
-          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4" aria-label={t("dashboard.loading")}>
-            {[0, 1, 2, 3].map((item) => <div className="h-40 animate-pulse rounded-2xl border-t-[3px] border-t-[var(--color-gold)] bg-[var(--color-gold-soft)]" key={item} />)}
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3" aria-label={t("dashboard.loading")}>
+            {[0, 1, 2, 3, 4, 5].map((item) => <div className="h-40 animate-pulse rounded-2xl border-t-[3px] border-t-[var(--color-gold)] bg-[var(--color-gold-soft)]" key={item} />)}
           </div>
         ) : (
           <StatsGrid language={language} stats={stats} t={t} />
         )}
       </div>
 
-      <div className="mt-4 grid gap-4 lg:grid-cols-[minmax(0,1.35fr)_minmax(280px,0.65fr)]">
+      <div className="mt-4 grid gap-4 lg:grid-cols-2 xl:grid-cols-[minmax(0,1.15fr)_minmax(240px,0.75fr)_minmax(250px,0.8fr)]">
         {stats === undefined ? (
           <>
+            <div className="h-72 animate-pulse rounded-2xl border-t-[3px] border-t-[var(--color-gold)] bg-[var(--color-gold-soft)]" />
             <div className="h-72 animate-pulse rounded-2xl border-t-[3px] border-t-[var(--color-gold)] bg-[var(--color-gold-soft)]" />
             <div className="h-72 animate-pulse rounded-2xl border-t-[3px] border-t-[var(--color-gold)] bg-[var(--color-gold-soft)]" />
           </>
@@ -64,6 +66,7 @@ export function DashboardShell() {
           <>
             <ActivityChart activity={stats.dailyActivity} language={language} t={t} />
             <SourceMix language={language} sources={stats.sourceTotals} t={t} />
+            <CheckOverview language={language} stats={stats} t={t} />
           </>
         )}
       </div>
