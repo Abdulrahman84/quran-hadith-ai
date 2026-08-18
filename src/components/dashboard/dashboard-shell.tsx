@@ -11,6 +11,7 @@ import { ActivityChart } from "./activity-chart";
 import { AdminSignIn } from "./admin-sign-in";
 import { CheckOverview } from "./check-overview";
 import { DashboardHeader } from "./dashboard-header";
+import { normalizeDashboardStats } from "./normalize-dashboard-stats";
 import { QuestionResults } from "./question-results";
 import { SourceMix } from "./source-mix";
 import { StatsGrid } from "./stats-grid";
@@ -28,6 +29,7 @@ export function DashboardShell() {
   const [status, setStatus] = useState<DashboardStatus>("all");
   const debouncedSearch = useDebouncedValue(search.trim(), 300);
   const stats = useQuery(api.analytics.getStats, isAuthenticated ? { dayStart } : "skip");
+  const dashboardStats = stats === undefined ? undefined : normalizeDashboardStats(stats);
   const runs = usePaginatedQuery(
     api.questionRuns.listPaginated,
     isAuthenticated ? { search: debouncedSearch, status } : "skip",
@@ -46,17 +48,17 @@ export function DashboardShell() {
       <DashboardHeader onSignOut={() => void signOut()} t={t} />
 
       <div className="mt-8">
-        {stats === undefined ? (
+        {dashboardStats === undefined ? (
           <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3" aria-label={t("dashboard.loading")}>
             {[0, 1, 2, 3, 4, 5].map((item) => <div className="h-40 animate-pulse rounded-2xl border-t-[3px] border-t-[var(--color-gold)] bg-[var(--color-gold-soft)]" key={item} />)}
           </div>
         ) : (
-          <StatsGrid language={language} stats={stats} t={t} />
+          <StatsGrid language={language} stats={dashboardStats} t={t} />
         )}
       </div>
 
       <div className="mt-4 grid gap-4 lg:grid-cols-2 xl:grid-cols-[minmax(0,1.15fr)_minmax(240px,0.75fr)_minmax(250px,0.8fr)]">
-        {stats === undefined ? (
+        {dashboardStats === undefined ? (
           <>
             <div className="h-72 animate-pulse rounded-2xl border-t-[3px] border-t-[var(--color-gold)] bg-[var(--color-gold-soft)]" />
             <div className="h-72 animate-pulse rounded-2xl border-t-[3px] border-t-[var(--color-gold)] bg-[var(--color-gold-soft)]" />
@@ -64,9 +66,9 @@ export function DashboardShell() {
           </>
         ) : (
           <>
-            <ActivityChart activity={stats.dailyActivity} language={language} t={t} />
-            <SourceMix language={language} sources={stats.sourceTotals} t={t} />
-            <CheckOverview language={language} stats={stats} t={t} />
+            <ActivityChart activity={dashboardStats.dailyActivity} language={language} t={t} />
+            <SourceMix language={language} sources={dashboardStats.sourceTotals} t={t} />
+            <CheckOverview language={language} stats={dashboardStats} t={t} />
           </>
         )}
       </div>
