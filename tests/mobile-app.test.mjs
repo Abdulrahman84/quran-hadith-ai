@@ -40,6 +40,18 @@ test("CORS allows only the Capacitor app origins plus configured extras", () => 
   assert.equal(headers.Vary, "Origin");
 });
 
+test("CORS allows the custom header the search stream request sends", () => {
+  const { corsHeaders } = loadModule("src/lib/cors.ts");
+  const [, featuresHeader] = readSource("src/lib/search-stream.ts").match(
+    /export const searchStreamFeaturesHeader = "([^"]+)"/,
+  );
+  const allowed = corsHeaders("capacitor://localhost")["Access-Control-Allow-Headers"]
+    .split(",")
+    .map((header) => header.trim().toLowerCase());
+
+  assert.ok(allowed.includes(featuresHeader.toLowerCase()));
+});
+
 test("API URLs are same-origin on the web and absolute in the mobile bundle", () => {
   assert.equal(loadModule("src/lib/api-url.ts").apiUrl("/api/search"), "/api/search");
   assert.equal(

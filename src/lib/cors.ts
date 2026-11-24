@@ -3,7 +3,10 @@
 const nativeAppOrigins = ["capacitor://localhost", "https://localhost"];
 
 const allowedMethods = "GET, POST, OPTIONS";
-const allowedHeaders = "Accept, Content-Type";
+// Every request header the app sends must be listed, or the webview's
+// preflight fails. X-Search-Stream-Features is searchStreamFeaturesHeader in
+// src/lib/search-stream.ts (asks for streamed answer drafts).
+const allowedHeaders = "Accept, Content-Type, X-Search-Stream-Features";
 const preflightMaxAgeSeconds = "86400";
 
 export function getAllowedOrigins(extraOrigins = process.env.CORS_ALLOWED_ORIGINS ?? ""): string[] {
