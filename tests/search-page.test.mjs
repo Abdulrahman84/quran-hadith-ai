@@ -3,8 +3,17 @@ import fs from "node:fs";
 import path from "node:path";
 import test from "node:test";
 
+// The search page is page.tsx plus the components and hooks it is composed from.
 function readHomePage() {
-  return fs.readFileSync(path.join(process.cwd(), "src/app/page.tsx"), "utf8");
+  const searchDir = path.join(process.cwd(), "src/components/search");
+  const parts = fs.readdirSync(searchDir)
+    .filter((name) => /\.tsx?$/.test(name))
+    .sort()
+    .map((name) => path.join(searchDir, name));
+
+  return [path.join(process.cwd(), "src/app/page.tsx"), ...parts]
+    .map((filename) => fs.readFileSync(filename, "utf8"))
+    .join("\n");
 }
 
 function readExpandableSourceText() {

@@ -71,7 +71,7 @@ test("fetchApi reports unreachable servers separately from HTTP errors", async (
 });
 
 test("Search and Check call the API through the configurable base URL", () => {
-  assert.match(readSource("src/app/page.tsx"), /fetchApi\("\/api\/search"/);
+  assert.match(readSource("src/components/search/use-search-stream.ts"), /fetchApi\("\/api\/search"/);
   assert.match(readSource("src/components/check/check-panel.tsx"), /fetchApi\("\/api\/check"/);
 });
 
