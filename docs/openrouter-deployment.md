@@ -54,14 +54,38 @@ embedding index from `npm run build:embeddings` in that repo, and the same embed
 ```bash
 HADITH_SEARCH_MODE=hybrid
 HADITH_MCP_EMBEDDINGS_PATH=/opt/hadith-mcp/data/generated/hadith-embeddings.sqlite
-# Ollama (default provider):
-OLLAMA_URL=http://127.0.0.1:11434
-EMBEDDINGS_MODEL=bge-m3
-# Or an OpenAI-compatible embeddings API serving the same model:
-# EMBEDDINGS_PROVIDER=openai
-# EMBEDDINGS_BASE_URL=https://example.com/v1
-# EMBEDDINGS_API_KEY=
+# Production (render.yaml): embed queries with bge-m3 through OpenRouter.
+EMBEDDINGS_PROVIDER=openai
+EMBEDDINGS_BASE_URL=https://openrouter.ai/api/v1
+EMBEDDINGS_MODEL=baai/bge-m3
+EMBEDDINGS_INDEX_MODEL=bge-m3   # the name the index was built under with Ollama
+EMBEDDINGS_TIMEOUT_MS=8000
+# EMBEDDINGS_API_KEY defaults to OPENROUTER_API_KEY for an openrouter.ai base URL only.
+# Local development with Ollama instead:
+# OLLAMA_URL=http://127.0.0.1:11434
+# EMBEDDINGS_MODEL=bge-m3
 ```
+
+OpenRouter's `baai/bge-m3` returns the same vectors as Ollama's `bge-m3` (cosine similarity 0.99999 on sample texts),
+so the index built locally with Ollama works with OpenRouter query embeddings. A query is about 20 tokens at
+$0.01 per million tokens.
+
+**The index in the Docker image.** The image builds the hadith database itself, but the 157 MB embedding index is
+downloaded during the build, so a deploy doesn't wait about 20 minutes for it to be embedded again. The `hadith`
+stage reads three build args:
+
+- `HADITH_EMBEDDINGS_URL`: where to download the index, e.g. a GitHub release asset of `hadith-mcp`. If it's empty,
+  there's no index, and hybrid search falls back to full-text.
+- `HADITH_EMBEDDINGS_SHA256`: the file's checksum. It's required when the URL is set, and a mismatch fails the build.
+- `HADITH_EMBEDDINGS_INDEX_MODEL` (default `bge-m3`).
+
+After the download, the build runs `build-embeddings.js --check`. If more than 1% of the freshly built hadith
+database has no current vector, the build fails, and Render keeps the previous deploy. That catches a stale index
+after the hadith data changes. To refresh the index, rebuild it with `npm run build:embeddings` in `hadith-mcp`,
+upload it as a new release asset, and update the URL and checksum.
+
+The index adds about 140 MB of memory to the Hadith MCP process. That is a large part of a 512 MB free instance, so
+watch memory after enabling hybrid search.
 
 The app only passes these variables to the Hadith MCP process in hybrid mode. If the tool, index or embedding provider
 is unavailable, search falls back to lexical results and adds a provenance note, so the flag is safe to turn on early.

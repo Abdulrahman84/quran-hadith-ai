@@ -22,11 +22,16 @@ FROM node:22-bookworm-slim AS hadith
 
 ARG HADITH_MCP_REPO=https://github.com/Abdulrahman84/hadith-mcp.git
 ARG HADITH_MCP_REF=main
+# Prebuilt embedding index for semantic_search_hadith (see docs/openrouter-deployment.md).
+# Leave the URL empty to skip it; hybrid search then falls back to full-text search.
+ARG HADITH_EMBEDDINGS_URL=
+ARG HADITH_EMBEDDINGS_SHA256=
+ARG HADITH_EMBEDDINGS_INDEX_MODEL=bge-m3
 
 WORKDIR /opt
 
 RUN apt-get update \
-  && apt-get install -y --no-install-recommends ca-certificates git sqlite3 \
+  && apt-get install -y --no-install-recommends ca-certificates curl git sqlite3 \
   && rm -rf /var/lib/apt/lists/*
 
 RUN git clone --depth 1 --branch "$HADITH_MCP_REF" "$HADITH_MCP_REPO" /opt/hadith-mcp
@@ -35,6 +40,14 @@ WORKDIR /opt/hadith-mcp
 RUN npm ci
 RUN npm run build
 RUN npm run build:meeatif-sqlite
+# Download the index, verify its checksum, then check it covers the database built above.
+RUN if [ -n "$HADITH_EMBEDDINGS_URL" ]; then \
+    test -n "$HADITH_EMBEDDINGS_SHA256" \
+    && curl -fsSL --retry 3 -o data/generated/hadith-embeddings.sqlite "$HADITH_EMBEDDINGS_URL" \
+    && echo "$HADITH_EMBEDDINGS_SHA256  data/generated/hadith-embeddings.sqlite" | sha256sum -c - \
+    && EMBEDDINGS_INDEX_MODEL="$HADITH_EMBEDDINGS_INDEX_MODEL" node packages/hadith-mcp/dist/build-embeddings.js --check \
+      --db data/generated/hadith-meeatif.sqlite --out data/generated/hadith-embeddings.sqlite; \
+  fi
 RUN npm prune --omit=dev --workspaces --include-workspace-root
 
 FROM python:3.12-slim-bookworm AS tafsir
@@ -75,6 +88,7 @@ ENV HADITH_MCP_COMMAND=node
 ENV HADITH_MCP_CWD=/opt/hadith-mcp
 ENV HADITH_MCP_CLI_PATH=/opt/hadith-mcp/packages/hadith-mcp/dist/cli.js
 ENV HADITH_MCP_DB_PATH=/opt/hadith-mcp/data/generated/hadith-meeatif.sqlite
+ENV HADITH_MCP_EMBEDDINGS_PATH=/opt/hadith-mcp/data/generated/hadith-embeddings.sqlite
 
 ENV TAFSIR_MCP_COMMAND=/opt/tafsir-mcp/bin/python
 ENV TAFSIR_MCP_ARGS="-m tafsir.server"
