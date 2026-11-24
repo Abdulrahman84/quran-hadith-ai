@@ -1,0 +1,104 @@
+export type HadithSearchMode = "lexical" | "hybrid";
+
+type Env = Record<string, string | undefined>;
+
+/**
+ * HADITH_SEARCH_MODE=hybrid adds one semantic_search_hadith call (full-text + embedding
+ * similarity, fused on the Hadith MCP side) for the user's question, next to the planned
+ * lexical search_hadith queries. Anything else keeps lexical search only.
+ */
+export function getHadithSearchMode(env: Env = process.env): HadithSearchMode {
+  return env.HADITH_SEARCH_MODE?.trim().toLowerCase() === "hybrid" ? "hybrid" : "lexical";
+}
+
+// The MCP child process only inherits a minimal default environment, so the embedding
+// settings the Hadith MCP reads have to be passed through explicitly.
+const embeddingEnvKeys = [
+  "HADITH_MCP_EMBEDDINGS_PATH",
+  "HADITH_MCP_VECTOR_WEIGHT",
+  "EMBEDDINGS_PROVIDER",
+  "EMBEDDINGS_MODEL",
+  "EMBEDDINGS_INDEX_MODEL",
+  "EMBEDDINGS_DIMENSIONS",
+  "EMBEDDINGS_QUERY_PREFIX",
+  "EMBEDDINGS_PROVIDER_ORDER",
+  "EMBEDDINGS_BASE_URL",
+  "EMBEDDINGS_API_KEY",
+  "EMBEDDINGS_TIMEOUT_MS",
+  "OLLAMA_URL",
+] as const;
+
+function isOpenRouterUrl(value: string | undefined): boolean {
+  try {
+    const host = new URL(value ?? "").hostname;
+    return host === "openrouter.ai" || host.endsWith(".openrouter.ai");
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * When the embedding API is OpenRouter and no EMBEDDINGS_API_KEY is set, the app's own
+ * OPENROUTER_API_KEY is reused. It is never sent to any other embeddings host.
+ */
+export function hadithMcpEmbeddingEnv(env: Env = process.env): Record<string, string> {
+  const passed: Record<string, string> = Object.fromEntries(
+    embeddingEnvKeys.flatMap((key) => {
+      // The query prefix keeps its whitespace: "Query: " must end in a space.
+      const raw = env[key];
+      const value = key === "EMBEDDINGS_QUERY_PREFIX" ? raw : raw?.trim();
+      return value?.trim() ? [[key, value]] : [];
+    }),
+  );
+  const openRouterKey = env.OPENROUTER_API_KEY?.trim();
+
+  if (!passed.EMBEDDINGS_API_KEY && openRouterKey && isOpenRouterUrl(passed.EMBEDDINGS_BASE_URL)) {
+    passed.EMBEDDINGS_API_KEY = openRouterKey;
+  }
+
+  return passed;
+}
+
+export const HADITH_FUSION_K = 60;
+
+function recordKey(record: { collection: string; hadithNumber: string | null; reference: string }) {
+  return `${record.collection}:${record.hadithNumber || record.reference}`;
+}
+
+/**
+ * Reciprocal rank fusion of already-ranked hadith lists: score = Σ 1 / (k + rank).
+ * Ties keep first-seen order, so earlier lists win ties. The first list's copy of a
+ * record is kept, and ranks are renumbered from 1.
+ */
+export function fuseHadithRankings<T extends { collection: string; hadithNumber: string | null; reference: string; rank: number | null }>(
+  lists: T[][],
+  k: number = HADITH_FUSION_K,
+): T[] {
+  const fused = new Map<string, { record: T; score: number; firstSeen: number }>();
+
+  lists.forEach((list) => {
+    const seenInList = new Set<string>();
+
+    list.forEach((record) => {
+      const key = recordKey(record);
+
+      if (seenInList.has(key)) {
+        return;
+      }
+
+      seenInList.add(key);
+      const rank = seenInList.size;
+      const existing = fused.get(key);
+
+      if (existing) {
+        existing.score += 1 / (k + rank);
+      } else {
+        fused.set(key, { record, score: 1 / (k + rank), firstSeen: fused.size });
+      }
+    });
+  });
+
+  return [...fused.values()]
+    .sort((left, right) => right.score - left.score || left.firstSeen - right.firstSeen)
+    .map(({ record }, index) => ({ ...record, rank: index + 1 }));
+}

@@ -62,6 +62,10 @@ function applyLocalSourceDefaults() {
   process.env.HADITH_MCP_CWD ??= hadithRepo;
   process.env.HADITH_MCP_CLI_PATH ??= path.join(hadithRepo, "packages/hadith-mcp/dist/cli.js");
   process.env.HADITH_MCP_DB_PATH ??= path.join(hadithRepo, "data/generated/hadith-meeatif.sqlite");
+  if (process.env.HADITH_SEARCH_MODE?.trim().toLowerCase() === "hybrid") {
+    // The index sits next to the hadith database built in the same hadith-mcp checkout.
+    process.env.HADITH_MCP_EMBEDDINGS_PATH ??= path.join(path.dirname(process.env.HADITH_MCP_DB_PATH), "hadith-embeddings.sqlite");
+  }
 }
 
 type Options = { limit: number | null; only: string[]; ids: string[]; concurrency: number; timeoutMs: number; retrievalMode: string };

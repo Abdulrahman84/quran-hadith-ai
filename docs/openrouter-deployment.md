@@ -44,6 +44,59 @@ The source retrieval layer still needs:
 
 Only the web app should be public. Keep database files and MCP processes private to the host.
 
+### Hybrid hadith search (optional)
+
+`HADITH_SEARCH_MODE=hybrid` adds one `semantic_search_hadith` call per hadith search. Hadith MCP runs it on the user's
+question and merges full-text and embedding-similarity results on its side. The app then fuses that list with the
+reranked lexical results using reciprocal rank fusion (k=60). It needs a Hadith MCP build that has the tool, the
+embedding index from `npm run build:embeddings` in that repo, and the same embedding model to embed queries:
+
+```bash
+HADITH_SEARCH_MODE=hybrid
+HADITH_MCP_EMBEDDINGS_PATH=/opt/hadith-mcp/data/generated/hadith-embeddings.sqlite
+# Production (render.yaml): embed queries with bge-m3 through OpenRouter.
+EMBEDDINGS_PROVIDER=openai
+EMBEDDINGS_BASE_URL=https://openrouter.ai/api/v1
+EMBEDDINGS_MODEL=baai/bge-m3
+EMBEDDINGS_INDEX_MODEL=bge-m3   # the name the index was built under with Ollama
+EMBEDDINGS_TIMEOUT_MS=8000
+# EMBEDDINGS_API_KEY defaults to OPENROUTER_API_KEY for an openrouter.ai base URL only.
+# Local development with Ollama instead:
+# OLLAMA_URL=http://127.0.0.1:11434
+# EMBEDDINGS_MODEL=bge-m3
+```
+
+OpenRouter's `baai/bge-m3` returns the same vectors as Ollama's `bge-m3` (cosine similarity 0.99999 on sample texts),
+so the index built locally with Ollama works with OpenRouter query embeddings. A query is about 20 tokens at
+$0.01 per million tokens.
+
+**The index in the Docker image.** The image builds the hadith database itself, but the 157 MB embedding index is
+downloaded during the build, so a deploy doesn't wait about 20 minutes for it to be embedded again. The `hadith`
+stage reads three build args:
+
+- `HADITH_EMBEDDINGS_URL`: where to download the index. It defaults to the `embeddings-bge-m3-v1` release asset of
+  `hadith-mcp`. Set it to empty to skip the download; hybrid search then falls back to full-text.
+- `HADITH_EMBEDDINGS_SHA256`: the file's checksum. It's required when the URL is set, and a mismatch fails the build.
+- `HADITH_EMBEDDINGS_INDEX_MODEL` (default `bge-m3`).
+
+After the download, the build runs `build-embeddings.js --check`. If more than 1% of the freshly built hadith
+database has no current vector, the build fails, and Render keeps the previous deploy. That catches a stale index
+after the hadith data changes. To refresh the index, rebuild it with `npm run build:embeddings` in `hadith-mcp`,
+upload it as a new release asset, and update the URL and checksum.
+
+Qwen3-Embedding-8B (`EMBEDDINGS_QUERY_PREFIX`, `EMBEDDINGS_DIMENSIONS=1024`, `EMBEDDINGS_PROVIDER_ORDER`) scored a
+little higher than bge-m3 when the hadith server was queried directly. But through OpenRouter its query embeddings
+regularly took more than 8 seconds (November 2026), so searches fell back to full-text, and it scored lower in the
+full app. bge-m3 stays the default until that changes.
+
+The index adds about 140 MB of memory to the Hadith MCP process. That is a large part of a 512 MB free instance, so
+watch memory after enabling hybrid search.
+
+The app only passes these variables to the Hadith MCP process in hybrid mode. If the tool, index or embedding provider
+is unavailable, search falls back to lexical results and adds a provenance note, so the flag is safe to turn on early.
+On the 58-question benchmark (`eval/`), hybrid raised recall@5 from 77.6% to 87.9% overall, and from 77.8% to 94.4%
+on hadith questions. The gains are biggest on paraphrased, topical and English questions about Arabic-only wording.
+
 ## Rate Limits and Caching
 
 `/api/search` and `/api/check` limit each client IP, using the first `X-Forwarded-For` hop, then `X-Real-IP`.

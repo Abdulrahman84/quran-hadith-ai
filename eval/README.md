@@ -23,6 +23,8 @@ npm run eval:compare -- a.json b.json             # or two specific reports
 
 `--label` sets the report's `retrievalMode` (default `lexical`), which also appears in the file name.
 The label only names the run. Switch the actual backend through its own configuration before running.
+For hybrid hadith search, run `HADITH_SEARCH_MODE=hybrid npm run eval:retrieval -- --label hybrid`. The script then
+defaults `HADITH_MCP_EMBEDDINGS_PATH` to `hadith-embeddings.sqlite` next to `HADITH_MCP_DB_PATH`.
 
 Each question runs through `searchSources`, which calls the OpenRouter router and hadith planner models.
 With flash-lite the full set costs a few cents. It also starts the local Hadith MCP and Tafsir MCP.

@@ -57,5 +57,17 @@ services:
         value: mistralai/mistral-small-2603
       - key: HADITH_QUERY_PLANNER_TIMEOUT_MS
         value: "12000"
+      - key: HADITH_SEARCH_MODE
+        value: hybrid
+      - key: EMBEDDINGS_PROVIDER
+        value: openai
+      - key: EMBEDDINGS_BASE_URL
+        value: https://openrouter.ai/api/v1
+      - key: EMBEDDINGS_MODEL
+        value: baai/bge-m3
+      - key: EMBEDDINGS_INDEX_MODEL
+        value: bge-m3
+      - key: EMBEDDINGS_TIMEOUT_MS
+        value: "8000"
       - key: LLM_TIMEOUT_MS
         value: "25000"
