@@ -9,7 +9,7 @@ import { createTsRequire } from "./helpers/ts-require.mjs";
 
 
 function loadGroundedAnswerModule(overrides = {}) {
-  const filename = path.join(process.cwd(), "src/lib/llm/grounded-answer.ts");
+  const filename = path.join(process.cwd(), "src/lib/llm/grounded-answer/index.ts");
   const source = fs.readFileSync(filename, "utf8");
   const transpiled = ts.transpileModule(source, {
     compilerOptions: {
@@ -28,7 +28,7 @@ function loadGroundedAnswerModule(overrides = {}) {
     module: { exports: {} },
     process,
     require: (id) => {
-      if (id === "./provider") {
+      if (id === "../provider") {
         return {
           completeLlmText: overrides.completeLlmText || (async () => ({
             status: "disabled",
