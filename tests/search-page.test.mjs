@@ -79,7 +79,7 @@ test("search loading uses streamed server progress without a fixed minimum delay
   const streamSource = fs.readFileSync(path.join(process.cwd(), "src/lib/search-stream.ts"), "utf8");
 
   assert.match(pageSource, /Accept: searchStreamMediaType/);
-  assert.match(pageSource, /readSearchResponse\(response/);
+  assert.match(pageSource, /readSearchResponse\(\s*response/);
   assert.doesNotMatch(pageSource, /minimumLoadingMs/);
   assert.doesNotMatch(pageSource, /window\.setTimeout/);
   assert.match(loadingSource, /role="progressbar"/);

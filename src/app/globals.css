@@ -488,6 +488,16 @@ textarea {
   animation: pulse-dot 2.4s ease-in-out infinite;
 }
 
+.answer-draft-caret {
+  display: inline-block;
+  width: 0.5ch;
+  height: 1em;
+  margin-inline-start: 0.15ch;
+  vertical-align: text-bottom;
+  background: var(--color-gold);
+  animation: pulse-dot 1.2s ease-in-out infinite;
+}
+
 .source-loading {
   display: grid;
   justify-items: center;
