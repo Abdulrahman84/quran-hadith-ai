@@ -85,11 +85,13 @@ in the iOS Simulator (or with `adb reverse` on Android) and must never ship.
 
 ## Logo, icons and splash screens
 
-The Sanad mark (the open book with the gold assistant) lives as vector markup
-in `src/lib/brand-mark.ts`. Everything else is drawn from it:
+The Sanad mark is an open book (the text, or matn) with a gold chain of
+narration (the sanad) rising from its spine. It lives as vector markup in
+`src/lib/brand-mark.ts`. Everything else is drawn from it:
 
 - the header and footer logo (`SanadLogo`: the mark plus a live-text
-  "سند / Sanad AI" wordmark in the site font);
+  "سند / Sanad AI" wordmark set in Amiri);
+- the search loader, where the chain links light up in turn;
 - `public/brand/sanad-mark.svg` (favicon), `public/brand/sanad-app-icon.png`
   (touch icon) and `src/app/icon.png`;
 - `assets/*.png`: the deep-green app icon tile, the Android adaptive icon

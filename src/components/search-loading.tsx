@@ -1,6 +1,6 @@
 "use client";
 
-import Image from "next/image";
+import { SanadMark } from "@/components/sanad-logo";
 
 type SearchLoadingProps = {
   label: string;
@@ -13,16 +13,7 @@ export function SearchLoading({ label, phaseLabel, progress }: SearchLoadingProp
 
   return (
     <div className="source-loading">
-      <Image
-        alt=""
-        aria-hidden="true"
-        className="source-loading-mark"
-        height={82}
-        src="/assets/sanad-ai-loader.svg?v=midnight-manuscript-3"
-        style={{ height: "auto", width: "min(17rem, 72vw)" }}
-        unoptimized
-        width={176}
-      />
+      <SanadMark className="source-loading-mark" />
       <div className="search-progress-copy">
         <p>{label}</p>
         <span aria-live="polite">{phaseLabel}</span>

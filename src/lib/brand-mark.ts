@@ -1,49 +1,55 @@
-// The Sanad mark (open book with the gold assistant) as plain SVG markup, so the
-// header logo, favicon, app icons and splash screens all draw from one source.
+// The Sanad mark as plain SVG markup, so the header logo, favicon, app icons,
+// splash screens and loader all draw from one source.
 // scripts/generate-brand-assets.mjs imports this file directly with Node.
+//
+// An open book (the text, matn) with three linked gold points rising from its
+// spine: the sanad, the chain of narration that ties a text back to its source.
 
 export type MarkPalette = {
   book: string;
-  pages: string;
-  pagesOpacity: number;
-  accent: string;
-  visor: string;
-  eyes: string;
+  pageFill: string;
+  lines: string;
+  linesOpacity: number;
+  chain: string;
 };
 
-export const markViewBox = { x: 46, y: 12, width: 84, height: 72 } as const;
+export const markViewBox = { x: 6, y: 5, width: 52, height: 56 } as const;
 
 export const markPalettes = {
-  // Sand and paper backgrounds (the site, splash screens).
+  // Sand and paper backgrounds (the site, light splash screen).
   onLight: {
     book: "#0B5D3E",
-    pages: "#18845A",
-    pagesOpacity: 0.78,
-    accent: "#C69A4B",
-    visor: "#0B5D3E",
-    eyes: "#FBFAF5",
+    pageFill: "#FFFEFA",
+    lines: "#0B5D3E",
+    linesOpacity: 0.34,
+    chain: "#B8893A",
   },
-  // The deep-green app icon tile.
+  // The deep-green app icon tile and dark splash screen.
   onDark: {
     book: "#FBFAF5",
-    pages: "#FBFAF5",
-    pagesOpacity: 0.5,
-    accent: "#D6B264",
-    visor: "#0B5D3E",
-    eyes: "#FBFAF5",
+    pageFill: "none",
+    lines: "#FBFAF5",
+    linesOpacity: 0.42,
+    chain: "#D6B264",
   },
 } satisfies Record<string, MarkPalette>;
 
+const pages =
+  "M32 34.5C26.2 30.6 18.6 29.4 10 30.2V54.4C18.6 53.6 26.2 54.8 32 58.6 37.8 54.8 45.4 53.6 54 54.4V30.2C45.4 29.4 37.8 30.6 32 34.5Z";
+const spine = "M32 34.5V58.6";
+const lines = "M15 37.4H26M15 42.4H26M15 47.4H23M38 37.4H49M38 42.4H49M41 47.4H49";
+
 export function markElements(palette: MarkPalette): string {
   return [
-    `<path d="M51 18c14 0 26 3 37 13 11-10 23-13 37-13v49c-15 0-27 4-37 12-10-8-22-12-37-12Z" stroke="${palette.book}" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>`,
-    `<path d="M59 27v33c11 1 21 4 29 10m29-43v33c-11 1-21 4-29 10V34" stroke="${palette.pages}" stroke-opacity="${palette.pagesOpacity}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>`,
-    `<path d="M88 30v-7" stroke="${palette.accent}" stroke-width="3" stroke-linecap="round"/>`,
-    `<circle cx="88" cy="19" r="4" fill="${palette.accent}"/>`,
-    `<rect x="69" y="30" width="38" height="28" rx="13" fill="${palette.accent}"/>`,
-    `<rect x="75" y="36" width="26" height="15" rx="7" fill="${palette.visor}"/>`,
-    `<circle cx="82" cy="43.5" r="2.2" fill="${palette.eyes}"/>`,
-    `<circle cx="94" cy="43.5" r="2.2" fill="${palette.eyes}"/>`,
+    `<path d="${pages}" fill="${palette.pageFill}" stroke="${palette.book}" stroke-width="3.2" stroke-linejoin="round"/>`,
+    `<path d="${spine}" stroke="${palette.book}" stroke-width="2.4" stroke-linecap="round"/>`,
+    `<path d="${lines}" stroke="${palette.lines}" stroke-opacity="${palette.linesOpacity}" stroke-width="2" stroke-linecap="round"/>`,
+    `<g class="sanad-mark-chain" fill="${palette.chain}">`,
+    `<path d="M32 12.5V33" stroke="${palette.chain}" stroke-width="1.6" stroke-linecap="round"/>`,
+    `<path class="sanad-mark-link" d="M32 22.2 35.6 26.4 32 30.6 28.4 26.4Z"/>`,
+    `<path class="sanad-mark-link" d="M32 14.2 35 17.7 32 21.2 29 17.7Z"/>`,
+    `<path class="sanad-mark-link" d="M32 7.4 34.4 10.2 32 13 29.6 10.2Z"/>`,
+    `</g>`,
   ].join("");
 }
 
