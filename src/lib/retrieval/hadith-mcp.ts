@@ -3,6 +3,7 @@ import type { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import type { HadithCollectionSelection } from "./hadith-collections";
 import { planHadithRetrievalQueries } from "./hadith-query-planner";
 import { rerankHadithRecords, type HadithRerankCandidate } from "./hadith-reranker";
+import { fuseHadithRankings, getHadithSearchMode, hadithMcpEmbeddingEnv } from "./hadith-hybrid";
 import { formatMcpStderr } from "./mcp-error";
 import { getMcpPayload, withStdioMcpClient, type McpCallResult } from "./mcp-stdio";
 import { planRetrievalQuery, splitFallbackQueries } from "./query-planner";
@@ -42,10 +43,16 @@ type SearchHadithOutput = {
   provenance_notes: string[];
 };
 
+type SemanticSearchHadithOutput = SearchHadithOutput & {
+  mode?: string;
+};
+
 type SearchAttempt = {
   output: SearchHadithOutput;
   query: string;
 };
+
+type SemanticAttempt = { attempt: SearchAttempt; mode: string } | { attempt: null; reason: string };
 
 const HADITH_SEARCH_LIMIT = 12;
 const HADITH_RESULT_LIMIT = 5;
@@ -154,6 +161,56 @@ async function callSearchHadith(
   };
 }
 
+async function callSemanticSearchHadith(
+  client: Client,
+  query: string,
+  language: RetrievalLanguage,
+  collection: HadithCollectionSelection,
+): Promise<SemanticAttempt> {
+  try {
+    const result = (await client.callTool({
+      name: "semantic_search_hadith",
+      arguments: {
+        query,
+        ...(collection === "all" ? {} : { collection }),
+        language,
+        limit: HADITH_SEARCH_LIMIT,
+        offset: 0,
+        mode: "hybrid",
+      },
+    })) as McpCallResult;
+    const payload = getMcpPayload(result);
+
+    if (result.isError || !isSearchHadithOutput(payload)) {
+      return { attempt: null, reason: "semantic_search_hadith returned an error or an unexpected payload" };
+    }
+
+    const output = payload as SemanticSearchHadithOutput;
+
+    return { attempt: { output, query }, mode: typeof output.mode === "string" ? output.mode : "unknown" };
+  } catch (error) {
+    // Older Hadith MCP builds do not have the tool; lexical search still runs.
+    return { attempt: null, reason: error instanceof Error ? error.message : "semantic_search_hadith failed" };
+  }
+}
+
+function semanticProvenanceNote(semantic: SemanticAttempt | null) {
+  if (semantic === null) {
+    return [];
+  }
+
+  if (semantic.attempt === null) {
+    return [`Hadith semantic search unavailable, used lexical search only: ${semantic.reason.slice(0, 200)}`];
+  }
+
+  if (semantic.mode === "fts_fallback") {
+    const reason = semantic.attempt.output.provenance_notes.find((note) => note.startsWith("Semantic search unavailable"));
+    return [`Hadith semantic search fell back to full-text on the Hadith MCP side.${reason ? ` ${reason}` : ""}`];
+  }
+
+  return [`Hadith semantic search: ${semantic.mode} (full-text + embedding similarity) for the original question.`];
+}
+
 function candidateKey(record: SourceRecord) {
   return `${record.collection}:${record.hadithNumber || record.reference}`;
 }
@@ -194,6 +251,7 @@ export async function searchHadithSources(
 ): Promise<RetrievalResponse> {
   const planned = planRetrievalQuery(query, language);
   const collection = options.collection ?? "all";
+  const searchMode = getHadithSearchMode();
   const { config, missing } = getHadithMcpConfig();
 
   if (!config) {
@@ -221,6 +279,7 @@ export async function searchHadithSources(
         cwd: config.cwd,
         env: {
           HADITH_MCP_DB_PATH: config.dbPath,
+          ...(searchMode === "hybrid" ? hadithMcpEmbeddingEnv() : {}),
         },
       },
       async ({ client, stderr }) => {
@@ -236,12 +295,16 @@ export async function searchHadithSources(
           });
         };
 
-        collectAttempts(
-          await Promise.all(
+        // The semantic call embeds the user's own question, which suits embeddings better
+        // than the planner's keyword queries. It runs alongside the lexical queries.
+        const [semantic, lexicalAttempts] = await Promise.all([
+          searchMode === "hybrid" ? callSemanticSearchHadith(client, query, language, collection) : Promise.resolve(null),
+          Promise.all(
             hadithQueryPlan.queries.map((searchQuery) => callSearchHadith(client, searchQuery, language, collection)),
           ),
-          0,
-        );
+        ]);
+
+        collectAttempts(lexicalAttempts, 0);
 
         if (candidates.size === 0) {
           const fallbackQueries = splitFallbackQueries(query, language).filter(
@@ -256,7 +319,9 @@ export async function searchHadithSources(
           );
         }
 
-        if (successfulQueries.length === 0) {
+        const semanticRecords = semantic?.attempt ? semantic.attempt.output.results.map(normalizeRecord) : [];
+
+        if (successfulQueries.length === 0 && !semantic?.attempt) {
           return {
             status: "error",
             query,
@@ -269,11 +334,19 @@ export async function searchHadithSources(
                 message: "Hadith MCP returned a response the product app could not normalize.",
               },
             ],
-            provenanceNotes: formatMcpStderr(stderr) ? [formatMcpStderr(stderr)] : [],
+            provenanceNotes: [
+              ...semanticProvenanceNote(semantic),
+              ...(formatMcpStderr(stderr) ? [formatMcpStderr(stderr)] : []),
+            ],
           };
         }
 
-        const records = rerankHadithRecords([...candidates.values()], query, language).slice(0, HADITH_RESULT_LIMIT);
+        const lexicalRecords = rerankHadithRecords([...candidates.values()], query, language);
+        // The lexical reranker scores planner-phrase overlap, which would bury semantic matches
+        // worded differently from the planned queries, so the two rankings are fused instead.
+        const records = (
+          semantic?.attempt ? fuseHadithRankings([semanticRecords, lexicalRecords]) : lexicalRecords
+        ).slice(0, HADITH_RESULT_LIMIT);
 
         return {
           status: records.length > 0 ? "ok" : "empty",
@@ -283,9 +356,11 @@ export async function searchHadithSources(
           records,
           warnings: records.length > 0 ? [] : [{ code: "no_hadith_results", message: "No hadith records matched this query." }],
           provenanceNotes: [
-            `Hadith candidates collected: ${candidates.size}.`,
+            `Hadith candidates collected: ${candidates.size}${semantic?.attempt ? ` lexical + ${semanticRecords.length} semantic` : ""}.`,
             `Hadith retrieval budget: up to ${hadithQueryPlan.queries.length} queries with ${HADITH_SEARCH_LIMIT} candidates each.`,
             "Hadith reranker: matn-aware lexical rerank.",
+            ...semanticProvenanceNote(semantic),
+            ...(semantic?.attempt ? ["Hadith ranking: reciprocal rank fusion (k=60) of the semantic and reranked lexical lists."] : []),
             ...(collection === "all" ? [] : [`Hadith collection filter: ${collection}.`]),
             `Hadith query planner: ${hadithQueryPlan.planner}.`,
             ...(hadithQueryPlan.warning ? [`Hadith query planner warning: ${hadithQueryPlan.warning}`] : []),
