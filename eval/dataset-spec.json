@@ -1,0 +1,1134 @@
+{
+  "notes": "Source spec for retrieval-questions.json. Each item names fragments that must all appear in a source text; eval/build-dataset.mjs resolves them against the real SQLite databases. Hadith fragments match hadith_texts.search_text (Arabic, normalized: no diacritics, alef variants -> ا, ى -> ي, ؤ -> و). Quran fragments match ayah_fts.text_normalized. verseKeys are checked to exist.",
+  "items": [
+    {
+      "id": "h-niyyat-ar",
+      "question": "إنما الأعمال بالنيات",
+      "language": "arabic",
+      "kind": "exact-quote",
+      "corpus": "hadith",
+      "tags": [
+        "exact-quote",
+        "hadith"
+      ],
+      "hadith": [
+        {
+          "all": [
+            "الاعمال بالني"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "h-niyyat-en",
+      "question": "Actions are judged by intentions",
+      "language": "english",
+      "kind": "paraphrase",
+      "corpus": "hadith",
+      "tags": [
+        "paraphrase",
+        "cross-lingual",
+        "hadith"
+      ],
+      "hadith": [
+        {
+          "all": [
+            "الاعمال بالني"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "h-husn-islam-ar",
+      "question": "من حسن إسلام المرء تركه ما لا يعنيه",
+      "language": "arabic",
+      "kind": "exact-quote",
+      "corpus": "hadith",
+      "tags": [
+        "exact-quote",
+        "hadith"
+      ],
+      "hadith": [
+        {
+          "all": [
+            "من حسن اسلام المرء تركه ما لا يعنيه"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "h-brother-ar",
+      "question": "لا يؤمن أحدكم حتى يحب لأخيه ما يحب لنفسه",
+      "language": "arabic",
+      "kind": "exact-quote",
+      "corpus": "hadith",
+      "tags": [
+        "exact-quote",
+        "hadith"
+      ],
+      "hadith": [
+        {
+          "all": [
+            "حتي يحب لاخيه"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "h-brother-en",
+      "question": "None of you truly believes until he loves for his brother what he loves for himself",
+      "language": "english",
+      "kind": "paraphrase",
+      "corpus": "hadith",
+      "tags": [
+        "paraphrase",
+        "cross-lingual",
+        "hadith"
+      ],
+      "hadith": [
+        {
+          "all": [
+            "حتي يحب لاخيه"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "h-nasiha-ar",
+      "question": "حديث الدين النصيحة",
+      "language": "arabic",
+      "kind": "exact-quote",
+      "corpus": "hadith",
+      "tags": [
+        "exact-quote",
+        "source-limited",
+        "hadith"
+      ],
+      "hadith": [
+        {
+          "all": [
+            "الدين النصيحة"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "h-nasiha-en",
+      "question": "hadith: the religion is sincere advice",
+      "language": "english",
+      "kind": "paraphrase",
+      "corpus": "hadith",
+      "tags": [
+        "paraphrase",
+        "cross-lingual",
+        "source-limited",
+        "hadith"
+      ],
+      "hadith": [
+        {
+          "all": [
+            "الدين النصيحة"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "h-speak-good-ar",
+      "question": "من كان يؤمن بالله واليوم الآخر فليقل خيرا أو ليصمت",
+      "language": "arabic",
+      "kind": "exact-quote",
+      "corpus": "hadith",
+      "tags": [
+        "exact-quote",
+        "hadith"
+      ],
+      "hadith": [
+        {
+          "all": [
+            "فليقل خيرا او ليصمت"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "h-tuhur-ar",
+      "question": "الطهور شطر الإيمان",
+      "language": "arabic",
+      "kind": "exact-quote",
+      "corpus": "hadith",
+      "tags": [
+        "exact-quote",
+        "hadith"
+      ],
+      "hadith": [
+        {
+          "all": [
+            "الطهور شطر الايمان"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "h-ajaban-ar",
+      "question": "عجبا لأمر المؤمن إن أمره كله خير",
+      "language": "arabic",
+      "kind": "exact-quote",
+      "corpus": "hadith",
+      "tags": [
+        "exact-quote",
+        "hadith"
+      ],
+      "hadith": [
+        {
+          "all": [
+            "عجبا لامر المومن"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "h-buniya-ar",
+      "question": "بني الإسلام على خمس",
+      "language": "arabic",
+      "kind": "exact-quote",
+      "corpus": "hadith",
+      "tags": [
+        "exact-quote",
+        "hadith"
+      ],
+      "hadith": [
+        {
+          "all": [
+            "بني الاسلام علي خمس"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "h-five-pillars-en",
+      "question": "What are the five pillars Islam is built on according to hadith?",
+      "language": "english",
+      "kind": "paraphrase",
+      "corpus": "hadith",
+      "tags": [
+        "paraphrase",
+        "cross-lingual",
+        "source-limited",
+        "hadith"
+      ],
+      "hadith": [
+        {
+          "all": [
+            "بني الاسلام علي خمس"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "h-rahimun-ar",
+      "question": "الراحمون يرحمهم الرحمن",
+      "language": "arabic",
+      "kind": "exact-quote",
+      "corpus": "hadith",
+      "tags": [
+        "exact-quote",
+        "hadith"
+      ],
+      "hadith": [
+        {
+          "all": [
+            "الراحمون يرحمهم الرحمن"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "h-siwak-ar",
+      "question": "لولا أن أشق على أمتي لأمرتهم بالسواك",
+      "language": "arabic",
+      "kind": "exact-quote",
+      "corpus": "hadith",
+      "tags": [
+        "exact-quote",
+        "hadith"
+      ],
+      "hadith": [
+        {
+          "all": [
+            "لولا ان اشق علي امتي لامرتهم بالسواك"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "h-siwak-en",
+      "question": "hadith about using the miswak (tooth stick)",
+      "language": "english",
+      "kind": "topical",
+      "corpus": "hadith",
+      "tags": [
+        "topical",
+        "cross-lingual",
+        "source-limited",
+        "hadith"
+      ],
+      "hadith": [
+        {
+          "all": [
+            "لولا ان اشق علي امتي لامرتهم بالسواك"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "h-seven-shade-ar",
+      "question": "سبعة يظلهم الله في ظله يوم لا ظل إلا ظله",
+      "language": "arabic",
+      "kind": "exact-quote",
+      "corpus": "hadith",
+      "tags": [
+        "exact-quote",
+        "hadith"
+      ],
+      "hadith": [
+        {
+          "all": [
+            "سبعة يظلهم الله"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "h-seven-shade-en",
+      "question": "Who are the seven people Allah will shade on the Day of Judgement?",
+      "language": "english",
+      "kind": "paraphrase",
+      "corpus": "hadith",
+      "tags": [
+        "paraphrase",
+        "cross-lingual",
+        "hadith"
+      ],
+      "hadith": [
+        {
+          "all": [
+            "سبعة يظلهم الله"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "h-strong-ar",
+      "question": "الشديد بالصرعة",
+      "language": "arabic",
+      "kind": "exact-quote",
+      "corpus": "hadith",
+      "tags": [
+        "exact-quote",
+        "hadith"
+      ],
+      "hadith": [
+        {
+          "all": [
+            "الشديد بالصرعة"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "h-strong-en",
+      "question": "The strong man is not the one who wrestles others down but who controls himself when angry",
+      "language": "english",
+      "kind": "paraphrase",
+      "corpus": "hadith",
+      "tags": [
+        "paraphrase",
+        "cross-lingual",
+        "hadith"
+      ],
+      "hadith": [
+        {
+          "all": [
+            "الشديد بالصرعة"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "h-smile-en",
+      "question": "Is smiling at your brother a charity?",
+      "language": "english",
+      "kind": "paraphrase",
+      "corpus": "hadith",
+      "tags": [
+        "paraphrase",
+        "cross-lingual",
+        "hadith"
+      ],
+      "hadith": [
+        {
+          "all": [
+            "تبسمك في وجه اخيك"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "h-neighbor-ar",
+      "question": "ما زال جبريل يوصيني بالجار",
+      "language": "arabic",
+      "kind": "exact-quote",
+      "corpus": "hadith",
+      "tags": [
+        "exact-quote",
+        "hadith"
+      ],
+      "hadith": [
+        {
+          "all": [
+            "يوصيني بالجار"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "h-neighbor-en",
+      "question": "rights of the neighbour in the Sunnah",
+      "language": "english",
+      "kind": "topical",
+      "corpus": "hadith",
+      "tags": [
+        "topical",
+        "cross-lingual",
+        "source-limited",
+        "hadith"
+      ],
+      "hadith": [
+        {
+          "all": [
+            "يوصيني بالجار"
+          ]
+        },
+        {
+          "all": [
+            "فليقل خيرا او ليصمت",
+            "جاره"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "h-ramadan-ar",
+      "question": "من صام رمضان إيمانا واحتسابا",
+      "language": "arabic",
+      "kind": "exact-quote",
+      "corpus": "hadith",
+      "tags": [
+        "exact-quote",
+        "hadith"
+      ],
+      "hadith": [
+        {
+          "all": [
+            "من صام رمضان ايمانا واحتسابا"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "h-ramadan-en",
+      "question": "Reward for fasting Ramadan with faith and hoping for reward",
+      "language": "english",
+      "kind": "paraphrase",
+      "corpus": "hadith",
+      "tags": [
+        "paraphrase",
+        "cross-lingual",
+        "hadith"
+      ],
+      "hadith": [
+        {
+          "all": [
+            "من صام رمضان ايمانا واحتسابا"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "h-haya-ar",
+      "question": "حديث عن الحياء من الإيمان",
+      "language": "arabic",
+      "kind": "topical",
+      "corpus": "hadith",
+      "tags": [
+        "topical",
+        "source-limited",
+        "hadith"
+      ],
+      "hadith": [
+        {
+          "all": [
+            "الحياء شعبة من الايمان"
+          ]
+        },
+        {
+          "all": [
+            "الحياء من الايمان"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "h-haya-en",
+      "question": "hadith about modesty being part of faith",
+      "language": "english",
+      "kind": "topical",
+      "corpus": "hadith",
+      "tags": [
+        "topical",
+        "cross-lingual",
+        "source-limited",
+        "hadith"
+      ],
+      "hadith": [
+        {
+          "all": [
+            "الحياء شعبة من الايمان"
+          ]
+        },
+        {
+          "all": [
+            "الحياء من الايمان"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "h-animals-en",
+      "question": "kindness to animals",
+      "language": "english",
+      "kind": "topical",
+      "corpus": "hadith",
+      "tags": [
+        "topical",
+        "cross-lingual",
+        "hadith"
+      ],
+      "hadith": [
+        {
+          "all": [
+            "يلهث ياكل الثري"
+          ]
+        },
+        {
+          "all": [
+            "امراة",
+            "في هرة"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "h-animals-ar",
+      "question": "الرفق بالحيوان",
+      "language": "arabic",
+      "kind": "topical",
+      "corpus": "hadith",
+      "tags": [
+        "topical",
+        "hadith"
+      ],
+      "hadith": [
+        {
+          "all": [
+            "يلهث ياكل الثري"
+          ]
+        },
+        {
+          "all": [
+            "امراة",
+            "في هرة"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "h-cat-en",
+      "question": "the woman who went to hell because of a cat",
+      "language": "english",
+      "kind": "paraphrase",
+      "corpus": "hadith",
+      "tags": [
+        "paraphrase",
+        "cross-lingual",
+        "hadith"
+      ],
+      "hadith": [
+        {
+          "all": [
+            "امراة",
+            "في هرة"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "h-anger-en",
+      "question": "advice of the Prophet about controlling anger",
+      "language": "english",
+      "kind": "topical",
+      "corpus": "hadith",
+      "tags": [
+        "topical",
+        "cross-lingual",
+        "hadith"
+      ],
+      "hadith": [
+        {
+          "all": [
+            "اوصني قال لا تغضب"
+          ]
+        },
+        {
+          "all": [
+            "الشديد بالصرعة"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "h-anger-ar",
+      "question": "ماذا قال النبي عن الغضب",
+      "language": "arabic",
+      "kind": "topical",
+      "corpus": "hadith",
+      "tags": [
+        "topical",
+        "hadith"
+      ],
+      "hadith": [
+        {
+          "all": [
+            "اوصني قال لا تغضب"
+          ]
+        },
+        {
+          "all": [
+            "الشديد بالصرعة"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "h-patience-en",
+      "question": "patience in hardship",
+      "language": "english",
+      "kind": "topical",
+      "corpus": "mixed",
+      "tags": [
+        "topical",
+        "cross-lingual",
+        "mixed"
+      ],
+      "hadith": [
+        {
+          "all": [
+            "عجبا لامر المومن"
+          ]
+        },
+        {
+          "all": [
+            "الصبر عند الصدمة الاولي"
+          ]
+        }
+      ],
+      "quran": {
+        "all": [
+          "الصابرين"
+        ]
+      }
+    },
+    {
+      "id": "h-patience-ar",
+      "question": "الصبر عند المصيبة",
+      "language": "arabic",
+      "kind": "topical",
+      "corpus": "mixed",
+      "tags": [
+        "topical",
+        "mixed"
+      ],
+      "hadith": [
+        {
+          "all": [
+            "عجبا لامر المومن"
+          ]
+        },
+        {
+          "all": [
+            "الصبر عند الصدمة الاولي"
+          ]
+        }
+      ],
+      "quran": {
+        "all": [
+          "الصابرين"
+        ]
+      }
+    },
+    {
+      "id": "h-honesty-en",
+      "question": "truthfulness leads to paradise",
+      "language": "english",
+      "kind": "paraphrase",
+      "corpus": "hadith",
+      "tags": [
+        "paraphrase",
+        "cross-lingual",
+        "hadith"
+      ],
+      "hadith": [
+        {
+          "all": [
+            "ان الصدق يهدي الي البر"
+          ]
+        },
+        {
+          "all": [
+            "عليكم بالصدق"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "h-kinship-ar",
+      "question": "فضل صلة الرحم وسعة الرزق",
+      "language": "arabic",
+      "kind": "topical",
+      "corpus": "hadith",
+      "tags": [
+        "topical",
+        "hadith"
+      ],
+      "hadith": [
+        {
+          "all": [
+            "يبسط له في رزقه"
+          ]
+        },
+        {
+          "all": [
+            "ليس الواصل بالمكافي"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "h-kinship-en",
+      "question": "maintaining ties of kinship increases provision",
+      "language": "english",
+      "kind": "topical",
+      "corpus": "hadith",
+      "tags": [
+        "topical",
+        "cross-lingual",
+        "hadith"
+      ],
+      "hadith": [
+        {
+          "all": [
+            "يبسط له في رزقه"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "h-knowledge-en",
+      "question": "whoever travels a path seeking knowledge",
+      "language": "english",
+      "kind": "paraphrase",
+      "corpus": "hadith",
+      "tags": [
+        "paraphrase",
+        "cross-lingual",
+        "hadith"
+      ],
+      "hadith": [
+        {
+          "all": [
+            "يلتمس فيه علما"
+          ]
+        },
+        {
+          "all": [
+            "طريقا يلتمس"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "h-good-word-ar",
+      "question": "الكلمة الطيبة صدقة",
+      "language": "arabic",
+      "kind": "exact-quote",
+      "corpus": "hadith",
+      "tags": [
+        "exact-quote",
+        "hadith"
+      ],
+      "hadith": [
+        {
+          "all": [
+            "الكلمة الطيبة صدقة"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "q-kursi-ref",
+      "question": "2:255",
+      "language": "arabic",
+      "kind": "reference",
+      "corpus": "quran",
+      "tags": [
+        "reference",
+        "quran"
+      ],
+      "quran": {
+        "verseKeys": [
+          "2:255"
+        ]
+      }
+    },
+    {
+      "id": "q-kursi-ar",
+      "question": "تفسير آية الكرسي",
+      "language": "arabic",
+      "kind": "reference",
+      "corpus": "quran",
+      "tags": [
+        "reference",
+        "source-limited",
+        "quran"
+      ],
+      "quran": {
+        "verseKeys": [
+          "2:255"
+        ]
+      }
+    },
+    {
+      "id": "q-kursi-en",
+      "question": "Explain Ayat al-Kursi",
+      "language": "english",
+      "kind": "reference",
+      "corpus": "quran",
+      "tags": [
+        "reference",
+        "cross-lingual",
+        "source-limited",
+        "quran"
+      ],
+      "quran": {
+        "verseKeys": [
+          "2:255"
+        ]
+      }
+    },
+    {
+      "id": "q-286-en",
+      "question": "Explain verse 2:286",
+      "language": "english",
+      "kind": "reference",
+      "corpus": "quran",
+      "tags": [
+        "reference",
+        "cross-lingual",
+        "source-limited",
+        "quran"
+      ],
+      "quran": {
+        "verseKeys": [
+          "2:286"
+        ]
+      }
+    },
+    {
+      "id": "q-yusr-ar",
+      "question": "إن مع العسر يسرا",
+      "language": "arabic",
+      "kind": "exact-quote",
+      "corpus": "quran",
+      "tags": [
+        "exact-quote",
+        "quran"
+      ],
+      "quran": {
+        "all": [
+          "مع العسر يسرا"
+        ]
+      }
+    },
+    {
+      "id": "q-sabr-salah-ar",
+      "question": "واستعينوا بالصبر والصلاة",
+      "language": "arabic",
+      "kind": "exact-quote",
+      "corpus": "quran",
+      "tags": [
+        "exact-quote",
+        "quran"
+      ],
+      "quran": {
+        "all": [
+          "استعينوا بالصبر والصلاة"
+        ]
+      }
+    },
+    {
+      "id": "q-taawun-ar",
+      "question": "آية وتعاونوا على البر والتقوى",
+      "language": "arabic",
+      "kind": "exact-quote",
+      "corpus": "quran",
+      "tags": [
+        "exact-quote",
+        "source-limited",
+        "quran"
+      ],
+      "quran": {
+        "all": [
+          "وتعاونوا علي البر والتقوي"
+        ]
+      }
+    },
+    {
+      "id": "q-wus-ar",
+      "question": "لا يكلف الله نفسا إلا وسعها",
+      "language": "arabic",
+      "kind": "exact-quote",
+      "corpus": "quran",
+      "tags": [
+        "exact-quote",
+        "quran"
+      ],
+      "quran": {
+        "verseKeys": [
+          "2:286"
+        ]
+      }
+    },
+    {
+      "id": "q-dua-ar",
+      "question": "ادعوني أستجب لكم",
+      "language": "arabic",
+      "kind": "exact-quote",
+      "corpus": "quran",
+      "tags": [
+        "exact-quote",
+        "quran"
+      ],
+      "quran": {
+        "all": [
+          "ادعوني استجب لكم"
+        ]
+      }
+    },
+    {
+      "id": "q-ikhlas-ar",
+      "question": "قل هو الله أحد",
+      "language": "arabic",
+      "kind": "exact-quote",
+      "corpus": "quran",
+      "tags": [
+        "exact-quote",
+        "quran"
+      ],
+      "quran": {
+        "all": [
+          "قل هو الله احد"
+        ]
+      }
+    },
+    {
+      "id": "q-compulsion-en",
+      "question": "Quran verse: there is no compulsion in religion",
+      "language": "english",
+      "kind": "paraphrase",
+      "corpus": "quran",
+      "tags": [
+        "paraphrase",
+        "cross-lingual",
+        "source-limited",
+        "quran"
+      ],
+      "quran": {
+        "verseKeys": [
+          "2:256"
+        ]
+      }
+    },
+    {
+      "id": "q-parents-en",
+      "question": "What does the Quran say about kindness to parents?",
+      "language": "english",
+      "kind": "topical",
+      "corpus": "quran",
+      "tags": [
+        "topical",
+        "cross-lingual",
+        "source-limited",
+        "quran"
+      ],
+      "quran": {
+        "all": [
+          "وبالوالدين احسانا"
+        ]
+      }
+    },
+    {
+      "id": "q-parents-ar",
+      "question": "بر الوالدين في القرآن",
+      "language": "arabic",
+      "kind": "topical",
+      "corpus": "quran",
+      "tags": [
+        "topical",
+        "source-limited",
+        "quran"
+      ],
+      "quran": {
+        "all": [
+          "وبالوالدين احسانا"
+        ]
+      }
+    },
+    {
+      "id": "q-nations-ar",
+      "question": "وجعلناكم شعوبا وقبائل لتعارفوا",
+      "language": "arabic",
+      "kind": "exact-quote",
+      "corpus": "quran",
+      "tags": [
+        "exact-quote",
+        "quran"
+      ],
+      "quran": {
+        "all": [
+          "شعوبا وقبائل لتعارفوا"
+        ]
+      }
+    },
+    {
+      "id": "q-brothers-ar",
+      "question": "إنما المؤمنون إخوة",
+      "language": "arabic",
+      "kind": "exact-quote",
+      "corpus": "quran",
+      "tags": [
+        "exact-quote",
+        "quran"
+      ],
+      "quran": {
+        "all": [
+          "انما المؤمنون اخوة"
+        ]
+      }
+    },
+    {
+      "id": "q-riba-ar",
+      "question": "آيات تحريم الربا في القرآن",
+      "language": "arabic",
+      "kind": "topical",
+      "corpus": "quran",
+      "tags": [
+        "topical",
+        "source-limited",
+        "quran"
+      ],
+      "quran": {
+        "verseKeys": [
+          "2:275",
+          "2:276",
+          "2:278",
+          "3:130",
+          "4:161"
+        ]
+      }
+    },
+    {
+      "id": "q-backbiting-en",
+      "question": "Quran on backbiting",
+      "language": "english",
+      "kind": "topical",
+      "corpus": "quran",
+      "tags": [
+        "topical",
+        "cross-lingual",
+        "source-limited",
+        "quran"
+      ],
+      "quran": {
+        "all": [
+          "ولا يغتب بعضكم بعضا"
+        ]
+      }
+    },
+    {
+      "id": "q-fasting-ar",
+      "question": "يا أيها الذين آمنوا كتب عليكم الصيام",
+      "language": "arabic",
+      "kind": "exact-quote",
+      "corpus": "quran",
+      "tags": [
+        "exact-quote",
+        "quran"
+      ],
+      "quran": {
+        "all": [
+          "كتب عليكم الصيام"
+        ]
+      }
+    },
+    {
+      "id": "q-fasting-en",
+      "question": "Which verse made fasting obligatory?",
+      "language": "english",
+      "kind": "paraphrase",
+      "corpus": "quran",
+      "tags": [
+        "paraphrase",
+        "cross-lingual",
+        "source-limited",
+        "quran"
+      ],
+      "quran": {
+        "all": [
+          "كتب عليكم الصيام"
+        ]
+      }
+    },
+    {
+      "id": "q-hamd-ref",
+      "question": "1:2",
+      "language": "english",
+      "kind": "reference",
+      "corpus": "quran",
+      "tags": [
+        "reference",
+        "cross-lingual",
+        "quran"
+      ],
+      "quran": {
+        "verseKeys": [
+          "1:2"
+        ]
+      }
+    }
+  ],
+  "tagging": {
+    "kind": "exactly one of exact-quote | reference | paraphrase | topical",
+    "modifiers": "cross-lingual (question is English; source text is Arabic, matched via translations/tafsir) and source-limited (question explicitly names hadith/Sunnah or Quran/verse/tafsir)",
+    "corpus": "hadith | quran | mixed (where the ground truth lives)"
+  }
+}
