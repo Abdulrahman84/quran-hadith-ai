@@ -89,6 +89,14 @@ ENV HADITH_MCP_CWD=/opt/hadith-mcp
 ENV HADITH_MCP_CLI_PATH=/opt/hadith-mcp/packages/hadith-mcp/dist/cli.js
 ENV HADITH_MCP_DB_PATH=/opt/hadith-mcp/data/generated/hadith-meeatif.sqlite
 ENV HADITH_MCP_EMBEDDINGS_PATH=/opt/hadith-mcp/data/generated/hadith-embeddings.sqlite
+# Hybrid hadith search defaults, also set in render.yaml. The embeddings key falls back to
+# OPENROUTER_API_KEY for the OpenRouter base URL.
+ENV HADITH_SEARCH_MODE=hybrid
+ENV EMBEDDINGS_PROVIDER=openai
+ENV EMBEDDINGS_BASE_URL=https://openrouter.ai/api/v1
+ENV EMBEDDINGS_MODEL=baai/bge-m3
+ENV EMBEDDINGS_INDEX_MODEL=bge-m3
+ENV EMBEDDINGS_TIMEOUT_MS=8000
 
 ENV TAFSIR_MCP_COMMAND=/opt/tafsir-mcp/bin/python
 ENV TAFSIR_MCP_ARGS="-m tafsir.server"
