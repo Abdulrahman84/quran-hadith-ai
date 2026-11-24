@@ -6,19 +6,13 @@ import { CheckPanel } from "@/components/check/check-panel";
 import { useI18n } from "@/components/i18n-provider";
 import { AnswerDraftPreview } from "@/components/answer-draft-preview";
 import { SearchLoading } from "@/components/search-loading";
-import { SourceRecordText } from "@/components/source-record-text";
+import { getAnswerStatusKey, getWarningKey, warningToneClass } from "@/components/search/search-display";
+import { SourceResults, type ResultSourceFilter } from "@/components/search/source-results";
 import { WorkflowSwitch, type HomeWorkflow } from "@/components/workflow-switch";
 import type { TranslationKey } from "@/lib/i18n";
 import { hadithCollections, type HadithCollectionSelection } from "@/lib/retrieval/hadith-collections";
-import {
-  formatHadithGrade,
-  formatHadithGradeReference,
-  formatHadithGradeSource,
-  formatSourceDetailLabel,
-  formatSourceRecordTitle,
-} from "@/lib/retrieval/source-display";
 import { tafsirSources, type TafsirSourceSelection } from "@/lib/retrieval/tafsir-sources";
-import type { RetrievalResponse, RetrievalWarning } from "@/lib/retrieval/types";
+import type { RetrievalResponse } from "@/lib/retrieval/types";
 import {
   answerDraftStreamFeature,
   readSearchResponse,
@@ -38,154 +32,12 @@ const sourceRoutes: Array<{ id: "Quran" | "Tafsir" | "Hadith"; labelKey: Transla
   { id: "Tafsir", labelKey: "routes.tafsir" },
   { id: "Hadith", labelKey: "routes.hadith" },
 ];
-type ResultSourceFilter = "all" | "quran" | "hadith";
-
-const resultSourceFilters: Array<{ id: ResultSourceFilter; labelKey: TranslationKey }> = [
-  { id: "all", labelKey: "result.filterAll" },
-  { id: "quran", labelKey: "result.filterQuran" },
-  { id: "hadith", labelKey: "result.filterHadith" },
-];
-
-const sourcePageSize = 5;
-
 function resizeQuestionField(element: HTMLTextAreaElement) {
   const maxHeight = 120;
 
   element.style.height = "auto";
   element.style.height = `${Math.min(element.scrollHeight, maxHeight)}px`;
   element.style.overflowY = element.scrollHeight > maxHeight ? "auto" : "hidden";
-}
-
-function getWarningKey(warning: RetrievalWarning): TranslationKey {
-  if (warning.code === "no_hadith_results") {
-    return "warning.noHadithResults";
-  }
-
-  if (warning.code === "no_tafsir_results") {
-    return "warning.noTafsirResults";
-  }
-
-  if (warning.code === "query_expanded") {
-    return "warning.queryExpanded";
-  }
-
-  if (warning.code === "invalid_json") {
-    return "warning.invalidJson";
-  }
-
-  if (warning.code === "empty_question") {
-    return "warning.emptyQuestion";
-  }
-
-  if (warning.code === "source_tool_router_unavailable") {
-    return "warning.sourceToolRouterUnavailable";
-  }
-
-  return "warning.generic";
-}
-
-function getAnswerStatusKey(answer: RetrievalResponse["answer"]): TranslationKey {
-  if (answer?.status === "disabled") {
-    return "result.answerDisabled";
-  }
-
-  if (answer?.status === "error") {
-    return "result.answerError";
-  }
-
-  if (answer?.status === "insufficient_sources") {
-    return "result.answerInsufficient";
-  }
-
-  return "result.answerPending";
-}
-
-function sourceKindLabel(record: RetrievalResponse["records"][number], t: (key: TranslationKey) => string) {
-  if (record.sourceKind === "hadith") {
-    return t("routes.hadith");
-  }
-
-  if (record.sourceKind === "tafsir") {
-    return t("routes.tafsir");
-  }
-
-  return t("routes.quran");
-}
-
-function recordDetailBadge(record: RetrievalResponse["records"][number], language: "ar" | "en", t: (key: TranslationKey) => string) {
-  if (record.sourceKind === "hadith") {
-    return record.grade ? formatHadithGrade(record.grade.value, language) : t("result.gradeUnavailable");
-  }
-
-  if (record.sourceKind === "tafsir") {
-    const source = record.tafsirSource || t("result.tafsirUnavailable");
-    return formatSourceDetailLabel(source, record.sourceKind, language);
-  }
-
-  return null;
-}
-
-function recordGradeMetadata(
-  record: RetrievalResponse["records"][number],
-  language: "ar" | "en",
-  t: (key: TranslationKey) => string,
-) {
-  if (record.sourceKind !== "hadith" || !record.grade) {
-    return "";
-  }
-
-  return [
-    record.grade.source
-      ? `${t("result.gradeSourceLabel")}: ${formatHadithGradeSource(record.grade.source, language)}`
-      : null,
-    record.grade.sourceReference
-      ? `${t("result.gradeReferenceLabel")}: ${formatHadithGradeReference(record.grade.sourceReference, language)}`
-      : null,
-  ]
-    .filter(Boolean)
-    .join(" / ");
-}
-
-function warningToneClass(warning: RetrievalWarning) {
-  if (warning.code === "query_expanded") {
-    return "border-[var(--color-green)]/20 bg-[var(--color-primary-soft)] text-[var(--color-green)]";
-  }
-
-  if (warning.code === "no_hadith_results" || warning.code === "no_tafsir_results") {
-    return "border-[var(--color-gold)]/40 bg-[var(--color-gold-soft)] text-[var(--color-ink)]";
-  }
-
-  return "border-[var(--color-red)]/24 bg-[var(--color-error-soft)] text-[var(--color-red)]";
-}
-
-function recordMetadata(record: RetrievalResponse["records"][number], language: string, t: (key: TranslationKey) => string) {
-  if (record.sourceKind === "hadith") {
-    if (!record.book && !record.chapter) {
-      return "";
-    }
-
-    if (language === "ar") {
-      return [
-        record.book && !/[A-Za-z]/.test(record.book) ? `${t("result.bookLabel")}: ${record.book}` : null,
-        record.chapter && !/[A-Za-z]/.test(record.chapter) ? `${t("result.chapterLabel")}: ${record.chapter}` : null,
-      ]
-        .filter(Boolean)
-        .join(" / ");
-    }
-
-    return [record.book, record.chapter].filter(Boolean).join(" / ");
-  }
-
-  return [
-    record.translationEdition && (language !== "ar" || !/[A-Za-z]/.test(record.translationEdition))
-      ? `${t("result.translationLabel")}: ${record.translationEdition}`
-      : null,
-    record.tafsirSource && (language !== "ar" || !/[A-Za-z]/.test(record.tafsirSource))
-      ? `${t("result.tafsirLabel")}: ${record.tafsirSource}`
-      : null,
-  ]
-    .filter(Boolean)
-    .join(" / ");
 }
 
 export default function Home() {
@@ -221,22 +73,6 @@ export default function Home() {
       Hadith: kinds.has("hadith"),
     };
   }, [retrieval]);
-  const sourceRecords = useMemo(() => {
-    const records = retrieval?.records ?? [];
-
-    if (resultSourceFilter === "hadith") {
-      return records.filter((record) => record.sourceKind === "hadith");
-    }
-
-    if (resultSourceFilter === "quran") {
-      return records.filter((record) => record.sourceKind === "quran" || record.sourceKind === "tafsir");
-    }
-
-    return records;
-  }, [retrieval, resultSourceFilter]);
-  const totalSourcePages = Math.max(1, Math.ceil(sourceRecords.length / sourcePageSize));
-  const currentSourcePage = Math.min(sourcePage, totalSourcePages);
-  const visibleSourceRecords = sourceRecords.slice((currentSourcePage - 1) * sourcePageSize, currentSourcePage * sourcePageSize);
   const loadingFilterLabels = [
     hadithCollection === "all"
       ? null
@@ -743,96 +579,15 @@ export default function Home() {
                       </p>
                     )}
 
-                    {retrieval?.records.length ? (
-                      <div className="mt-4 flex flex-wrap gap-1.5 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)]/80 p-1.5">
-                        {resultSourceFilters.map((filter) => (
-                          <button
-                            aria-pressed={resultSourceFilter === filter.id}
-                            className="min-h-10 flex-1 rounded-lg px-3 py-2 text-xs font-semibold text-[var(--color-muted)] transition hover:bg-[var(--color-primary-soft)] hover:text-[var(--color-green)] aria-pressed:bg-[var(--color-green)] aria-pressed:text-white"
-                            key={filter.id}
-                            onClick={() => {
-                              setResultSourceFilter(filter.id);
-                              setSourcePage(1);
-                            }}
-                            type="button"
-                          >
-                            {t(filter.labelKey)}
-                          </button>
-                        ))}
-                      </div>
-                    ) : null}
-
-                    {sourceRecords.length === 0 && retrieval?.records.length ? (
-                      <p className="mt-4 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)]/80 p-3 text-sm font-semibold leading-7 text-[var(--color-muted)]">
-                        {t("result.filterEmpty")}
-                      </p>
-                    ) : (
-                      <div className="mt-4 grid gap-2">
-                        {visibleSourceRecords.map((record) => (
-                          (() => {
-                            const metadata = recordMetadata(record, language, t);
-                            const gradeMetadata = recordGradeMetadata(record, language, t);
-                            const detailBadge = recordDetailBadge(record, language, t);
-
-                            return (
-                              <article
-                                className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-[0_8px_24px_rgba(22,58,95,0.04)]"
-                                key={record.id}
-                              >
-                                <div className="flex flex-wrap items-center justify-between gap-2">
-                                  <strong className="text-sm font-bold text-[var(--color-green)]">
-                                    {formatSourceRecordTitle(record, language)}
-                                  </strong>
-                                  <span className="flex flex-wrap items-center gap-1.5">
-                                    <span className="source-type-badge">{sourceKindLabel(record, t)}</span>
-                                    {detailBadge ? <span className="source-detail-badge">{detailBadge}</span> : null}
-                                  </span>
-                                </div>
-                                {metadata ? (
-                                  <p
-                                    className={`mt-2 text-xs font-semibold text-[var(--color-muted)] ${
-                                      language === "ar" ? "" : "uppercase tracking-[0.12em]"
-                                    }`}
-                                  >
-                                    {metadata}
-                                  </p>
-                                ) : null}
-                                {gradeMetadata ? (
-                                  <p className="mt-2 text-xs font-medium leading-6 text-[var(--color-green-soft)]">
-                                    {gradeMetadata}
-                                  </p>
-                                ) : null}
-                                <SourceRecordText language={language} record={record} t={t} />
-                              </article>
-                            );
-                          })()
-                        ))}
-                      </div>
-                    )}
-
-                    {sourceRecords.length > sourcePageSize ? (
-                      <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)]/80 p-3">
-                        <button
-                          className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-2 text-xs font-semibold text-[var(--color-green)] disabled:opacity-40"
-                          disabled={currentSourcePage === 1}
-                          onClick={() => setSourcePage((page) => Math.max(1, page - 1))}
-                          type="button"
-                        >
-                          {t("result.previousPage")}
-                        </button>
-                        <span className="text-xs font-semibold text-[var(--color-muted)]">
-                          {t("result.pageLabel")} {currentSourcePage} / {totalSourcePages}
-                        </span>
-                        <button
-                          className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-2 text-xs font-semibold text-[var(--color-green)] disabled:opacity-40"
-                          disabled={currentSourcePage === totalSourcePages}
-                          onClick={() => setSourcePage((page) => Math.min(totalSourcePages, page + 1))}
-                          type="button"
-                        >
-                          {t("result.nextPage")}
-                        </button>
-                      </div>
-                    ) : null}
+                    <SourceResults
+                      filter={resultSourceFilter}
+                      language={language}
+                      onFilterChange={setResultSourceFilter}
+                      onPageChange={setSourcePage}
+                      page={sourcePage}
+                      records={retrieval?.records ?? []}
+                      t={t}
+                    />
 
                     {retrieval?.warnings.length ? (
                       <div className="mt-4 grid gap-2">
