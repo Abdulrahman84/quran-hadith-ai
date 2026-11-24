@@ -986,3 +986,53 @@ test("answer generation does not repeat source text when the model errors", asyn
     ["llm_error", "llm_guardrail_fallback"],
   );
 });
+
+async function guardedArabicAnswer(text) {
+  const { generateGroundedAnswer } = loadGroundedAnswerModule({
+    completeLlmText: async () => ({ status: "ok", text, provider: "openrouter", model: "test-model" }),
+  });
+
+  return generateGroundedAnswer({ question: "ما أثر النية في العمل؟", language: "arabic", records: [sourceRecord()] });
+}
+
+test("citation coverage treats ؛ as a clause joiner, not a sentence end", async () => {
+  const text =
+    "تدل الرواية على أن العمل مرتبط بالنية؛ فالمقصد أساس قبوله [1]. وفي هذا تذكير بإصلاح القصد [1]. ويبقى القلب محل النية.";
+  const answer = await guardedArabicAnswer(text);
+
+  assert.equal(answer.status, "ready");
+  assert.equal(answer.text, text);
+});
+
+test("citation coverage joins a sentence wrapped across lines", async () => {
+  const text =
+    "تدل الرواية على أن صلاح العمل من\nصلاح النية [1]. وفي هذا تذكير بإصلاح القصد [1]. ويبقى القلب محل النية.";
+  const answer = await guardedArabicAnswer(text);
+
+  assert.equal(answer.status, "ready");
+  assert.equal(answer.text, text);
+});
+
+test("citation coverage accepts a varied closing pointer to the sources below", async () => {
+  const text =
+    "تدل الرواية على أن العمل مرتبط بالنية [1]. ويبقى القلب محل النية. وللوقوف على الألفاظ الكاملة والسياقات، حسْبُك مراجعة نصوص المصادر الأصلية أدناه.";
+  const answer = await guardedArabicAnswer(text);
+
+  assert.equal(answer.status, "ready");
+  assert.equal(answer.text, text);
+});
+
+test("citation coverage still rejects two uncited claims", async () => {
+  const text = "تدل الرواية على أن العمل مرتبط بالنية [1]. ويبقى القلب محل النية. والنية تغير حكم العمل كله.";
+  const answer = await guardedArabicAnswer(text);
+
+  assert.notEqual(answer.text, text);
+});
+
+test("a closing pointer that is not the last sentence still needs a citation", async () => {
+  const text =
+    "ويمكنك مراجعة نصوص المصادر أدناه. تدل الرواية على أن العمل مرتبط بالنية [1]. ويبقى القلب محل النية.";
+  const answer = await guardedArabicAnswer(text);
+
+  assert.notEqual(answer.text, text);
+});
