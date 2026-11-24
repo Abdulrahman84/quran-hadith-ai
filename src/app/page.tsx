@@ -7,19 +7,13 @@ import { useI18n } from "@/components/i18n-provider";
 import { AnswerDraftPreview } from "@/components/answer-draft-preview";
 import { SearchLoading } from "@/components/search-loading";
 import { getAnswerStatusKey, getWarningKey, warningToneClass } from "@/components/search/search-display";
+import { useSearchStream } from "@/components/search/use-search-stream";
 import { SourceResults, type ResultSourceFilter } from "@/components/search/source-results";
 import { WorkflowSwitch, type HomeWorkflow } from "@/components/workflow-switch";
 import type { TranslationKey } from "@/lib/i18n";
 import { hadithCollections, type HadithCollectionSelection } from "@/lib/retrieval/hadith-collections";
 import { tafsirSources, type TafsirSourceSelection } from "@/lib/retrieval/tafsir-sources";
-import type { RetrievalResponse } from "@/lib/retrieval/types";
-import {
-  answerDraftStreamFeature,
-  readSearchResponse,
-  searchStreamFeaturesHeader,
-  searchStreamMediaType,
-  type SearchProgressPhase,
-} from "@/lib/search-stream";
+import type { SearchProgressPhase } from "@/lib/search-stream";
 
 const suggestionKeys: TranslationKey[] = [
   "home.suggestion.intention",
@@ -44,15 +38,6 @@ export default function Home() {
   const { language, t } = useI18n();
   const [workflow, setWorkflow] = useState<HomeWorkflow>("general");
   const [question, setQuestion] = useState("");
-  const [submittedQuestion, setSubmittedQuestion] = useState("");
-  const [isRetrieving, setIsRetrieving] = useState(false);
-  const [searchProgress, setSearchProgress] = useState(0);
-  const [searchProgressPhase, setSearchProgressPhase] = useState<SearchProgressPhase>("starting");
-  const [retrieval, setRetrieval] = useState<RetrievalResponse | null>(null);
-  const [answerDraft, setAnswerDraft] = useState("");
-  const [draftWasReplaced, setDraftWasReplaced] = useState(false);
-  const [requestError, setRequestError] = useState("");
-  const [requestErrorHelp, setRequestErrorHelp] = useState<TranslationKey>("result.checkPaths");
   const [hadithCollection, setHadithCollection] = useState<HadithCollectionSelection>("all");
   const [resultSourceFilter, setResultSourceFilter] = useState<ResultSourceFilter>("all");
   const [tafsirSource, setTafsirSource] = useState<TafsirSourceSelection>("all");
@@ -60,7 +45,20 @@ export default function Home() {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const loadingPanelRef = useRef<HTMLDivElement>(null);
   const loadingSummaryRef = useRef<HTMLDivElement>(null);
-  const requestAbortRef = useRef<AbortController | null>(null);
+  const {
+    submittedQuestion,
+    isRetrieving,
+    searchProgress,
+    searchProgressPhase,
+    retrieval,
+    answerDraft,
+    draftWasReplaced,
+    requestError,
+    requestErrorHelp,
+    startSearch,
+    cancelSearch,
+    clearSearch,
+  } = useSearchStream({ language, t });
 
   const hasScenario = workflow === "general" && (isRetrieving || Boolean(submittedQuestion) || retrieval !== null || requestError.length > 0);
 
@@ -125,104 +123,12 @@ export default function Home() {
     }
 
     setQuestion(trimmed);
-    setSubmittedQuestion(trimmed);
-    setRetrieval(null);
-    setAnswerDraft("");
-    setDraftWasReplaced(false);
-    setRequestError("");
-    setRequestErrorHelp("result.checkPaths");
     setSourcePage(1);
-    setSearchProgress(8);
-    setSearchProgressPhase("starting");
-    setIsRetrieving(true);
-    requestAbortRef.current?.abort();
-    const requestController = new AbortController();
-    requestAbortRef.current = requestController;
-
-    try {
-      const response = await fetch("/api/search", {
-        method: "POST",
-        headers: {
-          Accept: searchStreamMediaType,
-          "Content-Type": "application/json",
-          [searchStreamFeaturesHeader]: answerDraftStreamFeature,
-        },
-        body: JSON.stringify({
-          language: language === "ar" ? "arabic" : "english",
-          question: trimmed,
-          hadithCollection: selectedHadithCollection,
-          tafsirSource: selectedTafsirSource,
-        }),
-        signal: requestController.signal,
-      });
-
-      if (requestController.signal.aborted) {
-        return;
-      }
-
-      const isCurrentRequest = () => !requestController.signal.aborted && requestAbortRef.current === requestController;
-      let draftWasShown = false;
-      const result = await readSearchResponse(
-        response,
-        (event) => {
-          if (!isCurrentRequest()) {
-            return;
-          }
-
-          setSearchProgress((current) => Math.max(current, event.progress));
-          setSearchProgressPhase(event.phase);
-        },
-        (event) => {
-          if (!isCurrentRequest()) {
-            return;
-          }
-
-          if (event.type === "answer_reset") {
-            setAnswerDraft("");
-            return;
-          }
-
-          draftWasShown = true;
-          setAnswerDraft((current) => current + event.text);
-        },
-      );
-      const payload = result.payload;
-      setAnswerDraft("");
-      setDraftWasReplaced(
-        draftWasShown && Boolean(payload.answer?.warnings.some((warning) => warning.code === "answer_replaced_after_check")),
-      );
-
-      if (!result.ok) {
-        const warning = payload.warnings.at(0);
-        setRequestErrorHelp(warning?.code === "source_tool_router_unavailable" ? "result.checkAiRouter" : "result.checkPaths");
-        throw new Error(warning ? t(getWarningKey(warning)) : t("warning.generic"));
-      }
-
-      setSearchProgress(100);
-      setRetrieval(payload);
-    } catch (error) {
-      if (requestController.signal.aborted) {
-        return;
-      }
-
-      setRequestError(error instanceof Error ? error.message : "The source retrieval request failed.");
-    } finally {
-      if (requestAbortRef.current === requestController) {
-        requestAbortRef.current = null;
-        setIsRetrieving(false);
-      }
-    }
+    await startSearch(trimmed, selectedTafsirSource, selectedHadithCollection);
   }
 
   function handleEditQuestion() {
-    requestAbortRef.current?.abort();
-    requestAbortRef.current = null;
-    setIsRetrieving(false);
-    setSubmittedQuestion("");
-    setRetrieval(null);
-    setAnswerDraft("");
-    setDraftWasReplaced(false);
-    setRequestError("");
+    clearSearch();
   }
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -260,9 +166,7 @@ export default function Home() {
       return;
     }
 
-    requestAbortRef.current?.abort();
-    requestAbortRef.current = null;
-    setIsRetrieving(false);
+    cancelSearch();
     setWorkflow(nextWorkflow);
   }
 
