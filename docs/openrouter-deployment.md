@@ -44,6 +44,30 @@ The source retrieval layer still needs:
 
 Only the web app should be public. Keep database files and MCP processes private to the host.
 
+### Hybrid hadith search (optional)
+
+`HADITH_SEARCH_MODE=hybrid` adds one `semantic_search_hadith` call per hadith search. Hadith MCP runs it on the user's
+question and merges full-text and embedding-similarity results on its side. The app then fuses that list with the
+reranked lexical results using reciprocal rank fusion (k=60). It needs a Hadith MCP build that has the tool, the
+embedding index from `npm run build:embeddings` in that repo, and the same embedding model to embed queries:
+
+```bash
+HADITH_SEARCH_MODE=hybrid
+HADITH_MCP_EMBEDDINGS_PATH=/opt/hadith-mcp/data/generated/hadith-embeddings.sqlite
+# Ollama (default provider):
+OLLAMA_URL=http://127.0.0.1:11434
+EMBEDDINGS_MODEL=bge-m3
+# Or an OpenAI-compatible embeddings API serving the same model:
+# EMBEDDINGS_PROVIDER=openai
+# EMBEDDINGS_BASE_URL=https://example.com/v1
+# EMBEDDINGS_API_KEY=
+```
+
+The app only passes these variables to the Hadith MCP process in hybrid mode. If the tool, index or embedding provider
+is unavailable, search falls back to lexical results and adds a provenance note, so the flag is safe to turn on early.
+On the 58-question benchmark (`eval/`), hybrid raised recall@5 from 77.6% to 87.9% overall, and from 77.8% to 94.4%
+on hadith questions. The gains are biggest on paraphrased, topical and English questions about Arabic-only wording.
+
 ## Rate Limits and Caching
 
 `/api/search` and `/api/check` limit each client IP, using the first `X-Forwarded-For` hop, then `X-Real-IP`.
