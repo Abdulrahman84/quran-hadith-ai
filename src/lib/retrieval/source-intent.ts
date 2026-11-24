@@ -1,10 +1,13 @@
 import { completeLlmText } from "../llm/provider";
+import { matchingTokens, normalizeArabic } from "../text/arabic";
 
 export type SourceRoute = "tafsir" | "hadith";
 
+export type SourceRoutePlanner = "llm" | "heuristic";
+
 type SourceRoutePlan = {
   routes: SourceRoute[];
-  planner: "llm";
+  planner: SourceRoutePlanner;
   reason: string | null;
   warning: string | null;
 };
@@ -15,50 +18,32 @@ function uniqueRoutes(routes: SourceRoute[]) {
   return [...new Set(routes)];
 }
 
-function normalizeArabic(value: string) {
-  return value
-    .replace(/[\u064B-\u065F\u0670]/g, "")
-    .replace(/\u0640/g, "")
-    .replace(/[إأآٱ]/g, "ا")
-    .replace(/ى/g, "ي")
-    .replace(/ة/g, "ه");
-}
-
-function tokenize(value: string) {
-  return value
-    .replace(/[^\p{L}\p{N}\s]/gu, " ")
-    .split(/\s+/)
-    .map((token) => token.trim().toLowerCase())
-    .filter(Boolean);
-}
-
 function hasAnyToken(tokens: Set<string>, values: string[]) {
   return values.some((value) => tokens.has(value));
 }
 
-function isExplicitQuranOnlyRequest(query: string) {
-  const normalized = normalizeArabic(query.toLowerCase());
-  const tokens = new Set(tokenize(normalized));
-  const mentionsQuranOnlySource =
-    hasAnyToken(tokens, ["قران", "القران", "ايه", "الايه", "آيه", "الآيه", "سوره", "السوره", "تفسير", "التفسير", "tafsir", "ayah", "verse", "quran", "surah"]) ||
-    normalized.includes("في القران");
-  const mentionsHadithSource = hasAnyToken(tokens, ["حديث", "احاديث", "السنه", "سنه", "hadith", "hadeeth", "sunnah"]);
+const quranSourceTerms = ["قران", "القران", "ايه", "الايه", "تفسير", "التفسير", "tafsir", "ayah", "verse", "quran"];
+// Surah names are allowed in hadith-only requests (e.g. hadith about the virtues of a surah).
+const quranOnlySourceTerms = [...quranSourceTerms, "سوره", "السوره", "surah"];
+const hadithSourceTerms = ["حديث", "احاديث", "السنه", "سنه", "hadith", "hadeeth", "sunnah"];
 
-  return mentionsQuranOnlySource && !mentionsHadithSource;
+export function isExplicitQuranOnlyRequest(query: string) {
+  const tokens = new Set(matchingTokens(query));
+  const mentionsQuranOnlySource =
+    hasAnyToken(tokens, quranOnlySourceTerms) || normalizeArabic(query.toLowerCase()).includes("في القران");
+
+  return mentionsQuranOnlySource && !hasAnyToken(tokens, hadithSourceTerms);
 }
 
-function isExplicitHadithOnlyRequest(query: string) {
-  const normalized = normalizeArabic(query.toLowerCase());
-  const tokens = new Set(tokenize(normalized));
-  const mentionsHadithSource = hasAnyToken(tokens, ["حديث", "احاديث", "السنه", "سنه", "hadith", "hadeeth", "sunnah"]);
-  const mentionsQuranSource = hasAnyToken(tokens, ["قران", "القران", "ايه", "الايه", "آيه", "الآيه", "تفسير", "التفسير", "tafsir", "ayah", "verse", "quran"]);
+export function isExplicitHadithOnlyRequest(query: string) {
+  const tokens = new Set(matchingTokens(query));
 
-  return mentionsHadithSource && !mentionsQuranSource;
+  return hasAnyToken(tokens, hadithSourceTerms) && !hasAnyToken(tokens, quranSourceTerms);
 }
 
 function looksLikeOpenEndedIslamicTopic(query: string) {
   const normalized = normalizeArabic(query.toLowerCase());
-  const tokens = new Set(tokenize(normalized));
+  const tokens = new Set(matchingTokens(query));
   const islamicTerms = [
     "الله",
     "النبي",
@@ -109,12 +94,28 @@ function applyRouteSafetyNet(query: string, routes: SourceRoute[]) {
   return uniqueRoutes([...routes, "tafsir", "hadith"]);
 }
 
-function routerUnavailablePlan(message: string): SourceRoutePlan {
+/**
+ * Deterministic routing from explicit source keywords. Used when the request already
+ * names its source, and as the fallback when the model router is unavailable.
+ */
+export function heuristicSourceRoutes(query: string): SourceRoute[] {
+  if (isExplicitQuranOnlyRequest(query)) {
+    return ["tafsir"];
+  }
+
+  if (isExplicitHadithOnlyRequest(query)) {
+    return ["hadith"];
+  }
+
+  return ["tafsir", "hadith"];
+}
+
+function heuristicPlan(query: string, warning: string | null): SourceRoutePlan {
   return {
-    routes: [],
-    planner: "llm",
-    reason: null,
-    warning: message,
+    routes: heuristicSourceRoutes(query),
+    planner: "heuristic",
+    reason: warning ? "Model router unavailable; used explicit source keywords." : "The question names its source explicitly.",
+    warning,
   };
 }
 
@@ -208,13 +209,13 @@ async function planSourceRoutesWithLlm(query: string): Promise<SourceRoutePlan> 
   });
 
   if (completion.status !== "ok") {
-    return routerUnavailablePlan(completion.error);
+    return heuristicPlan(query, completion.error);
   }
 
   const normalized = normalizeModelRoutes(parseJsonObject(completion.text));
 
   if (!normalized) {
-    return routerUnavailablePlan(`${completion.provider} source-tool router returned an invalid route plan.`);
+    return heuristicPlan(query, `${completion.provider} source-tool router returned an invalid route plan.`);
   }
 
   return {
@@ -226,5 +227,9 @@ async function planSourceRoutesWithLlm(query: string): Promise<SourceRoutePlan> 
 }
 
 export async function planSourceRouteDecision(query: string): Promise<SourceRoutePlan> {
+  if (isExplicitQuranOnlyRequest(query) || isExplicitHadithOnlyRequest(query)) {
+    return heuristicPlan(query, null);
+  }
+
   return planSourceRoutesWithLlm(query);
 }
