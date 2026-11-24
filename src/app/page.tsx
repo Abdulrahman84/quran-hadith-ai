@@ -4,6 +4,7 @@ import { FormEvent, KeyboardEvent, useEffect, useMemo, useRef, useState } from "
 
 import { CheckPanel } from "@/components/check/check-panel";
 import { useI18n } from "@/components/i18n-provider";
+import { AnswerDraftPreview } from "@/components/answer-draft-preview";
 import { SearchLoading } from "@/components/search-loading";
 import { SourceRecordText } from "@/components/source-record-text";
 import { WorkflowSwitch, type HomeWorkflow } from "@/components/workflow-switch";
@@ -18,7 +19,13 @@ import {
 } from "@/lib/retrieval/source-display";
 import { tafsirSources, type TafsirSourceSelection } from "@/lib/retrieval/tafsir-sources";
 import type { RetrievalResponse, RetrievalWarning } from "@/lib/retrieval/types";
-import { readSearchResponse, searchStreamMediaType, type SearchProgressPhase } from "@/lib/search-stream";
+import {
+  answerDraftStreamFeature,
+  readSearchResponse,
+  searchStreamFeaturesHeader,
+  searchStreamMediaType,
+  type SearchProgressPhase,
+} from "@/lib/search-stream";
 
 const suggestionKeys: TranslationKey[] = [
   "home.suggestion.intention",
@@ -190,6 +197,8 @@ export default function Home() {
   const [searchProgress, setSearchProgress] = useState(0);
   const [searchProgressPhase, setSearchProgressPhase] = useState<SearchProgressPhase>("starting");
   const [retrieval, setRetrieval] = useState<RetrievalResponse | null>(null);
+  const [answerDraft, setAnswerDraft] = useState("");
+  const [draftWasReplaced, setDraftWasReplaced] = useState(false);
   const [requestError, setRequestError] = useState("");
   const [requestErrorHelp, setRequestErrorHelp] = useState<TranslationKey>("result.checkPaths");
   const [hadithCollection, setHadithCollection] = useState<HadithCollectionSelection>("all");
@@ -282,6 +291,8 @@ export default function Home() {
     setQuestion(trimmed);
     setSubmittedQuestion(trimmed);
     setRetrieval(null);
+    setAnswerDraft("");
+    setDraftWasReplaced(false);
     setRequestError("");
     setRequestErrorHelp("result.checkPaths");
     setSourcePage(1);
@@ -298,6 +309,7 @@ export default function Home() {
         headers: {
           Accept: searchStreamMediaType,
           "Content-Type": "application/json",
+          [searchStreamFeaturesHeader]: answerDraftStreamFeature,
         },
         body: JSON.stringify({
           language: language === "ar" ? "arabic" : "english",
@@ -312,15 +324,37 @@ export default function Home() {
         return;
       }
 
-      const result = await readSearchResponse(response, (event) => {
-        if (requestController.signal.aborted || requestAbortRef.current !== requestController) {
-          return;
-        }
+      const isCurrentRequest = () => !requestController.signal.aborted && requestAbortRef.current === requestController;
+      let draftWasShown = false;
+      const result = await readSearchResponse(
+        response,
+        (event) => {
+          if (!isCurrentRequest()) {
+            return;
+          }
 
-        setSearchProgress((current) => Math.max(current, event.progress));
-        setSearchProgressPhase(event.phase);
-      });
+          setSearchProgress((current) => Math.max(current, event.progress));
+          setSearchProgressPhase(event.phase);
+        },
+        (event) => {
+          if (!isCurrentRequest()) {
+            return;
+          }
+
+          if (event.type === "answer_reset") {
+            setAnswerDraft("");
+            return;
+          }
+
+          draftWasShown = true;
+          setAnswerDraft((current) => current + event.text);
+        },
+      );
       const payload = result.payload;
+      setAnswerDraft("");
+      setDraftWasReplaced(
+        draftWasShown && Boolean(payload.answer?.warnings.some((warning) => warning.code === "answer_replaced_after_check")),
+      );
 
       if (!result.ok) {
         const warning = payload.warnings.at(0);
@@ -350,6 +384,8 @@ export default function Home() {
     setIsRetrieving(false);
     setSubmittedQuestion("");
     setRetrieval(null);
+    setAnswerDraft("");
+    setDraftWasReplaced(false);
     setRequestError("");
   }
 
@@ -628,10 +664,17 @@ export default function Home() {
 
               <div
                 className={`mt-4 rounded-xl border border-[var(--color-gold)]/55 bg-[var(--color-sand)] p-4 text-[var(--color-ink)] ${
-                  isRetrieving ? "flex flex-1 items-center justify-center" : ""
+                  isRetrieving && !answerDraft ? "flex flex-1 items-center justify-center" : ""
                 }`}
               >
-                {isRetrieving ? (
+                {isRetrieving && answerDraft ? (
+                  <AnswerDraftPreview
+                    checkingLabel={t("result.draftChecking")}
+                    dir={language === "ar" ? "rtl" : "ltr"}
+                    text={answerDraft}
+                    title={t("result.answerTitle")}
+                  />
+                ) : isRetrieving ? (
                   <SearchLoading
                     label={t("result.loading")}
                     phaseLabel={t(progressPhaseLabels[searchProgressPhase])}
@@ -657,6 +700,11 @@ export default function Home() {
                     {retrieval?.quotationMatch?.state === "similar" ? (
                       <p className="mb-3 rounded-lg border border-[var(--color-gold)]/40 bg-[var(--color-gold-soft)] p-3 text-sm font-semibold leading-7 text-[var(--color-ink)]">
                         {t("result.similarSourceNotice")}
+                      </p>
+                    ) : null}
+                    {draftWasReplaced ? (
+                      <p className="mb-3 rounded-lg border border-[var(--color-gold)]/40 bg-[var(--color-gold-soft)] p-3 text-sm font-semibold leading-7 text-[var(--color-ink)]" role="status">
+                        {t("result.draftReplaced")}
                       </p>
                     ) : null}
                     {retrieval?.answer?.status === "ready" && retrieval.answer.text ? (
