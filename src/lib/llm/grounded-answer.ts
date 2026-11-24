@@ -1,4 +1,4 @@
-import { completeLlmText } from "./provider";
+import { completeLlmText, streamLlmText, type LlmCompletionResult } from "./provider";
 import { collapseWhitespace, normalizeArabic, stripArabicDiacritics, tokenize } from "../text/arabic";
 import type { GroundedAnswer, QuotationMatch, RetrievalLanguage, SourceRecord } from "@/lib/retrieval/types";
 
@@ -8,6 +8,16 @@ type GenerateGroundedAnswerInput = {
   records: SourceRecord[];
   quotationMatch?: QuotationMatch;
 };
+
+export type AnswerDraftEvent = { type: "delta"; text: string } | { type: "reset" };
+
+export type GenerateGroundedAnswerOptions = {
+  /** Receives the model's draft as it streams. The returned answer stays authoritative. */
+  onDraft?: (event: AnswerDraftEvent) => void;
+  signal?: AbortSignal;
+};
+
+export const answerReplacedWarningCode = "answer_replaced_after_check";
 
 type CitationPackRecord = {
   record: SourceRecord;
@@ -356,10 +366,12 @@ export function fallbackGroundedSummary(input: GenerateGroundedAnswerInput): Gro
 }
 
 function passesGroundingGuardrails(text: string, language: RetrievalLanguage) {
-  if (!/\[\d+\]/.test(text)) {
-    return false;
-  }
+  return /\[\d+\]/.test(text) && passesFormatGuardrail(text, language);
+}
 
+// Checks that hold for any prefix of an answer, so a streamed draft can be
+// withdrawn as soon as it breaks one.
+function passesFormatGuardrail(text: string, language: RetrievalLanguage) {
   if (language === "arabic" && /[A-Za-z]/.test(text)) {
     return false;
   }
@@ -851,7 +863,98 @@ function readyGroundedAnswer(
   };
 }
 
-export async function generateGroundedAnswer(input: GenerateGroundedAnswerInput): Promise<GroundedAnswer> {
+/** Draft text safe to show while streaming: no thinking blocks or half-written tags and citation markers. */
+export function visibleDraftText(rawText: string) {
+  let text = rawText.replace(/<think>[\s\S]*?<\/think>/gi, "");
+  const openThinkIndex = text.search(/<think>/i);
+
+  if (openThinkIndex >= 0) {
+    text = text.slice(0, openThinkIndex);
+  }
+
+  return text
+    .replace(/<(?:\/?(?:t(?:h(?:i(?:n(?:k)?)?)?)?)?)?$/i, "")
+    .replace(/\[\d*$/, "")
+    .trimStart();
+}
+
+function draftGuardFailure(text: string, input: GenerateGroundedAnswerInput) {
+  if (!passesFormatGuardrail(text, input.language)) {
+    return "format";
+  }
+
+  const validCitationNumbers = answerCitationNumbers(input);
+  const hasInvalidCitation = citationNumbersInText(text).some((citationNumber) => !validCitationNumbers.has(citationNumber));
+
+  return hasInvalidCitation ? "citations" : null;
+}
+
+export function createAnswerDraftForwarder(input: GenerateGroundedAnswerInput, onDraft: (event: AnswerDraftEvent) => void) {
+  let rawText = "";
+  let shownText = "";
+  let withdrawn = false;
+  let everShown = false;
+
+  const withdraw = () => {
+    if (shownText) {
+      onDraft({ type: "reset" });
+      shownText = "";
+    }
+  };
+
+  return {
+    push(delta: string) {
+      rawText += delta;
+
+      if (withdrawn) {
+        return;
+      }
+
+      const visibleText = visibleDraftText(rawText);
+
+      if (draftGuardFailure(visibleText, input)) {
+        withdrawn = true;
+        withdraw();
+        return;
+      }
+
+      if (!visibleText.startsWith(shownText)) {
+        withdraw();
+      }
+
+      const addition = visibleText.slice(shownText.length);
+
+      if (addition) {
+        onDraft({ type: "delta", text: addition });
+        shownText = visibleText;
+        everShown = true;
+      }
+    },
+    /** Marks the final answer as a replacement when it differs from what the reader saw. */
+    finalize(answer: GroundedAnswer): GroundedAnswer {
+      const keptDraft = answer.status === "ready" && !withdrawn && answer.text === shownText.trim();
+
+      if (!everShown || keptDraft) {
+        return answer;
+      }
+
+      withdraw();
+
+      return {
+        ...answer,
+        warnings: [
+          ...answer.warnings,
+          { code: answerReplacedWarningCode, message: "The streamed draft was replaced after checking it against the sources." },
+        ],
+      };
+    },
+  };
+}
+
+export async function generateGroundedAnswer(
+  input: GenerateGroundedAnswerInput,
+  options: GenerateGroundedAnswerOptions = {},
+): Promise<GroundedAnswer> {
   if (input.records.length === 0) {
     return {
       status: "insufficient_sources",
@@ -861,16 +964,30 @@ export async function generateGroundedAnswer(input: GenerateGroundedAnswerInput)
     };
   }
 
-  const completion = await completeLlmText({
-    task: "answer",
+  const request = {
+    task: "answer" as const,
     maxTokens: 420,
     temperature: 0.3,
     messages: [
-      { role: "system", content: systemPrompt(input.language) },
-      { role: "user", content: userPrompt(input) },
+      { role: "system" as const, content: systemPrompt(input.language) },
+      { role: "user" as const, content: userPrompt(input) },
     ],
-  });
+  };
 
+  if (!options.onDraft) {
+    return composeGroundedAnswer(input, await completeLlmText(request));
+  }
+
+  const forwarder = createAnswerDraftForwarder(input, options.onDraft);
+  const completion = await streamLlmText({ ...request, onDelta: forwarder.push, signal: options.signal });
+
+  return forwarder.finalize(await composeGroundedAnswer(input, completion));
+}
+
+async function composeGroundedAnswer(
+  input: GenerateGroundedAnswerInput,
+  completion: LlmCompletionResult,
+): Promise<GroundedAnswer> {
   if (completion.status === "disabled") {
     return disabledAnswer();
   }
