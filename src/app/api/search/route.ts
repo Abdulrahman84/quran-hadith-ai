@@ -1,4 +1,4 @@
-import { generateGroundedAnswer } from "@/lib/llm/grounded-answer";
+import { answerReplacedWarningCode, generateGroundedAnswer, type GenerateGroundedAnswerOptions } from "@/lib/llm/grounded-answer";
 import { recordQuestionRun } from "@/lib/analytics/record-question-run";
 import {
   isHadithCollectionSelection,
@@ -6,12 +6,22 @@ import {
 } from "@/lib/retrieval/hadith-collections";
 import { assessQuotationMatch } from "@/lib/retrieval/quotation-match";
 import { searchSources } from "@/lib/retrieval/source-router";
+import { getClientIp } from "@/lib/server/client-ip";
+import {
+  consumeClientQuota,
+  consumeGlobalDailyQuota,
+  rateLimitMessage,
+  type RateLimitDecision,
+} from "@/lib/server/rate-limit";
+import { responseCacheKey, sharedResponseCache } from "@/lib/server/response-cache";
 import {
   isTafsirSourceSelection,
   type TafsirSourceSelection,
 } from "@/lib/retrieval/tafsir-sources";
 import type { GroundedAnswer, RetrievalResponse } from "@/lib/retrieval/types";
 import {
+  clientAcceptsAnswerDraft,
+  createAnswerDraftCoalescer,
   searchStreamMediaType,
   type SearchProgressPhase,
   type SearchStreamEvent,
@@ -48,7 +58,80 @@ function noAnswer(status: GroundedAnswer["status"], code: string, message: strin
   };
 }
 
-async function executeSearch(input: ValidatedSearchRequest, startedAt: number, report?: ProgressReporter) {
+function errorResponse(code: string, message: string, status: number, headers?: HeadersInit) {
+  return Response.json(
+    {
+      status: "error",
+      query: "",
+      retrievalQuery: "",
+      sourceMode: "quran-tafsir-hadith",
+      records: [],
+      answer: noAnswer("insufficient_sources", code, message),
+      warnings: [{ code, message }],
+      provenanceNotes: [],
+    } satisfies RetrievalResponse,
+    { status, headers },
+  );
+}
+
+function rateLimitedResponse(decision: Extract<RateLimitDecision, { allowed: false }>) {
+  return errorResponse("rate_limited", rateLimitMessage(decision), 429, {
+    "Retry-After": String(decision.retryAfterSeconds),
+  });
+}
+
+const searchCache = sharedResponseCache<RetrievalResponse>("search");
+
+function searchCacheKey(input: ValidatedSearchRequest) {
+  return responseCacheKey({
+    text: input.question,
+    language: input.language,
+    hadithCollection: input.hadithCollection,
+    tafsirSource: input.tafsirSource,
+  });
+}
+
+function isCacheableSearchResponse(response: RetrievalResponse) {
+  return response.status === "ok" && response.answer?.status === "ready";
+}
+
+const streamHeaders = {
+  "Cache-Control": "no-store, no-transform",
+  "Content-Type": `${searchStreamMediaType}; charset=utf-8`,
+  "X-Accel-Buffering": "no",
+};
+
+function cachedStreamResponse(payload: RetrievalResponse) {
+  const events: SearchStreamEvent[] = [
+    { version: 1, type: "progress", progress: 94, phase: "finalizing" },
+    { version: 1, type: "result", progress: 100, payload, httpStatus: 200, ok: true },
+  ];
+  const body = events.map((event) => JSON.stringify(event)).join("\n") + "\n";
+
+  return new Response(body, { headers: { ...streamHeaders, "X-Search-Cache": "hit" } });
+}
+
+// The replaced-draft notice only means something to the client that saw the draft.
+function withoutDraftWarnings(response: RetrievalResponse): RetrievalResponse {
+  if (!response.answer) {
+    return response;
+  }
+
+  return {
+    ...response,
+    answer: {
+      ...response.answer,
+      warnings: response.answer.warnings.filter((warning) => warning.code !== answerReplacedWarningCode),
+    },
+  };
+}
+
+async function executeSearch(
+  input: ValidatedSearchRequest,
+  startedAt: number,
+  report?: ProgressReporter,
+  draftOptions: GenerateGroundedAnswerOptions = {},
+) {
   const { question, language, hadithCollection, tafsirSource } = input;
 
   report?.(14, "routing");
@@ -64,14 +147,22 @@ async function executeSearch(input: ValidatedSearchRequest, startedAt: number, r
   const quotationMatch = assessQuotationMatch(question, language, response.records);
 
   report?.(76, "answering");
-  const answer = await generateGroundedAnswer({
-    question,
-    language,
-    records: response.records,
-    quotationMatch,
-  });
+  const answer = await generateGroundedAnswer(
+    {
+      question,
+      language,
+      records: response.records,
+      quotationMatch,
+    },
+    draftOptions,
+  );
 
   const result = { ...response, answer, quotationMatch } satisfies RetrievalResponse;
+
+  if (isCacheableSearchResponse(result)) {
+    searchCache.set(searchCacheKey(input), withoutDraftWarnings(result));
+  }
+
   report?.(94, "finalizing");
   await recordQuestionRun({
     question,
@@ -110,13 +201,23 @@ function streamSearch(request: Request, input: ValidatedSearchRequest, startedAt
         });
       };
 
+      const draft = clientAcceptsAnswerDraft(request) ? createAnswerDraftCoalescer(send) : null;
+      const draftOptions: GenerateGroundedAnswerOptions = draft
+        ? {
+            onDraft: (event) => (event.type === "delta" ? draft.delta(event.text) : draft.reset()),
+            signal: request.signal,
+          }
+        : {};
+
       report(8, "starting");
-      void executeSearch(input, startedAt, report)
+      void executeSearch(input, startedAt, report, draftOptions)
         .then((payload) => {
           if (request.signal.aborted) {
             close();
             return;
           }
+
+          draft?.flush();
 
           const httpStatus = payload.status === "error" ? 502 : 200;
           send({
@@ -130,6 +231,7 @@ function streamSearch(request: Request, input: ValidatedSearchRequest, startedAt
           close();
         })
         .catch((error: unknown) => {
+          draft?.reset();
           send({
             version: 1,
             type: "error",
@@ -141,34 +243,24 @@ function streamSearch(request: Request, input: ValidatedSearchRequest, startedAt
   });
 
   return new Response(stream, {
-    headers: {
-      "Cache-Control": "no-store, no-transform",
-      "Content-Type": `${searchStreamMediaType}; charset=utf-8`,
-      "X-Accel-Buffering": "no",
-    },
+    headers: streamHeaders,
   });
 }
 
 export async function POST(request: Request) {
   const startedAt = Date.now();
+  const clientQuota = consumeClientQuota(getClientIp(request));
+
+  if (!clientQuota.allowed) {
+    return rateLimitedResponse(clientQuota);
+  }
+
   let body: SearchRequestBody;
 
   try {
     body = (await request.json()) as SearchRequestBody;
   } catch {
-    return Response.json(
-      {
-        status: "error",
-        query: "",
-        retrievalQuery: "",
-        sourceMode: "quran-tafsir-hadith",
-        records: [],
-        answer: noAnswer("insufficient_sources", "invalid_json", "Request body must be valid JSON."),
-        warnings: [{ code: "invalid_json", message: "Request body must be valid JSON." }],
-        provenanceNotes: [],
-      } satisfies RetrievalResponse,
-      { status: 400 },
-    );
+    return errorResponse("invalid_json", "Request body must be valid JSON.", 400);
   }
 
   const question = typeof body.question === "string" ? body.question.trim() : "";
@@ -178,23 +270,26 @@ export async function POST(request: Request) {
   const tafsirSource = isTafsirSourceSelection(body.tafsirSource) ? body.tafsirSource : "all";
 
   if (question.length === 0) {
-    return Response.json(
-      {
-        status: "error",
-        query: "",
-        retrievalQuery: "",
-        sourceMode: "quran-tafsir-hadith",
-        records: [],
-        answer: noAnswer("insufficient_sources", "empty_question", "Enter a question before searching."),
-        warnings: [{ code: "empty_question", message: "Enter a question before searching." }],
-        provenanceNotes: [],
-      } satisfies RetrievalResponse,
-      { status: 400 },
-    );
+    return errorResponse("empty_question", "Enter a question before searching.", 400);
   }
 
   const input = { question, language, hadithCollection, tafsirSource };
   const acceptsProgressStream = request.headers.get("accept")?.toLowerCase().includes(searchStreamMediaType);
+  const cached = searchCache.get(searchCacheKey(input));
+
+  if (cached) {
+    await recordQuestionRun({ question, language, response: cached, durationMs: Date.now() - startedAt });
+
+    return acceptsProgressStream
+      ? cachedStreamResponse(cached)
+      : Response.json(cached, { headers: { "X-Search-Cache": "hit" } });
+  }
+
+  const globalQuota = consumeGlobalDailyQuota();
+
+  if (!globalQuota.allowed) {
+    return rateLimitedResponse(globalQuota);
+  }
 
   if (acceptsProgressStream) {
     return streamSearch(request, input, startedAt);

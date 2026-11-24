@@ -1,12 +1,12 @@
 import assert from "node:assert/strict";
 import fs from "node:fs";
-import { createRequire } from "node:module";
 import path from "node:path";
 import test from "node:test";
 import vm from "node:vm";
 import ts from "typescript";
 
-const require = createRequire(import.meta.url);
+import { createTsRequire } from "./helpers/ts-require.mjs";
+
 
 function loadSourceIntent(overrides = {}) {
   const filename = path.join(process.cwd(), "src/lib/retrieval/source-intent.ts");
@@ -56,7 +56,7 @@ function loadSourceIntent(overrides = {}) {
         };
       }
 
-      return require(id);
+      return createTsRequire(filename)(id);
     },
     setTimeout,
     clearTimeout,
@@ -149,7 +149,7 @@ test("keeps explicitly Quran-only questions on the tafsir route", async () => {
   assert.deepEqual(Array.from(decision.routes), ["tafsir"]);
 });
 
-test("does not call MCP tools when the AI router returns invalid tools", async () => {
+test("falls back to both routes when the AI router returns invalid tools", async () => {
   const { planSourceRouteDecision } = loadSourceIntent({
     fetch: async () => ({
       ok: true,
@@ -165,14 +165,14 @@ test("does not call MCP tools when the AI router returns invalid tools", async (
     },
   });
 
-  const decision = await planSourceRouteDecision("Find hadith about intention");
+  const decision = await planSourceRouteDecision("What is said about intention?");
 
-  assert.equal(decision.planner, "llm");
-  assert.deepEqual(Array.from(decision.routes), []);
+  assert.equal(decision.planner, "heuristic");
+  assert.deepEqual(Array.from(decision.routes), ["tafsir", "hadith"]);
   assert.match(decision.warning, /invalid route plan/);
 });
 
-test("requires the AI router to be enabled before source tools are selected", async () => {
+test("falls back to keyword routing when the AI router is not configured", async () => {
   const { planSourceRouteDecision } = loadSourceIntent({
     process: {
       env: {
@@ -183,7 +183,42 @@ test("requires the AI router to be enabled before source tools are selected", as
 
   const decision = await planSourceRouteDecision("What sources mention mercy?");
 
-  assert.equal(decision.planner, "llm");
-  assert.deepEqual(Array.from(decision.routes), []);
+  assert.equal(decision.planner, "heuristic");
+  assert.deepEqual(Array.from(decision.routes), ["tafsir", "hadith"]);
   assert.match(decision.warning, /OpenRouter is not configured/i);
+});
+
+test("skips the AI router when the question names its source explicitly", async () => {
+  let routerCalls = 0;
+  const { planSourceRouteDecision } = loadSourceIntent({
+    fetch: async () => {
+      routerCalls += 1;
+      throw new Error("router should not be called");
+    },
+    process: {
+      env: {
+        OPENROUTER_API_KEY: "test-key",
+        MCP_TOOL_ROUTER_ENABLED: "true",
+      },
+    },
+  });
+
+  const hadithOnly = await planSourceRouteDecision("Find hadith about intention");
+  const quranOnly = await planSourceRouteDecision("ما تفسير سورة الإخلاص");
+
+  assert.equal(routerCalls, 0);
+  assert.equal(hadithOnly.planner, "heuristic");
+  assert.deepEqual(Array.from(hadithOnly.routes), ["hadith"]);
+  assert.equal(hadithOnly.warning, null);
+  assert.deepEqual(Array.from(quranOnly.routes), ["tafsir"]);
+});
+
+test("heuristic routing treats ta marbuta spellings the same", () => {
+  const { heuristicSourceRoutes, isExplicitQuranOnlyRequest } = loadSourceIntent();
+
+  assert.equal(isExplicitQuranOnlyRequest("اعرض سورة الكهف"), true);
+  assert.equal(isExplicitQuranOnlyRequest("اعرض سوره الكهف"), true);
+  assert.deepEqual(Array.from(heuristicSourceRoutes("ما هي الآية التي تتحدث عن الصبر")), ["tafsir"]);
+  assert.deepEqual(Array.from(heuristicSourceRoutes("احاديث عن فضل سورة الكهف")), ["hadith"]);
+  assert.deepEqual(Array.from(heuristicSourceRoutes("ما حكم الصدقة")), ["tafsir", "hadith"]);
 });

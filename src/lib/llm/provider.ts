@@ -1,4 +1,5 @@
 import { checkOpenRouterCreditBalanceIfDue, reportOpenRouterCreditFailure } from "./credit-monitor";
+import { createSseParser, parseChatStreamData } from "./sse";
 
 export type LlmProvider = "openrouter";
 
@@ -19,7 +20,7 @@ type LlmCompletionInput = {
   deprioritizeModels?: string[];
 };
 
-type LlmCompletionResult =
+export type LlmCompletionResult =
   | {
       status: "ok";
       text: string;
@@ -309,6 +310,181 @@ export async function completeLlmText(input: LlmCompletionInput): Promise<LlmCom
   return lastResult || {
     status: "error",
     error: "OpenRouter request failed.",
+    provider: config.provider,
+    model: config.model,
+  };
+}
+
+export type LlmStreamInput = {
+  task: LlmTask;
+  messages: LlmMessage[];
+  maxTokens: number;
+  temperature: number;
+  onDelta: (text: string) => void;
+  signal?: AbortSignal;
+};
+
+type StreamAttemptResult = LlmCompletionResult & { emitted: boolean };
+
+async function streamWithOpenRouter(
+  input: LlmStreamInput,
+  config: ReturnType<typeof getLlmConfig>,
+  signal: AbortSignal,
+): Promise<StreamAttemptResult> {
+  const failure = (error: string, emitted: boolean, httpStatus?: number): StreamAttemptResult => ({
+    status: "error",
+    error,
+    provider: config.provider,
+    model: config.model,
+    emitted,
+    ...(httpStatus ? { httpStatus } : {}),
+  });
+  const response = await fetch(`${config.baseUrl}/chat/completions`, {
+    method: "POST",
+    headers: openRouterHeaders(config.apiKey),
+    body: JSON.stringify({
+      model: config.model,
+      messages: input.messages,
+      temperature: input.temperature,
+      max_tokens: input.maxTokens,
+      stream: true,
+    }),
+    signal,
+  });
+
+  if (!response.ok || !response.body) {
+    const payload = (await response.json().catch(() => ({}))) as OpenRouterResponse;
+    const httpStatus = payload.error?.code || response.status;
+
+    if (httpStatus === 402) {
+      await reportOpenRouterCreditFailure();
+    }
+
+    return failure(payload.error?.message || `OpenRouter returned HTTP ${response.status}.`, false, httpStatus);
+  }
+
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  const parser = createSseParser();
+  let text = "";
+
+  // Returns an error result, "done", or null to keep reading.
+  const handle = (events: string[]): StreamAttemptResult | "done" | null => {
+    for (const data of events) {
+      const chunk = parseChatStreamData(data);
+
+      if (chunk.kind === "done") {
+        return "done";
+      }
+
+      if (chunk.kind === "error") {
+        return failure(chunk.message, text.length > 0, chunk.code);
+      }
+
+      if (chunk.kind === "delta") {
+        text += chunk.text;
+        input.onDelta(chunk.text);
+      }
+    }
+
+    return null;
+  };
+
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      const outcome = handle(done ? [...parser.push(decoder.decode()), ...parser.flush()] : parser.push(decoder.decode(value, { stream: true })));
+
+      if (outcome === "done") {
+        break;
+      }
+
+      if (outcome) {
+        if (outcome.status === "error" && outcome.httpStatus === 402) {
+          await reportOpenRouterCreditFailure();
+        }
+
+        return outcome;
+      }
+
+      if (done) {
+        break;
+      }
+    }
+  } catch (error) {
+    return failure(error instanceof Error ? error.message : "OpenRouter stream failed.", text.length > 0);
+  } finally {
+    reader.cancel().catch(() => undefined);
+  }
+
+  const trimmed = text.trim();
+
+  if (!trimmed) {
+    return failure("OpenRouter returned an empty response.", false);
+  }
+
+  return { status: "ok", text: trimmed, provider: config.provider, model: config.model, emitted: true };
+}
+
+/**
+ * Streams a completion, calling onDelta for each text fragment. Falls back to
+ * the next model only while nothing has been emitted, so one answer never
+ * mixes text from two models.
+ */
+export async function streamLlmText(input: LlmStreamInput): Promise<LlmCompletionResult> {
+  const config = getLlmConfig(input.task);
+
+  if (!config.enabled) {
+    return {
+      status: "disabled",
+      error: `OpenRouter is not configured for ${input.task}.`,
+      provider: config.provider,
+      model: config.model,
+    };
+  }
+
+  let lastResult: LlmCompletionResult | null = null;
+
+  void checkOpenRouterCreditBalanceIfDue();
+
+  for (const model of orderedModels(config)) {
+    if (input.signal?.aborted) {
+      break;
+    }
+
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), config.timeoutMs);
+    const abortFromCaller = () => controller.abort();
+    input.signal?.addEventListener("abort", abortFromCaller, { once: true });
+    let result: StreamAttemptResult;
+
+    try {
+      result = await streamWithOpenRouter(input, { ...config, model }, controller.signal);
+    } catch (error) {
+      result = {
+        status: "error",
+        error: error instanceof Error ? error.message : "OpenRouter request failed.",
+        provider: config.provider,
+        model,
+        emitted: false,
+      };
+    } finally {
+      clearTimeout(timeout);
+      input.signal?.removeEventListener("abort", abortFromCaller);
+    }
+
+    const { emitted, ...completion } = result;
+
+    if (completion.status === "ok" || emitted || (completion.status === "error" && completion.httpStatus === 402)) {
+      return completion;
+    }
+
+    lastResult = completion;
+  }
+
+  return lastResult || {
+    status: "error",
+    error: input.signal?.aborted ? "The request was cancelled." : "OpenRouter request failed.",
     provider: config.provider,
     model: config.model,
   };

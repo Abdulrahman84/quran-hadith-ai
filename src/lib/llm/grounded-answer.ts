@@ -1,4 +1,5 @@
-import { completeLlmText } from "./provider";
+import { completeLlmText, streamLlmText, type LlmCompletionResult } from "./provider";
+import { collapseWhitespace, normalizeArabic, stripArabicDiacritics, tokenize } from "../text/arabic";
 import type { GroundedAnswer, QuotationMatch, RetrievalLanguage, SourceRecord } from "@/lib/retrieval/types";
 
 type GenerateGroundedAnswerInput = {
@@ -7,6 +8,16 @@ type GenerateGroundedAnswerInput = {
   records: SourceRecord[];
   quotationMatch?: QuotationMatch;
 };
+
+export type AnswerDraftEvent = { type: "delta"; text: string } | { type: "reset" };
+
+export type GenerateGroundedAnswerOptions = {
+  /** Receives the model's draft as it streams. The returned answer stays authoritative. */
+  onDraft?: (event: AnswerDraftEvent) => void;
+  signal?: AbortSignal;
+};
+
+export const answerReplacedWarningCode = "answer_replaced_after_check";
 
 type CitationPackRecord = {
   record: SourceRecord;
@@ -229,24 +240,13 @@ function selectAnswerRecords(records: SourceRecord[], prioritizedRecordIds: stri
   return [...selected.values()].sort((left, right) => left.citationNumber - right.citationNumber);
 }
 
-function cleanWhitespace(value: string) {
-  return value.replace(/\s+/g, " ").trim();
-}
-
 function cleanArabicForExcerpt(value: string) {
-  return cleanWhitespace(
-    value
-      .replace(/[\u064B-\u065F\u0670]/g, "")
-      .replace(/\u0640/g, ""),
-  );
+  return collapseWhitespace(stripArabicDiacritics(value));
 }
 
+// Keeps ة because the caveat patterns below spell words like "العبارة" with ة.
 function normalizeArabicForMatching(value: string) {
-  return cleanWhitespace(
-    cleanArabicForExcerpt(value)
-      .replace(/[إأآٱ]/g, "ا")
-      .replace(/ى/g, "ي"),
-  );
+  return collapseWhitespace(normalizeArabic(value, { foldTaMarbuta: false }));
 }
 
 function escapeRegExp(value: string) {
@@ -274,7 +274,7 @@ function findLastArabicPhraseIndex(text: string, phrases: string[]) {
 }
 
 function stripArabicNarratorOpening(value: string) {
-  const text = cleanWhitespace(value);
+  const text = collapseWhitespace(value);
   const narratorOpening = /^(?:حدثنا|حدثني|أخبرنا|اخبرنا|أنبأنا|انبانا|أنبا|انبا|سمعت)(?:\s|،|,)/;
 
   if (!narratorOpening.test(text)) {
@@ -329,7 +329,7 @@ function excerptArabicText(value: string) {
 }
 
 function excerptEnglishText(value: string) {
-  const text = cleanWhitespace(value);
+  const text = collapseWhitespace(value);
   const markers = ["saying,", "said,", "reported that", "narrated that", "the Prophet"];
   const markerIndex = markers
     .map((marker) => text.toLowerCase().indexOf(marker))
@@ -348,7 +348,7 @@ function contentExcerpt(record: SourceRecord, language: RetrievalLanguage) {
   }
 
   if (record.sourceKind !== "hadith") {
-    return cleanWhitespace(text).slice(0, language === "arabic" ? 260 : 230);
+    return collapseWhitespace(text).slice(0, language === "arabic" ? 260 : 230);
   }
 
   return language === "arabic" ? excerptArabicText(text) : excerptEnglishText(text);
@@ -366,10 +366,12 @@ export function fallbackGroundedSummary(input: GenerateGroundedAnswerInput): Gro
 }
 
 function passesGroundingGuardrails(text: string, language: RetrievalLanguage) {
-  if (!/\[\d+\]/.test(text)) {
-    return false;
-  }
+  return /\[\d+\]/.test(text) && passesFormatGuardrail(text, language);
+}
 
+// Checks that hold for any prefix of an answer, so a streamed draft can be
+// withdrawn as soon as it breaks one.
+function passesFormatGuardrail(text: string, language: RetrievalLanguage) {
   if (language === "arabic" && /[A-Za-z]/.test(text)) {
     return false;
   }
@@ -408,21 +410,9 @@ function passesGroundingGuardrails(text: string, language: RetrievalLanguage) {
 }
 
 function tokenizeForGrounding(value: string, language: RetrievalLanguage) {
-  const normalized =
-    language === "arabic"
-      ? value
-          .replace(/[\u064B-\u065F\u0670]/g, "")
-          .replace(/\u0640/g, "")
-          .replace(/[إأآٱ]/g, "ا")
-          .replace(/ى/g, "ي")
-          .replace(/ة/g, "ه")
-      : value.toLowerCase();
+  const normalized = language === "arabic" ? normalizeArabic(value) : value.toLowerCase();
 
-  return normalized
-    .replace(/[^\p{L}\p{N}\s]/gu, " ")
-    .split(/\s+/)
-    .map((token) => token.trim())
-    .filter((token) => token.length > 2 && !/^\d+$/.test(token));
+  return tokenize(normalized).filter((token) => token.length > 2 && !/^\d+$/.test(token));
 }
 
 function groundingRecordText(record: SourceRecord, language: RetrievalLanguage) {
@@ -485,17 +475,37 @@ function isSafeUncitedAnswerSentence(segment: string, language: RetrievalLanguag
   );
 }
 
+// The prompt asks the model to vary its closing pointer to the source cards, so it is
+// recognized by shape (short, last, names the sources below) instead of exact wording.
+const closingInvitationPatterns = {
+  arabic: /(?:المصادر|النصوص)[^.!؟]*أدناه|أدناه[^.!؟]*(?:المصادر|النصوص)/u,
+  english: /\b(?:sources?|source texts?|passages)\b[^.!?]*\bbelow\b|\bbelow\b[^.!?]*\bsources?\b/i,
+};
+const MAX_CLOSING_INVITATION_WORDS = 22;
+
+function isClosingSourceInvitation(segment: string, language: RetrievalLanguage) {
+  const plain = stripArabicDiacritics(segment);
+  return plain.split(/\s+/).length <= MAX_CLOSING_INVITATION_WORDS && closingInvitationPatterns[language].test(plain);
+}
+
 function answerSegments(text: string) {
   return text
-    .split(/(?<=[.!؟؛])\s+|\n+/u)
+    // A line break that does not end a sentence or start a list item is wrapping, not a boundary.
+    .replace(/([^\s.!؟:])\n+(?!\s*(?:[-•*]|\d+[.)]))/gu, "$1 ")
+    // "؛" joins clauses of one sentence, so it is not a boundary either.
+    .split(/(?<=[.!؟])\s+|\n+/u)
     .map((segment) => segment.trim())
     .filter(Boolean);
 }
 
 function passesCitationCoverageGuardrail(text: string, input: GenerateGroundedAnswerInput) {
-  const uncitedSubstantiveSegments = answerSegments(text).filter((segment) => {
+  const segments = answerSegments(text);
+  const uncitedSubstantiveSegments = segments.filter((segment, index) => {
+    const isLast = index === segments.length - 1;
+
     return citationNumbersInText(segment).length === 0
-      && !isSafeUncitedAnswerSentence(segment, input.language);
+      && !isSafeUncitedAnswerSentence(segment, input.language)
+      && !(isLast && isClosingSourceInvitation(segment, input.language));
   });
 
   return uncitedSubstantiveSegments.length <= 1;
@@ -523,11 +533,11 @@ function isCaveatedQuestionQuotation(
 
   const normalizedQuote = input.language === "arabic"
     ? normalizeArabicForMatching(quotedText)
-    : cleanWhitespace(quotedText).toLowerCase();
+    : collapseWhitespace(quotedText).toLowerCase();
   const isUnmatchedCandidate = input.quotationMatch.unmatchedCandidateTexts.some((candidateText) => {
     const normalizedCandidate = input.language === "arabic"
       ? normalizeArabicForMatching(candidateText)
-      : cleanWhitespace(candidateText).toLowerCase();
+      : collapseWhitespace(candidateText).toLowerCase();
 
     return normalizedCandidate === normalizedQuote;
   });
@@ -556,7 +566,7 @@ function isCaveatedQuestionQuotation(
     return hasVerificationTarget && hasNegativeVerification && !reversesToPositiveAttribution;
   }
 
-  const normalizedSentence = cleanWhitespace(sentence).toLowerCase()
+  const normalizedSentence = collapseWhitespace(sentence).toLowerCase()
     .replace(/["«»“”]/gu, "");
   const quoteIndex = normalizedSentence.indexOf(normalizedQuote);
   const localContext = normalizedSentence.slice(
@@ -581,7 +591,7 @@ function passesDirectQuoteGuardrail(text: string, input: GenerateGroundedAnswerI
   const quotePattern = /«([^»]+)»|“([^”]+)”|"([^"]+)"/gu;
 
   return [...text.matchAll(quotePattern)].every((match) => {
-    const quotedText = cleanWhitespace(match[1] || match[2] || match[3] || "");
+    const quotedText = collapseWhitespace(match[1] || match[2] || match[3] || "");
     const quoteStart = match.index || 0;
     const sentence = sentenceAroundRange(text, quoteStart, quoteStart + match[0].length);
     const citationNumbers = citationNumbersInText(sentence);
@@ -622,7 +632,7 @@ function passesDirectQuoteGuardrail(text: string, input: GenerateGroundedAnswerI
         );
       }
 
-      return cleanWhitespace(recordText).toLowerCase().includes(
+      return collapseWhitespace(recordText).toLowerCase().includes(
         quotedText.toLowerCase(),
       );
     });
@@ -873,7 +883,98 @@ function readyGroundedAnswer(
   };
 }
 
-export async function generateGroundedAnswer(input: GenerateGroundedAnswerInput): Promise<GroundedAnswer> {
+/** Draft text safe to show while streaming: no thinking blocks or half-written tags and citation markers. */
+export function visibleDraftText(rawText: string) {
+  let text = rawText.replace(/<think>[\s\S]*?<\/think>/gi, "");
+  const openThinkIndex = text.search(/<think>/i);
+
+  if (openThinkIndex >= 0) {
+    text = text.slice(0, openThinkIndex);
+  }
+
+  return text
+    .replace(/<(?:\/?(?:t(?:h(?:i(?:n(?:k)?)?)?)?)?)?$/i, "")
+    .replace(/\[\d*$/, "")
+    .trimStart();
+}
+
+function draftGuardFailure(text: string, input: GenerateGroundedAnswerInput) {
+  if (!passesFormatGuardrail(text, input.language)) {
+    return "format";
+  }
+
+  const validCitationNumbers = answerCitationNumbers(input);
+  const hasInvalidCitation = citationNumbersInText(text).some((citationNumber) => !validCitationNumbers.has(citationNumber));
+
+  return hasInvalidCitation ? "citations" : null;
+}
+
+export function createAnswerDraftForwarder(input: GenerateGroundedAnswerInput, onDraft: (event: AnswerDraftEvent) => void) {
+  let rawText = "";
+  let shownText = "";
+  let withdrawn = false;
+  let everShown = false;
+
+  const withdraw = () => {
+    if (shownText) {
+      onDraft({ type: "reset" });
+      shownText = "";
+    }
+  };
+
+  return {
+    push(delta: string) {
+      rawText += delta;
+
+      if (withdrawn) {
+        return;
+      }
+
+      const visibleText = visibleDraftText(rawText);
+
+      if (draftGuardFailure(visibleText, input)) {
+        withdrawn = true;
+        withdraw();
+        return;
+      }
+
+      if (!visibleText.startsWith(shownText)) {
+        withdraw();
+      }
+
+      const addition = visibleText.slice(shownText.length);
+
+      if (addition) {
+        onDraft({ type: "delta", text: addition });
+        shownText = visibleText;
+        everShown = true;
+      }
+    },
+    /** Marks the final answer as a replacement when it differs from what the reader saw. */
+    finalize(answer: GroundedAnswer): GroundedAnswer {
+      const keptDraft = answer.status === "ready" && !withdrawn && answer.text === shownText.trim();
+
+      if (!everShown || keptDraft) {
+        return answer;
+      }
+
+      withdraw();
+
+      return {
+        ...answer,
+        warnings: [
+          ...answer.warnings,
+          { code: answerReplacedWarningCode, message: "The streamed draft was replaced after checking it against the sources." },
+        ],
+      };
+    },
+  };
+}
+
+export async function generateGroundedAnswer(
+  input: GenerateGroundedAnswerInput,
+  options: GenerateGroundedAnswerOptions = {},
+): Promise<GroundedAnswer> {
   if (input.records.length === 0) {
     return {
       status: "insufficient_sources",
@@ -883,16 +984,30 @@ export async function generateGroundedAnswer(input: GenerateGroundedAnswerInput)
     };
   }
 
-  const completion = await completeLlmText({
-    task: "answer",
+  const request = {
+    task: "answer" as const,
     maxTokens: 420,
     temperature: 0.3,
     messages: [
-      { role: "system", content: systemPrompt(input.language) },
-      { role: "user", content: userPrompt(input) },
+      { role: "system" as const, content: systemPrompt(input.language) },
+      { role: "user" as const, content: userPrompt(input) },
     ],
-  });
+  };
 
+  if (!options.onDraft) {
+    return composeGroundedAnswer(input, await completeLlmText(request));
+  }
+
+  const forwarder = createAnswerDraftForwarder(input, options.onDraft);
+  const completion = await streamLlmText({ ...request, onDelta: forwarder.push, signal: options.signal });
+
+  return forwarder.finalize(await composeGroundedAnswer(input, completion));
+}
+
+async function composeGroundedAnswer(
+  input: GenerateGroundedAnswerInput,
+  completion: LlmCompletionResult,
+): Promise<GroundedAnswer> {
   if (completion.status === "disabled") {
     return disabledAnswer();
   }
@@ -921,6 +1036,9 @@ export async function generateGroundedAnswer(input: GenerateGroundedAnswerInput)
 
   if (guardFailure) {
     const repair = await repairGroundedAnswer(input, text, guardFailure, completion.model);
+    console.warn(
+      `[grounded-answer] ${input.language} draft failed the ${guardFailure} guard; repair ${repair.text ? "succeeded" : `failed (${repair.guardFailure})`}.`,
+    );
 
     if (repair.text) {
       return readyGroundedAnswer(input, repair.text);

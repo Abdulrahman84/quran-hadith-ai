@@ -1,6 +1,7 @@
 import { searchHadithSources } from "./hadith-mcp";
 import type { HadithCollectionSelection } from "./hadith-collections";
-import { planSourceRouteDecision, type SourceRoute } from "./source-intent";
+import { normalizeArabic, tokenize } from "../text/arabic";
+import { isExplicitQuranOnlyRequest, planSourceRouteDecision, type SourceRoute } from "./source-intent";
 import { searchTafsirSources } from "./tafsir-mcp";
 import type { TafsirSourceSelection } from "./tafsir-sources";
 import type { RetrievalLanguage, RetrievalResponse, RetrievalStatus, SourceMode, SourceRecord } from "./types";
@@ -29,38 +30,30 @@ function combinedStatus(responses: RetrievalResponse[]): RetrievalStatus {
   return "empty";
 }
 
-function normalizeArabic(value: string) {
-  return value
-    .replace(/[\u064B-\u065F\u0670]/g, "")
-    .replace(/\u0640/g, "")
-    .replace(/[إأآٱ]/g, "ا")
-    .replace(/ى/g, "ي");
+const MIN_QUOTE_PHRASE_TOKENS = 3;
+
+function phraseTokens(value: string) {
+  return tokenize(normalizeArabic(value.toLowerCase()));
 }
 
-function tokenize(value: string) {
-  return value
-    .replace(/[^\p{L}\p{N}\s]/gu, " ")
-    .split(/\s+/)
-    .map((token) => token.trim().toLowerCase())
-    .filter(Boolean);
+// The whole question as a normalized phrase, when it is long enough to be a quote rather than a keyword.
+function phraseForQuoteLookup(query: string) {
+  const tokens = phraseTokens(query);
+  return tokens.length >= MIN_QUOTE_PHRASE_TOKENS ? ` ${tokens.join(" ")} ` : null;
 }
 
-function isQuranOnlyQuery(query: string, language: RetrievalLanguage) {
-  const normalized = language === "arabic" ? normalizeArabic(query.toLowerCase()) : query.toLowerCase();
-  const tokens = new Set(tokenize(normalized));
-  const quranTerms =
-    language === "arabic"
-      ? ["قران", "القران", "اية", "الاية", "ايه", "الايه", "سوره", "السوره", "تفسير", "التفسير"]
-      : ["quran", "ayah", "aya", "verse", "surah", "tafsir"];
-  const hadithTerms = language === "arabic" ? ["حديث", "احاديث", "سنه", "السنه"] : ["hadith", "hadeeth", "sunnah"];
-  const mentionsQuran = quranTerms.some((term) => tokens.has(term));
-  const mentionsHadith = hadithTerms.some((term) => tokens.has(term));
+// Records that contain the typed text verbatim answer a quote lookup. The Quran ranks ahead of
+// hadith that cite the same words, since the ayah is the original source of the phrase.
+function quoteTier(record: SourceRecord, phrase: string | null) {
+  if (!phrase || !` ${phraseTokens(record.arabicText).join(" ")} `.includes(phrase)) {
+    return 2;
+  }
 
-  return mentionsQuran && !mentionsHadith;
+  return record.sourceKind === "hadith" ? 1 : 0;
 }
 
-function sourcePriority(record: SourceRecord, query: string, language: RetrievalLanguage) {
-  if (isQuranOnlyQuery(query, language)) {
+function sourcePriority(record: SourceRecord, quranOnly: boolean) {
+  if (quranOnly) {
     return record.sourceKind === "hadith" ? 1 : 0;
   }
 
@@ -77,26 +70,6 @@ export async function searchSources(
   const routes = routeDecision.routes;
   onProgress?.(0, routes.length);
 
-  if (routes.length === 0) {
-    return {
-      status: "error",
-      query,
-      retrievalQuery: query,
-      sourceMode: "quran-tafsir-hadith",
-      records: [],
-      warnings: [
-        {
-          code: "source_tool_router_unavailable",
-          message: routeDecision.warning || "The AI source-tool router did not choose an MCP tool.",
-        },
-      ],
-      provenanceNotes: [
-        "Source tool router: llm.",
-        ...(routeDecision.warning ? [`Source tool router error: ${routeDecision.warning}`] : []),
-      ],
-    };
-  }
-
   let completedRoutes = 0;
   const responses = await Promise.all(
     routes.map(async (route) => {
@@ -110,10 +83,18 @@ export async function searchSources(
       return response;
     }),
   );
-  const records = responses
-    .flatMap((response) => response.records)
+  const quranOnly = isExplicitQuranOnlyRequest(query);
+  const allRecords = responses.flatMap((response) => response.records);
+  const quotedPhrase = phraseForQuoteLookup(query);
+  const records = allRecords
     .sort((left, right) => {
-      const priorityDifference = sourcePriority(left, query, language) - sourcePriority(right, query, language);
+      const quoteDifference = quoteTier(left, quotedPhrase) - quoteTier(right, quotedPhrase);
+
+      if (quoteDifference !== 0) {
+        return quoteDifference;
+      }
+
+      const priorityDifference = sourcePriority(left, quranOnly) - sourcePriority(right, quranOnly);
 
       if (priorityDifference !== 0) {
         return priorityDifference;

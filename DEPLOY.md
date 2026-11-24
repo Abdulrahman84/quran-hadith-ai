@@ -195,6 +195,11 @@ HADITH_QUERY_PLANNER_ENABLED=true
 # Optional: HADITH_QUERY_PLANNER_MODEL=google/gemma-4-26b-a4b-it:free
 # Optional: HADITH_QUERY_PLANNER_FALLBACK_MODELS=
 # Optional: HADITH_QUERY_PLANNER_TIMEOUT_MS=12000
+
+RATE_LIMIT_PER_MINUTE=10
+RATE_LIMIT_PER_DAY=200
+# Optional: GLOBAL_DAILY_REQUEST_CAP=1000
+SEARCH_CACHE_TTL_MS=21600000
 ```
 
 Start it:
@@ -203,7 +208,10 @@ Start it:
 npm run start
 ```
 
-Put nginx, Caddy, or another reverse proxy in front of port `3000` for TLS, request limits, and rate limiting.
+Put nginx, Caddy, or another reverse proxy in front of port `3000` for TLS and request limits. The app's own per-IP
+limits read the client address from `CF-Connecting-IP`, `True-Client-IP` or `X-Real-IP` when present
+(set `CLIENT_IP_HEADER` to name another trusted header), falling back to the first `X-Forwarded-For` hop,
+which clients can spoof. Behind nginx, set `X-Real-IP` (`proxy_set_header X-Real-IP $remote_addr;`). If none of these headers is set, every visitor shares one budget.
 
 ## Data Notes
 

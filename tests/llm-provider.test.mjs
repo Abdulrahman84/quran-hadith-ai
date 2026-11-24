@@ -1,12 +1,11 @@
 import assert from "node:assert/strict";
 import fs from "node:fs";
-import { createRequire } from "node:module";
 import path from "node:path";
 import test from "node:test";
 import vm from "node:vm";
 import ts from "typescript";
 
-const require = createRequire(import.meta.url);
+import { createTsRequire } from "./helpers/ts-require.mjs";
 
 function loadProvider(overrides = {}) {
   const filename = path.join(process.cwd(), "src/lib/llm/provider.ts");
@@ -30,7 +29,7 @@ function loadProvider(overrides = {}) {
     fetch,
     module: { exports: {} },
     process: { env: {} },
-    require: (specifier) => specifier === "./credit-monitor" ? creditMonitor : require(specifier),
+    require: (specifier) => specifier === "./credit-monitor" ? creditMonitor : createTsRequire(filename)(specifier),
     setTimeout,
     ...overrides,
   };

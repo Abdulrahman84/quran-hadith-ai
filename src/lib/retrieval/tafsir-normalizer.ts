@@ -1,3 +1,4 @@
+import { normalizeArabic, tokenize } from "../text/arabic";
 import type { SourceRecord } from "./types";
 import type { RetrievalLanguage } from "./types";
 
@@ -159,23 +160,6 @@ function surahName(surah: number) {
   return arabicSurahNames[surah] ?? null;
 }
 
-function normalizeArabic(value: string) {
-  return value
-    .replace(/[\u064B-\u065F\u0670]/g, "")
-    .replace(/\u0640/g, "")
-    .replace(/[إأآٱ]/g, "ا")
-    .replace(/ى/g, "ي")
-    .replace(/ة/g, "ه");
-}
-
-function tokenize(value: string) {
-  return value
-    .replace(/[^\p{L}\p{N}:：\s]/gu, " ")
-    .split(/\s+/)
-    .map((token) => token.trim())
-    .filter(Boolean);
-}
-
 function cleanTafsirText(value: string) {
   return value
     .replace(/&lt;br\s*\/?&gt;/gi, "\n")
@@ -243,7 +227,7 @@ export function planTafsirSearchQueries(query: string, language: RetrievalLangua
     return [];
   }
 
-  const terms = tokenize(trimmed).filter((token) => {
+  const terms = tokenize(trimmed, { keep: ":：" }).filter((token) => {
     if (language === "arabic") {
       return !tafsirArabicPromptWords.has(token) && !tafsirArabicPromptWords.has(normalizeArabic(token));
     }
