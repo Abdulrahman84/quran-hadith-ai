@@ -1,6 +1,6 @@
 import { searchHadithSources } from "./hadith-mcp";
 import type { HadithCollectionSelection } from "./hadith-collections";
-import { planSourceRouteDecision, type SourceRoute } from "./source-intent";
+import { isExplicitQuranOnlyRequest, planSourceRouteDecision, type SourceRoute } from "./source-intent";
 import { searchTafsirSources } from "./tafsir-mcp";
 import type { TafsirSourceSelection } from "./tafsir-sources";
 import type { RetrievalLanguage, RetrievalResponse, RetrievalStatus, SourceMode, SourceRecord } from "./types";
@@ -29,38 +29,8 @@ function combinedStatus(responses: RetrievalResponse[]): RetrievalStatus {
   return "empty";
 }
 
-function normalizeArabic(value: string) {
-  return value
-    .replace(/[\u064B-\u065F\u0670]/g, "")
-    .replace(/\u0640/g, "")
-    .replace(/[إأآٱ]/g, "ا")
-    .replace(/ى/g, "ي");
-}
-
-function tokenize(value: string) {
-  return value
-    .replace(/[^\p{L}\p{N}\s]/gu, " ")
-    .split(/\s+/)
-    .map((token) => token.trim().toLowerCase())
-    .filter(Boolean);
-}
-
-function isQuranOnlyQuery(query: string, language: RetrievalLanguage) {
-  const normalized = language === "arabic" ? normalizeArabic(query.toLowerCase()) : query.toLowerCase();
-  const tokens = new Set(tokenize(normalized));
-  const quranTerms =
-    language === "arabic"
-      ? ["قران", "القران", "اية", "الاية", "ايه", "الايه", "سوره", "السوره", "تفسير", "التفسير"]
-      : ["quran", "ayah", "aya", "verse", "surah", "tafsir"];
-  const hadithTerms = language === "arabic" ? ["حديث", "احاديث", "سنه", "السنه"] : ["hadith", "hadeeth", "sunnah"];
-  const mentionsQuran = quranTerms.some((term) => tokens.has(term));
-  const mentionsHadith = hadithTerms.some((term) => tokens.has(term));
-
-  return mentionsQuran && !mentionsHadith;
-}
-
-function sourcePriority(record: SourceRecord, query: string, language: RetrievalLanguage) {
-  if (isQuranOnlyQuery(query, language)) {
+function sourcePriority(record: SourceRecord, quranOnly: boolean) {
+  if (quranOnly) {
     return record.sourceKind === "hadith" ? 1 : 0;
   }
 
@@ -77,26 +47,6 @@ export async function searchSources(
   const routes = routeDecision.routes;
   onProgress?.(0, routes.length);
 
-  if (routes.length === 0) {
-    return {
-      status: "error",
-      query,
-      retrievalQuery: query,
-      sourceMode: "quran-tafsir-hadith",
-      records: [],
-      warnings: [
-        {
-          code: "source_tool_router_unavailable",
-          message: routeDecision.warning || "The AI source-tool router did not choose an MCP tool.",
-        },
-      ],
-      provenanceNotes: [
-        "Source tool router: llm.",
-        ...(routeDecision.warning ? [`Source tool router error: ${routeDecision.warning}`] : []),
-      ],
-    };
-  }
-
   let completedRoutes = 0;
   const responses = await Promise.all(
     routes.map(async (route) => {
@@ -110,10 +60,11 @@ export async function searchSources(
       return response;
     }),
   );
+  const quranOnly = isExplicitQuranOnlyRequest(query);
   const records = responses
     .flatMap((response) => response.records)
     .sort((left, right) => {
-      const priorityDifference = sourcePriority(left, query, language) - sourcePriority(right, query, language);
+      const priorityDifference = sourcePriority(left, quranOnly) - sourcePriority(right, quranOnly);
 
       if (priorityDifference !== 0) {
         return priorityDifference;
