@@ -15,6 +15,7 @@ function loadModule(filename, { env = {}, stubs = {} } = {}) {
     exports: {},
     module: { exports: {} },
     process: { env },
+    URL,
     require: (id) => {
       if (id in stubs) {
         return stubs[id];
@@ -118,6 +119,31 @@ test("only set embedding settings are forwarded to the Hadith MCP process", () =
   });
 
   assert.deepEqual({ ...forwarded }, { HADITH_MCP_EMBEDDINGS_PATH: "/data/index.sqlite" });
+});
+
+test("the OpenRouter key is reused only for an OpenRouter embeddings endpoint", () => {
+  const { hadithMcpEmbeddingEnv } = loadHybrid();
+  const openRouter = hadithMcpEmbeddingEnv({
+    EMBEDDINGS_BASE_URL: "https://openrouter.ai/api/v1",
+    EMBEDDINGS_MODEL: "baai/bge-m3",
+    EMBEDDINGS_INDEX_MODEL: "bge-m3",
+    OPENROUTER_API_KEY: "or-key",
+  });
+
+  assert.equal(openRouter.EMBEDDINGS_API_KEY, "or-key");
+  assert.equal(openRouter.EMBEDDINGS_INDEX_MODEL, "bge-m3");
+
+  const explicit = hadithMcpEmbeddingEnv({
+    EMBEDDINGS_BASE_URL: "https://openrouter.ai/api/v1",
+    EMBEDDINGS_API_KEY: "own-key",
+    OPENROUTER_API_KEY: "or-key",
+  });
+  assert.equal(explicit.EMBEDDINGS_API_KEY, "own-key");
+
+  for (const baseUrl of ["https://embeddings.example.com/v1", "https://openrouter.ai.example.com/v1", "not a url"]) {
+    const other = hadithMcpEmbeddingEnv({ EMBEDDINGS_BASE_URL: baseUrl, OPENROUTER_API_KEY: "or-key" });
+    assert.equal(other.EMBEDDINGS_API_KEY, undefined, baseUrl);
+  }
 });
 
 test("rank fusion rewards agreement, keeps first-list ties and renumbers ranks", () => {

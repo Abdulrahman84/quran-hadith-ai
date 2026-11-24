@@ -18,19 +18,40 @@ const embeddingEnvKeys = [
   "HADITH_MCP_VECTOR_WEIGHT",
   "EMBEDDINGS_PROVIDER",
   "EMBEDDINGS_MODEL",
+  "EMBEDDINGS_INDEX_MODEL",
   "EMBEDDINGS_BASE_URL",
   "EMBEDDINGS_API_KEY",
   "EMBEDDINGS_TIMEOUT_MS",
   "OLLAMA_URL",
 ] as const;
 
+function isOpenRouterUrl(value: string | undefined): boolean {
+  try {
+    const host = new URL(value ?? "").hostname;
+    return host === "openrouter.ai" || host.endsWith(".openrouter.ai");
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * When the embedding API is OpenRouter and no EMBEDDINGS_API_KEY is set, the app's own
+ * OPENROUTER_API_KEY is reused. It is never sent to any other embeddings host.
+ */
 export function hadithMcpEmbeddingEnv(env: Env = process.env): Record<string, string> {
-  return Object.fromEntries(
+  const passed: Record<string, string> = Object.fromEntries(
     embeddingEnvKeys.flatMap((key) => {
       const value = env[key]?.trim();
       return value ? [[key, value]] : [];
     }),
   );
+  const openRouterKey = env.OPENROUTER_API_KEY?.trim();
+
+  if (!passed.EMBEDDINGS_API_KEY && openRouterKey && isOpenRouterUrl(passed.EMBEDDINGS_BASE_URL)) {
+    passed.EMBEDDINGS_API_KEY = openRouterKey;
+  }
+
+  return passed;
 }
 
 export const HADITH_FUSION_K = 60;
