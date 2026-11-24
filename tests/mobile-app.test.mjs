@@ -96,8 +96,8 @@ test("The logo, favicon and app icons all come from the vector mark", () => {
 
   for (const palette of Object.values(markPalettes)) {
     const markup = markElements(palette);
-    assert.match(markup, /class="sanad-mark-chain"/);
-    assert.ok(markup.includes(palette.book) && markup.includes(palette.chain));
+    assert.match(markup, /class="sanad-mark-head"/);
+    assert.ok(markup.includes(palette.book) && markup.includes(palette.accent));
   }
 
   assert.match(logo, /markElements\(markPalettes\.onLight\)/);

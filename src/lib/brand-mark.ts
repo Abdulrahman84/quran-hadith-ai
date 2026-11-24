@@ -2,53 +2,62 @@
 // splash screens and loader all draw from one source.
 // scripts/generate-brand-assets.mjs imports this file directly with Node.
 //
-// An open book (the text, matn) with three linked gold points rising from its
-// spine: the sanad, the chain of narration that ties a text back to its source.
+// An open book with the gold assistant set into its gutter: the answer sits
+// inside the source text, never above it. Drawn on a 64-unit grid with one
+// stroke weight for the covers and one for the pages, so it stays legible
+// down to a 16px favicon.
 
 export type MarkPalette = {
   book: string;
-  pageFill: string;
-  lines: string;
-  linesOpacity: number;
-  chain: string;
+  pages: string;
+  pagesOpacity: number;
+  accent: string;
+  visor: string;
+  eyes: string;
 };
 
-export const markViewBox = { x: 6, y: 5, width: 52, height: 56 } as const;
+export const markViewBox = { x: 3, y: 7, width: 58, height: 51 } as const;
 
 export const markPalettes = {
   // Sand and paper backgrounds (the site, light splash screen).
   onLight: {
     book: "#0B5D3E",
-    pageFill: "#FFFEFA",
-    lines: "#0B5D3E",
-    linesOpacity: 0.34,
-    chain: "#B8893A",
+    pages: "#0B5D3E",
+    pagesOpacity: 0.45,
+    accent: "#C69A4B",
+    visor: "#0B5D3E",
+    eyes: "#FBFAF5",
   },
   // The deep-green app icon tile and dark splash screen.
   onDark: {
     book: "#FBFAF5",
-    pageFill: "none",
-    lines: "#FBFAF5",
-    linesOpacity: 0.42,
-    chain: "#D6B264",
+    pages: "#FBFAF5",
+    pagesOpacity: 0.55,
+    accent: "#D6B264",
+    visor: "#0B5D3E",
+    eyes: "#FBFAF5",
   },
 } satisfies Record<string, MarkPalette>;
 
+// Each cover runs from the gutter, out along the top edge, down the fore-edge
+// and back to the spine. The two halves leave a gap at the gutter for the head.
+const covers =
+  "M24.5 17.5C19.5 12.8 13.2 10.5 6 10.5V48C14.2 48 22 50.2 28.6 54.5" +
+  "M39.5 17.5C44.5 12.8 50.8 10.5 58 10.5V48C49.8 48 42 50.2 35.4 54.5";
 const pages =
-  "M32 34.5C26.2 30.6 18.6 29.4 10 30.2V54.4C18.6 53.6 26.2 54.8 32 58.6 37.8 54.8 45.4 53.6 54 54.4V30.2C45.4 29.4 37.8 30.6 32 34.5Z";
-const spine = "M32 34.5V58.6";
-const lines = "M15 37.4H26M15 42.4H26M15 47.4H23M38 37.4H49M38 42.4H49M41 47.4H49";
+  "M12.5 17V42.2C18.6 42.6 23.6 44.2 27.6 46.8" + "M51.5 17V42.2C45.4 42.6 40.4 44.2 36.4 46.8";
 
 export function markElements(palette: MarkPalette): string {
   return [
-    `<path d="${pages}" fill="${palette.pageFill}" stroke="${palette.book}" stroke-width="3.2" stroke-linejoin="round"/>`,
-    `<path d="${spine}" stroke="${palette.book}" stroke-width="2.4" stroke-linecap="round"/>`,
-    `<path d="${lines}" stroke="${palette.lines}" stroke-opacity="${palette.linesOpacity}" stroke-width="2" stroke-linecap="round"/>`,
-    `<g class="sanad-mark-chain" fill="${palette.chain}">`,
-    `<path d="M32 12.5V33" stroke="${palette.chain}" stroke-width="1.6" stroke-linecap="round"/>`,
-    `<path class="sanad-mark-link" d="M32 22.2 35.6 26.4 32 30.6 28.4 26.4Z"/>`,
-    `<path class="sanad-mark-link" d="M32 14.2 35 17.7 32 21.2 29 17.7Z"/>`,
-    `<path class="sanad-mark-link" d="M32 7.4 34.4 10.2 32 13 29.6 10.2Z"/>`,
+    `<path d="${covers}" fill="none" stroke="${palette.book}" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/>`,
+    `<path d="${pages}" fill="none" stroke="${palette.pages}" stroke-opacity="${palette.pagesOpacity}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>`,
+    `<g class="sanad-mark-head">`,
+    `<path d="M32 26.5V21.5" stroke="${palette.accent}" stroke-width="3" stroke-linecap="round"/>`,
+    `<circle class="sanad-mark-signal" cx="32" cy="18.6" r="3" fill="${palette.accent}"/>`,
+    `<rect x="19" y="26" width="26" height="18" rx="9" fill="${palette.accent}"/>`,
+    `<rect x="23.5" y="30.5" width="17" height="9" rx="4.5" fill="${palette.visor}"/>`,
+    `<circle class="sanad-mark-eye" cx="28" cy="35" r="2" fill="${palette.eyes}"/>`,
+    `<circle class="sanad-mark-eye" cx="36" cy="35" r="2" fill="${palette.eyes}"/>`,
     `</g>`,
   ].join("");
 }
