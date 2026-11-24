@@ -41,13 +41,11 @@ test("information pages have copy for the retrieval pipeline and the data source
     "how.limits.title",
     "how.limit.fatwa",
     "policy.hadith.title",
-    "policy.hadith.grades",
+    "policy.hadith.gradedNote",
     "policy.hadith.credit",
     "policy.quran.title",
     "policy.quran.credit",
-    "policy.privacy.title",
-    "policy.privacy.ai",
-    "policy.privacy.stats",
+    "policy.quran.featureText",
   ]) {
     assert.equal(dictionarySource.match(new RegExp(`"${key.replaceAll(".", "\\.")}"`, "g"))?.length, 2, key);
   }
@@ -65,8 +63,19 @@ test("How it works names its steps with the same words as the search loader", ()
 
 test("data source counts match the hadith import report total", () => {
   const policySource = readProjectFile("src/app/source-policy/page.tsx");
-  const counts = [...policySource.matchAll(/^\s+[a-z_]+: (\d+),$/gm)].map((match) => Number(match[1]));
+  const counts = [...policySource.matchAll(/^\s+[a-z_]+: \{ count: (\d+)/gm)].map((match) => Number(match[1]));
 
   assert.equal(counts.length, 6);
   assert.equal(counts.reduce((sum, count) => sum + count, 0), 33736);
+});
+
+test("data sources page lists the books as semantic lists and has no privacy section", () => {
+  const policySource = readProjectFile("src/app/source-policy/page.tsx");
+  const shelfSource = readProjectFile("src/components/info/source-books.tsx");
+  const dictionarySource = readProjectFile("src/lib/i18n.ts");
+
+  assert.match(shelfSource, /<ul aria-label=\{label\} className="book-shelf"/);
+  assert.match(shelfSource, /<li className="book-cover"/);
+  assert.doesNotMatch(policySource, /policy\.privacy/);
+  assert.doesNotMatch(dictionarySource, /"policy\.privacy\./);
 });

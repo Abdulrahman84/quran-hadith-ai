@@ -1227,32 +1227,194 @@ html[data-keyboard="open"] body {
   transform: translateY(-0.15rem) rotate(45deg);
 }
 
-.info-ledger {
-  margin-top: 0.85rem;
-  border-top: 1px solid var(--color-border);
-}
-
-.info-ledger li {
-  display: flex;
-  justify-content: space-between;
-  gap: 1rem;
-  border-bottom: 1px solid var(--color-border);
-  padding-block: 0.55rem;
-  font-size: 0.95rem;
-  font-weight: 600;
-}
-
-.info-ledger-count {
+/* Source books drawn as covers: a coloured spine on the binding edge, the
+   title, the author and, for hadith, a count with a bar scaled to the
+   largest collection. */
+.book-group-title {
+  margin-top: 1.4rem;
   color: var(--color-muted);
-  font-weight: 500;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.book-group-note {
+  margin-top: 0.6rem;
+  color: var(--color-muted);
+  font-size: 0.82rem;
+  line-height: 1.8;
+}
+
+/* Two covers per row on a phone; on wider screens as many as fit, so the
+   two Sahihs, the four Sunan and the tafsir works each sit on one or two
+   even rows without an orphan. */
+.book-shelf {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+  margin-top: 0.6rem;
+}
+
+@media (min-width: 640px) {
+  .book-shelf {
+    grid-template-columns: repeat(auto-fit, minmax(8.75rem, 1fr));
+  }
+
+  .book-shelf[data-size="small"] {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+.book-cover {
+  --book-spine: var(--color-green);
+  position: relative;
+  display: flex;
+  min-height: 9.5rem;
+  border: 1px solid var(--color-border);
+  border-start-start-radius: 0.2rem;
+  border-end-start-radius: 0.2rem;
+  border-start-end-radius: 0.6rem;
+  border-end-end-radius: 0.6rem;
+  background: var(--color-surface);
+  box-shadow: 0 1px 0 rgb(27 31 29 / 5%);
+  overflow: hidden;
+}
+
+.book-cover[data-tone="gold"] {
+  --book-spine: var(--color-gold);
+}
+
+.book-cover[data-tone="paper"] {
+  --book-spine: color-mix(in srgb, var(--color-green) 55%, var(--color-rule));
+}
+
+.book-shelf[data-size="small"] .book-cover {
+  min-height: 0;
+  background: color-mix(in srgb, var(--color-surface) 70%, transparent);
+}
+
+.book-spine {
+  flex: none;
+  width: 0.6rem;
+  background: var(--book-spine, var(--color-green));
+}
+
+.book-shelf[data-size="small"] .book-spine {
+  width: 0.35rem;
+}
+
+.book-body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 0.2rem;
+  min-width: 0;
+  padding: 0.85rem 0.9rem 0.8rem;
+}
+
+.book-shelf[data-size="small"] .book-body {
+  padding: 0.65rem 0.75rem;
+}
+
+.book-badge {
+  align-self: flex-start;
+  margin-bottom: 0.25rem;
+  border: 1px solid color-mix(in srgb, var(--color-gold) 50%, transparent);
+  border-radius: 0.25rem;
+  padding: 0.05rem 0.4rem;
+  color: color-mix(in srgb, var(--color-gold) 80%, var(--color-ink));
+  font-size: 0.68rem;
+  font-weight: 700;
+}
+
+.book-title {
+  color: var(--color-ink);
+  font-family: var(--font-display), var(--font-geist-sans), sans-serif;
+  font-size: 1.02rem;
+  font-weight: 600;
+  line-height: 1.45;
+}
+
+.book-shelf[data-size="small"] .book-title {
+  font-size: 0.92rem;
+}
+
+.book-author {
+  color: var(--color-muted);
+  font-size: 0.82rem;
+  line-height: 1.6;
+}
+
+.book-note {
+  color: color-mix(in srgb, var(--color-muted) 80%, transparent);
+  font-size: 0.75rem;
+}
+
+.book-count {
+  display: grid;
+  gap: 0.35rem;
+  margin-top: auto;
+  padding-top: 0.7rem;
+  color: var(--color-ink);
+  font-size: 0.82rem;
+  font-weight: 600;
   font-variant-numeric: tabular-nums;
 }
 
+.book-bar {
+  display: block;
+  height: 3px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-rule) 70%, transparent);
+}
+
+.book-bar > span {
+  display: block;
+  width: calc(var(--book-share, 1) * 100%);
+  height: 100%;
+  border-radius: inherit;
+  background: var(--color-gold);
+}
+
+.quran-feature {
+  display: flex;
+  margin-top: 0.9rem;
+  overflow: hidden;
+  border-start-start-radius: 0.2rem;
+  border-end-start-radius: 0.2rem;
+  border-start-end-radius: 0.7rem;
+  border-end-end-radius: 0.7rem;
+  background: var(--color-green);
+  color: #fbfaf5;
+}
+
+.quran-feature .book-spine {
+  width: 0.7rem;
+  background: var(--color-gold);
+}
+
+.quran-feature-body {
+  display: grid;
+  gap: 0.25rem;
+  padding: 1.05rem 1.1rem;
+}
+
+.quran-feature-title {
+  font-family: var(--font-display), var(--font-geist-sans), sans-serif;
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+.quran-feature-text {
+  color: rgb(251 250 245 / 82%);
+  font-size: 0.9rem;
+  line-height: 1.7;
+}
+
 .info-credit {
-  margin-top: 0.85rem;
+  margin-top: 1rem;
   color: var(--color-muted);
-  font-size: 0.85rem;
-  line-height: 1.8;
+  font-size: 0.78rem;
+  line-height: 1.7;
 }
 
 .info-credit-link {
