@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Amiri, Geist_Mono, IBM_Plex_Sans_Arabic } from "next/font/google";
+import { Geist_Mono, IBM_Plex_Sans_Arabic, Readex_Pro } from "next/font/google";
 import { ConvexClientProvider } from "@/components/convex-client-provider";
 import { I18nProvider } from "@/components/i18n-provider";
 import { AppTabBar } from "@/components/native/app-tab-bar";
@@ -15,11 +15,11 @@ const ibmPlexSansArabic = IBM_Plex_Sans_Arabic({
   subsets: ["arabic", "latin"],
 });
 
-// Classical naskh for headings, answers and the wordmark: reads like a printed
-// reference work rather than an app UI.
-const amiri = Amiri({
+// Headings and the wordmark: a modern Arabic and Latin face drawn as one
+// family, so both scripts share the same weight and rhythm.
+const readexPro = Readex_Pro({
   variable: "--font-display",
-  weight: ["400", "700"],
+  weight: ["600", "700"],
   subsets: ["arabic", "latin"],
 });
 
@@ -59,7 +59,7 @@ export default function RootLayout({
       dir="rtl"
       lang="ar"
       data-native-app={isNativeApp ? "" : undefined}
-      className={`${ibmPlexSansArabic.variable} ${amiri.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${ibmPlexSansArabic.variable} ${readexPro.variable} ${geistMono.variable} h-full antialiased`}
       suppressHydrationWarning
     >
       <body className="min-h-full flex flex-col">

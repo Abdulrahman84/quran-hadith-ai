@@ -16,7 +16,7 @@ export default function SourcePolicy() {
       <section className="relative z-10 mx-auto max-w-6xl overflow-hidden px-5 pb-14 pt-14 sm:px-8 sm:pb-20 sm:pt-20">
         <div className="animate-rise relative z-10">
           <p className="page-kicker">{t("policy.eyebrow")}</p>
-          <h1 className="mt-5 max-w-4xl text-balance text-4xl font-bold leading-[1.18] text-[var(--color-ink)] sm:text-6xl">
+          <h1 className="mt-5 max-w-4xl text-balance text-4xl font-bold leading-[1.25] text-[var(--color-ink)] sm:text-5xl">
             {t("policy.title")}
           </h1>
           <p className="mt-6 max-w-3xl text-base font-medium leading-8 text-[var(--color-muted)] sm:text-lg sm:leading-9">
