@@ -127,11 +127,17 @@ test("the OpenRouter key is reused only for an OpenRouter embeddings endpoint", 
     EMBEDDINGS_BASE_URL: "https://openrouter.ai/api/v1",
     EMBEDDINGS_MODEL: "baai/bge-m3",
     EMBEDDINGS_INDEX_MODEL: "bge-m3",
+    EMBEDDINGS_DIMENSIONS: "1024",
+    EMBEDDINGS_QUERY_PREFIX: "Instruct: x\\nQuery: ",
+    EMBEDDINGS_PROVIDER_ORDER: "DeepInfra",
     OPENROUTER_API_KEY: "or-key",
   });
 
   assert.equal(openRouter.EMBEDDINGS_API_KEY, "or-key");
   assert.equal(openRouter.EMBEDDINGS_INDEX_MODEL, "bge-m3");
+  assert.equal(openRouter.EMBEDDINGS_DIMENSIONS, "1024");
+  assert.equal(openRouter.EMBEDDINGS_QUERY_PREFIX, "Instruct: x\\nQuery: ");
+  assert.equal(openRouter.EMBEDDINGS_PROVIDER_ORDER, "DeepInfra");
 
   const explicit = hadithMcpEmbeddingEnv({
     EMBEDDINGS_BASE_URL: "https://openrouter.ai/api/v1",

@@ -24,8 +24,8 @@ ARG HADITH_MCP_REPO=https://github.com/Abdulrahman84/hadith-mcp.git
 ARG HADITH_MCP_REF=main
 # Prebuilt embedding index for semantic_search_hadith (see docs/openrouter-deployment.md).
 # Leave the URL empty to skip it; hybrid search then falls back to full-text search.
-ARG HADITH_EMBEDDINGS_URL=
-ARG HADITH_EMBEDDINGS_SHA256=
+ARG HADITH_EMBEDDINGS_URL=https://github.com/Abdulrahman84/hadith-mcp/releases/download/embeddings-bge-m3-v1/hadith-embeddings-bge-m3.sqlite
+ARG HADITH_EMBEDDINGS_SHA256=f8a5cec476bccd38068491a6bf5259c8bbd217ba97965d5b009bd774417b3a36
 ARG HADITH_EMBEDDINGS_INDEX_MODEL=bge-m3
 
 WORKDIR /opt

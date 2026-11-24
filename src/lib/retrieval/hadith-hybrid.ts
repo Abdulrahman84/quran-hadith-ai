@@ -19,6 +19,9 @@ const embeddingEnvKeys = [
   "EMBEDDINGS_PROVIDER",
   "EMBEDDINGS_MODEL",
   "EMBEDDINGS_INDEX_MODEL",
+  "EMBEDDINGS_DIMENSIONS",
+  "EMBEDDINGS_QUERY_PREFIX",
+  "EMBEDDINGS_PROVIDER_ORDER",
   "EMBEDDINGS_BASE_URL",
   "EMBEDDINGS_API_KEY",
   "EMBEDDINGS_TIMEOUT_MS",
@@ -41,8 +44,10 @@ function isOpenRouterUrl(value: string | undefined): boolean {
 export function hadithMcpEmbeddingEnv(env: Env = process.env): Record<string, string> {
   const passed: Record<string, string> = Object.fromEntries(
     embeddingEnvKeys.flatMap((key) => {
-      const value = env[key]?.trim();
-      return value ? [[key, value]] : [];
+      // The query prefix keeps its whitespace: "Query: " must end in a space.
+      const raw = env[key];
+      const value = key === "EMBEDDINGS_QUERY_PREFIX" ? raw : raw?.trim();
+      return value?.trim() ? [[key, value]] : [];
     }),
   );
   const openRouterKey = env.OPENROUTER_API_KEY?.trim();

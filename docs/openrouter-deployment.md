@@ -74,8 +74,8 @@ $0.01 per million tokens.
 downloaded during the build, so a deploy doesn't wait about 20 minutes for it to be embedded again. The `hadith`
 stage reads three build args:
 
-- `HADITH_EMBEDDINGS_URL`: where to download the index, e.g. a GitHub release asset of `hadith-mcp`. If it's empty,
-  there's no index, and hybrid search falls back to full-text.
+- `HADITH_EMBEDDINGS_URL`: where to download the index. It defaults to the `embeddings-bge-m3-v1` release asset of
+  `hadith-mcp`. Set it to empty to skip the download; hybrid search then falls back to full-text.
 - `HADITH_EMBEDDINGS_SHA256`: the file's checksum. It's required when the URL is set, and a mismatch fails the build.
 - `HADITH_EMBEDDINGS_INDEX_MODEL` (default `bge-m3`).
 
@@ -83,6 +83,11 @@ After the download, the build runs `build-embeddings.js --check`. If more than 1
 database has no current vector, the build fails, and Render keeps the previous deploy. That catches a stale index
 after the hadith data changes. To refresh the index, rebuild it with `npm run build:embeddings` in `hadith-mcp`,
 upload it as a new release asset, and update the URL and checksum.
+
+Qwen3-Embedding-8B (`EMBEDDINGS_QUERY_PREFIX`, `EMBEDDINGS_DIMENSIONS=1024`, `EMBEDDINGS_PROVIDER_ORDER`) scored a
+little higher than bge-m3 when the hadith server was queried directly. But through OpenRouter its query embeddings
+regularly took more than 8 seconds (November 2026), so searches fell back to full-text, and it scored lower in the
+full app. bge-m3 stays the default until that changes.
 
 The index adds about 140 MB of memory to the Hadith MCP process. That is a large part of a 512 MB free instance, so
 watch memory after enabling hybrid search.
