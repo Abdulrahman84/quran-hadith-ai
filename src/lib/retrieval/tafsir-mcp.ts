@@ -1,5 +1,6 @@
 import type { Client } from "@modelcontextprotocol/sdk/client/index.js";
 
+import { formatMcpStderr } from "./mcp-error";
 import { getMcpPayload, withStdioMcpClient, type McpCallResult } from "./mcp-stdio";
 import { planRetrievalQuery, splitFallbackQueries } from "./query-planner";
 import { resolveTafsirSources, type TafsirSourceSelection } from "./tafsir-sources";
@@ -237,7 +238,7 @@ export async function searchTafsirSources(
           provenanceNotes: [
             tafsirAttribution,
             ...(planned.changed || retrievalQuery !== query ? [`Product query planner searched Tafsir MCP for: ${retrievalQuery}`] : []),
-            ...(stderr.join("").trim() ? [stderr.join("").trim()] : []),
+            ...(formatMcpStderr(stderr) ? [formatMcpStderr(stderr)] : []),
           ],
         };
       },

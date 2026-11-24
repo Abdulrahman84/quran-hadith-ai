@@ -1,0 +1,3277 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-11-24T18:28:09.171Z",
+  "sources": {
+    "hadithDb": "hadith-meeatif.sqlite",
+    "quranDb": "quran.db"
+  },
+  "count": 58,
+  "items": [
+    {
+      "id": "h-niyyat-ar",
+      "question": "إنما الأعمال بالنيات",
+      "language": "arabic",
+      "kind": "exact-quote",
+      "corpus": "hadith",
+      "tags": [
+        "exact-quote",
+        "hadith"
+      ],
+      "minExpected": 1,
+      "expected": [
+        {
+          "kind": "hadith",
+          "collection": "bukhari",
+          "hadithNumber": "1:1"
+        },
+        {
+          "kind": "hadith",
+          "collection": "bukhari",
+          "hadithNumber": "2:47"
+        },
+        {
+          "kind": "hadith",
+          "collection": "bukhari",
+          "hadithNumber": "49:13"
+        },
+        {
+          "kind": "hadith",
+          "collection": "bukhari",
+          "hadithNumber": "63:123"
+        },
+        {
+          "kind": "hadith",
+          "collection": "bukhari",
+          "hadithNumber": "83:66"
+        },
+        {
+          "kind": "hadith",
+          "collection": "bukhari",
+          "hadithNumber": "90:1"
+        },
+        {
+          "kind": "hadith",
+          "collection": "muslim",
+          "hadithNumber": "33:222"
+        },
+        {
+          "kind": "hadith",
+          "collection": "abu_dawud",
+          "hadithNumber": "13:27"
+        },
+        {
+          "kind": "hadith",
+          "collection": "tirmidhi",
+          "hadithNumber": "22:30"
+        },
+        {
+          "kind": "hadith",
+          "collection": "nasai",
+          "hadithNumber": "1:75"
+        },
+        {
+          "kind": "hadith",
+          "collection": "nasai",
+          "hadithNumber": "27:49"
+        },
+        {
+          "kind": "hadith",
+          "collection": "nasai",
+          "hadithNumber": "35:34"
+        },
+        {
+          "kind": "hadith",
+          "collection": "ibn_majah",
+          "hadithNumber": "37:128"
+        }
+      ],
+      "evidence": [
+        {
+          "rule": {
+            "source": "hadith",
+            "all": [
+              "الاعمال بالني"
+            ]
+          },
+          "matches": 13
+        }
+      ]
+    },
+    {
+      "id": "h-niyyat-en",
+      "question": "Actions are judged by intentions",
+      "language": "english",
+      "kind": "paraphrase",
+      "corpus": "hadith",
+      "tags": [
+        "paraphrase",
+        "cross-lingual",
+        "hadith"
+      ],
+      "minExpected": 1,
+      "expected": [
+        {
+          "kind": "hadith",
+          "collection": "bukhari",
+          "hadithNumber": "1:1"
+        },
+        {
+          "kind": "hadith",
+          "collection": "bukhari",
+          "hadithNumber": "2:47"
+        },
+        {
+          "kind": "hadith",
+          "collection": "bukhari",
+          "hadithNumber": "49:13"
+        },
+        {
+          "kind": "hadith",
+          "collection": "bukhari",
+          "hadithNumber": "63:123"
+        },
+        {
+          "kind": "hadith",
+          "collection": "bukhari",
+          "hadithNumber": "83:66"
+        },
+        {
+          "kind": "hadith",
+          "collection": "bukhari",
+          "hadithNumber": "90:1"
+        },
+        {
+          "kind": "hadith",
+          "collection": "muslim",
+          "hadithNumber": "33:222"
+        },
+        {
+          "kind": "hadith",
+          "collection": "abu_dawud",
+          "hadithNumber": "13:27"
+        },
+        {
+          "kind": "hadith",
+          "collection": "tirmidhi",
+          "hadithNumber": "22:30"
+        },
+        {
+          "kind": "hadith",
+          "collection": "nasai",
+          "hadithNumber": "1:75"
+        },
+        {
+          "kind": "hadith",
+          "collection": "nasai",
+          "hadithNumber": "27:49"
+        },
+        {
+          "kind": "hadith",
+          "collection": "nasai",
+          "hadithNumber": "35:34"
+        },
+        {
+          "kind": "hadith",
+          "collection": "ibn_majah",
+          "hadithNumber": "37:128"
+        }
+      ],
+      "evidence": [
+        {
+          "rule": {
+            "source": "hadith",
+            "all": [
+              "الاعمال بالني"
+            ]
+          },
+          "matches": 13
+        }
+      ]
+    },
+    {
+      "id": "h-husn-islam-ar",
+      "question": "من حسن إسلام المرء تركه ما لا يعنيه",
+      "language": "arabic",
+      "kind": "exact-quote",
+      "corpus": "hadith",
+      "tags": [
+        "exact-quote",
+        "hadith"
+      ],
+      "minExpected": 1,
+      "expected": [
+        {
+          "kind": "hadith",
+          "collection": "tirmidhi",
+          "hadithNumber": "36:14"
+        },
+        {
+          "kind": "hadith",
+          "collection": "tirmidhi",
+          "hadithNumber": "36:15"
+        },
+        {
+          "kind": "hadith",
+          "collection": "ibn_majah",
+          "hadithNumber": "36:51"
+        }
+      ],
+      "evidence": [
+        {
+          "rule": {
+            "source": "hadith",
+            "all": [
+              "من حسن اسلام المرء تركه ما لا يعنيه"
+            ]
+          },
+          "matches": 3
+        }
+      ]
+    },
+    {
+      "id": "h-brother-ar",
+      "question": "لا يؤمن أحدكم حتى يحب لأخيه ما يحب لنفسه",
+      "language": "arabic",
+      "kind": "exact-quote",
+      "corpus": "hadith",
+      "tags": [
+        "exact-quote",
+        "hadith"
+      ],
+      "minExpected": 1,
+      "expected": [
+        {
+          "kind": "hadith",
+          "collection": "bukhari",
+          "hadithNumber": "2:6"
+        },
+        {
+          "kind": "hadith",
+          "collection": "muslim",
+          "hadithNumber": "1:77"
+        },
+        {
+          "kind": "hadith",
+          "collection": "tirmidhi",
+          "hadithNumber": "37:101"
+        },
+        {
+          "kind": "hadith",
+          "collection": "nasai",
+          "hadithNumber": "47:32"
+        },
+        {
+          "kind": "hadith",
+          "collection": "nasai",
+          "hadithNumber": "47:33"
+        },
+        {
+          "kind": "hadith",
+          "collection": "nasai",
+          "hadithNumber": "47:55"
+        }
+      ],
+      "evidence": [
+        {
+          "rule": {
+            "source": "hadith",
+            "all": [
+              "حتي يحب لاخيه"
+            ]
+          },
+          "matches": 6
+        }
+      ]
+    },
+    {
+      "id": "h-brother-en",
+      "question": "None of you truly believes until he loves for his brother what he loves for himself",
+      "language": "english",
+      "kind": "paraphrase",
+      "corpus": "hadith",
+      "tags": [
+        "paraphrase",
+        "cross-lingual",
+        "hadith"
+      ],
+      "minExpected": 1,
+      "expected": [
+        {
+          "kind": "hadith",
+          "collection": "bukhari",
+          "hadithNumber": "2:6"
+        },
+        {
+          "kind": "hadith",
+          "collection": "muslim",
+          "hadithNumber": "1:77"
+        },
+        {
+          "kind": "hadith",
+          "collection": "tirmidhi",
+          "hadithNumber": "37:101"
+        },
+        {
+          "kind": "hadith",
+          "collection": "nasai",
+          "hadithNumber": "47:32"
+        },
+        {
+          "kind": "hadith",
+          "collection": "nasai",
+          "hadithNumber": "47:33"
+        },
+        {
+          "kind": "hadith",
+          "collection": "nasai",
+          "hadithNumber": "47:55"
+        }
+      ],
+      "evidence": [
+        {
+          "rule": {
+            "source": "hadith",
+            "all": [
+              "حتي يحب لاخيه"
+            ]
+          },
+          "matches": 6
+        }
+      ]
+    },
+    {
+      "id": "h-nasiha-ar",
+      "question": "حديث الدين النصيحة",
+      "language": "arabic",
+      "kind": "exact-quote",
+      "corpus": "hadith",
+      "tags": [
+        "exact-quote",
+        "source-limited",
+        "hadith"
+      ],
+      "minExpected": 1,
+      "expected": [
+        {
+          "kind": "hadith",
+          "collection": "muslim",
+          "hadithNumber": "1:103"
+        },
+        {
+          "kind": "hadith",
+          "collection": "abu_dawud",
+          "hadithNumber": "43:172"
+        },
+        {
+          "kind": "hadith",
+          "collection": "tirmidhi",
+          "hadithNumber": "27:32"
+        },
+        {
+          "kind": "hadith",
+          "collection": "nasai",
+          "hadithNumber": "39:49"
+        },
+        {
+          "kind": "hadith",
+          "collection": "nasai",
+          "hadithNumber": "39:50"
+        },
+        {
+          "kind": "hadith",
+          "collection": "nasai",
+          "hadithNumber": "39:51"
+        },
+        {
+          "kind": "hadith",
+          "collection": "nasai",
+          "hadithNumber": "39:52"
+        }
+      ],
+      "evidence": [
+        {
+          "rule": {
+            "source": "hadith",
+            "all": [
+              "الدين النصيحة"
+            ]
+          },
+          "matches": 7
+        }
+      ]
+    },
+    {
+      "id": "h-nasiha-en",
+      "question": "hadith: the religion is sincere advice",
+      "language": "english",
+      "kind": "paraphrase",
+      "corpus": "hadith",
+      "tags": [
+        "paraphrase",
+        "cross-lingual",
+        "source-limited",
+        "hadith"
+      ],
+      "minExpected": 1,
+      "expected": [
+        {
+          "kind": "hadith",
+          "collection": "muslim",
+          "hadithNumber": "1:103"
+        },
+        {
+          "kind": "hadith",
+          "collection": "abu_dawud",
+          "hadithNumber": "43:172"
+        },
+        {
+          "kind": "hadith",
+          "collection": "tirmidhi",
+          "hadithNumber": "27:32"
+        },
+        {
+          "kind": "hadith",
+          "collection": "nasai",
+          "hadithNumber": "39:49"
+        },
+        {
+          "kind": "hadith",
+          "collection": "nasai",
+          "hadithNumber": "39:50"
+        },
+        {
+          "kind": "hadith",
+          "collection": "nasai",
+          "hadithNumber": "39:51"
+        },
+        {
+          "kind": "hadith",
+          "collection": "nasai",
+          "hadithNumber": "39:52"
+        }
+      ],
+      "evidence": [
+        {
+          "rule": {
+            "source": "hadith",
+            "all": [
+              "الدين النصيحة"
+            ]
+          },
+          "matches": 7
+        }
+      ]
+    },
+    {
+      "id": "h-speak-good-ar",
+      "question": "من كان يؤمن بالله واليوم الآخر فليقل خيرا أو ليصمت",
+      "language": "arabic",
+      "kind": "exact-quote",
+      "corpus": "hadith",
+      "tags": [
+        "exact-quote",
+        "hadith"
+      ],
+      "minExpected": 1,
+      "expected": [
+        {
+          "kind": "hadith",
+          "collection": "bukhari",
+          "hadithNumber": "78:49"
+        },
+        {
+          "kind": "hadith",
+          "collection": "bukhari",
+          "hadithNumber": "78:50"
+        },
+        {
+          "kind": "hadith",
+          "collection": "bukhari",
+          "hadithNumber": "78:162"
+        },
+        {
+          "kind": "hadith",
+          "collection": "bukhari",
+          "hadithNumber": "78:163"
+        },
+        {
+          "kind": "hadith",
+          "collection": "bukhari",
+          "hadithNumber": "78:165"
+        },
+        {
+          "kind": "hadith",
+          "collection": "bukhari",
+          "hadithNumber": "81:64"
+        },
+        {
+          "kind": "hadith",
+          "collection": "muslim",
+          "hadithNumber": "1:80"
+        },
+        {
+          "kind": "hadith",
+          "collection": "muslim",
+          "hadithNumber": "31:15"
+        },
+        {
+          "kind": "hadith",
+          "collection": "abu_dawud",
+          "hadithNumber": "43:382"
+        },
+        {
+          "kind": "hadith",
+          "collection": "tirmidhi",
+          "hadithNumber": "37:86"
+        }
+      ],
+      "evidence": [
+        {
+          "rule": {
+            "source": "hadith",
+            "all": [
+              "فليقل خيرا او ليصمت"
+            ]
+          },
+          "matches": 10
+        }
+      ]
+    },
+    {
+      "id": "h-tuhur-ar",
+      "question": "الطهور شطر الإيمان",
+      "language": "arabic",
+      "kind": "exact-quote",
+      "corpus": "hadith",
+      "tags": [
+        "exact-quote",
+        "hadith"
+      ],
+      "minExpected": 1,
+      "expected": [
+        {
+          "kind": "hadith",
+          "collection": "muslim",
+          "hadithNumber": "2:1"
+        }
+      ],
+      "evidence": [
+        {
+          "rule": {
+            "source": "hadith",
+            "all": [
+              "الطهور شطر الايمان"
+            ]
+          },
+          "matches": 1
+        }
+      ]
+    },
+    {
+      "id": "h-ajaban-ar",
+      "question": "عجبا لأمر المؤمن إن أمره كله خير",
+      "language": "arabic",
+      "kind": "exact-quote",
+      "corpus": "hadith",
+      "tags": [
+        "exact-quote",
+        "hadith"
+      ],
+      "minExpected": 1,
+      "expected": [
+        {
+          "kind": "hadith",
+          "collection": "muslim",
+          "hadithNumber": "55:82"
+        }
+      ],
+      "evidence": [
+        {
+          "rule": {
+            "source": "hadith",
+            "all": [
+              "عجبا لامر المومن"
+            ]
+          },
+          "matches": 1
+        }
+      ]
+    },
+    {
+      "id": "h-buniya-ar",
+      "question": "بني الإسلام على خمس",
+      "language": "arabic",
+      "kind": "exact-quote",
+      "corpus": "hadith",
+      "tags": [
+        "exact-quote",
+        "hadith"
+      ],
+      "minExpected": 1,
+      "expected": [
+        {
+          "kind": "hadith",
+          "collection": "bukhari",
+          "hadithNumber": "2:1"
+        },
+        {
+          "kind": "hadith",
+          "collection": "bukhari",
+          "hadithNumber": "65:40"
+        },
+        {
+          "kind": "hadith",
+          "collection": "muslim",
+          "hadithNumber": "1:19"
+        },
+        {
+          "kind": "hadith",
+          "collection": "muslim",
+          "hadithNumber": "1:20"
+        },
+        {
+          "kind": "hadith",
+          "collection": "muslim",
+          "hadithNumber": "1:21"
+        },
+        {
+          "kind": "hadith",
+          "collection": "tirmidhi",
+          "hadithNumber": "40:4"
+        },
+        {
+          "kind": "hadith",
+          "collection": "nasai",
+          "hadithNumber": "47:17"
+        }
+      ],
+      "evidence": [
+        {
+          "rule": {
+            "source": "hadith",
+            "all": [
+              "بني الاسلام علي خمس"
+            ]
+          },
+          "matches": 7
+        }
+      ]
+    },
+    {
+      "id": "h-five-pillars-en",
+      "question": "What are the five pillars Islam is built on according to hadith?",
+      "language": "english",
+      "kind": "paraphrase",
+      "corpus": "hadith",
+      "tags": [
+        "paraphrase",
+        "cross-lingual",
+        "source-limited",
+        "hadith"
+      ],
+      "minExpected": 1,
+      "expected": [
+        {
+          "kind": "hadith",
+          "collection": "bukhari",
+          "hadithNumber": "2:1"
+        },
+        {
+          "kind": "hadith",
+          "collection": "bukhari",
+          "hadithNumber": "65:40"
+        },
+        {
+          "kind": "hadith",
+          "collection": "muslim",
+          "hadithNumber": "1:19"
+        },
+        {
+          "kind": "hadith",
+          "collection": "muslim",
+          "hadithNumber": "1:20"
+        },
+        {
+          "kind": "hadith",
+          "collection": "muslim",
+          "hadithNumber": "1:21"
+        },
+        {
+          "kind": "hadith",
+          "collection": "tirmidhi",
+          "hadithNumber": "40:4"
+        },
+        {
+          "kind": "hadith",
+          "collection": "nasai",
+          "hadithNumber": "47:17"
+        }
+      ],
+      "evidence": [
+        {
+          "rule": {
+            "source": "hadith",
+            "all": [
+              "بني الاسلام علي خمس"
+            ]
+          },
+          "matches": 7
+        }
+      ]
+    },
+    {
+      "id": "h-rahimun-ar",
+      "question": "الراحمون يرحمهم الرحمن",
+      "language": "arabic",
+      "kind": "exact-quote",
+      "corpus": "hadith",
+      "tags": [
+        "exact-quote",
+        "hadith"
+      ],
+      "minExpected": 1,
+      "expected": [
+        {
+          "kind": "hadith",
+          "collection": "abu_dawud",
+          "hadithNumber": "43:169"
+        },
+        {
+          "kind": "hadith",
+          "collection": "tirmidhi",
+          "hadithNumber": "27:30"
+        }
+      ],
+      "evidence": [
+        {
+          "rule": {
+            "source": "hadith",
+            "all": [
+              "الراحمون يرحمهم الرحمن"
+            ]
+          },
+          "matches": 2
+        }
+      ]
+    },
+    {
+      "id": "h-siwak-ar",
+      "question": "لولا أن أشق على أمتي لأمرتهم بالسواك",
+      "language": "arabic",
+      "kind": "exact-quote",
+      "corpus": "hadith",
+      "tags": [
+        "exact-quote",
+        "hadith"
+      ],
+      "minExpected": 1,
+      "expected": [
+        {
+          "kind": "hadith",
+          "collection": "bukhari",
+          "hadithNumber": "94:15"
+        },
+        {
+          "kind": "hadith",
+          "collection": "abu_dawud",
+          "hadithNumber": "1:47"
+        },
+        {
+          "kind": "hadith",
+          "collection": "tirmidhi",
+          "hadithNumber": "1:22"
+        },
+        {
+          "kind": "hadith",
+          "collection": "tirmidhi",
+          "hadithNumber": "1:23"
+        },
+        {
+          "kind": "hadith",
+          "collection": "nasai",
+          "hadithNumber": "1:7"
+        },
+        {
+          "kind": "hadith",
+          "collection": "ibn_majah",
+          "hadithNumber": "1:21"
+        }
+      ],
+      "evidence": [
+        {
+          "rule": {
+            "source": "hadith",
+            "all": [
+              "لولا ان اشق علي امتي لامرتهم بالسواك"
+            ]
+          },
+          "matches": 6
+        }
+      ]
+    },
+    {
+      "id": "h-siwak-en",
+      "question": "hadith about using the miswak (tooth stick)",
+      "language": "english",
+      "kind": "topical",
+      "corpus": "hadith",
+      "tags": [
+        "topical",
+        "cross-lingual",
+        "source-limited",
+        "hadith"
+      ],
+      "minExpected": 1,
+      "expected": [
+        {
+          "kind": "hadith",
+          "collection": "bukhari",
+          "hadithNumber": "94:15"
+        },
+        {
+          "kind": "hadith",
+          "collection": "abu_dawud",
+          "hadithNumber": "1:47"
+        },
+        {
+          "kind": "hadith",
+          "collection": "tirmidhi",
+          "hadithNumber": "1:22"
+        },
+        {
+          "kind": "hadith",
+          "collection": "tirmidhi",
+          "hadithNumber": "1:23"
+        },
+        {
+          "kind": "hadith",
+          "collection": "nasai",
+          "hadithNumber": "1:7"
+        },
+        {
+          "kind": "hadith",
+          "collection": "ibn_majah",
+          "hadithNumber": "1:21"
+        }
+      ],
+      "evidence": [
+        {
+          "rule": {
+            "source": "hadith",
+            "all": [
+              "لولا ان اشق علي امتي لامرتهم بالسواك"
+            ]
+          },
+          "matches": 6
+        }
+      ]
+    },
+    {
+      "id": "h-seven-shade-ar",
+      "question": "سبعة يظلهم الله في ظله يوم لا ظل إلا ظله",
+      "language": "arabic",
+      "kind": "exact-quote",
+      "corpus": "hadith",
+      "tags": [
+        "exact-quote",
+        "hadith"
+      ],
+      "minExpected": 1,
+      "expected": [
+        {
+          "kind": "hadith",
+          "collection": "bukhari",
+          "hadithNumber": "10:54"
+        },
+        {
+          "kind": "hadith",
+          "collection": "bukhari",
+          "hadithNumber": "24:27"
+        },
+        {
+          "kind": "hadith",
+          "collection": "bukhari",
+          "hadithNumber": "81:68"
+        },
+        {
+          "kind": "hadith",
+          "collection": "bukhari",
+          "hadithNumber": "86:35"
+        },
+        {
+          "kind": "hadith",
+          "collection": "muslim",
+          "hadithNumber": "12:117"
+        },
+        {
+          "kind": "hadith",
+          "collection": "tirmidhi",
+          "hadithNumber": "36:88"
+        },
+        {
+          "kind": "hadith",
+          "collection": "nasai",
+          "hadithNumber": "49:2"
+        }
+      ],
+      "evidence": [
+        {
+          "rule": {
+            "source": "hadith",
+            "all": [
+              "سبعة يظلهم الله"
+            ]
+          },
+          "matches": 7
+        }
+      ]
+    },
+    {
+      "id": "h-seven-shade-en",
+      "question": "Who are the seven people Allah will shade on the Day of Judgement?",
+      "language": "english",
+      "kind": "paraphrase",
+      "corpus": "hadith",
+      "tags": [
+        "paraphrase",
+        "cross-lingual",
+        "hadith"
+      ],
+      "minExpected": 1,
+      "expected": [
+        {
+          "kind": "hadith",
+          "collection": "bukhari",
+          "hadithNumber": "10:54"
+        },
+        {
+          "kind": "hadith",
+          "collection": "bukhari",
+          "hadithNumber": "24:27"
+        },
+        {
+          "kind": "hadith",
+          "collection": "bukhari",
+          "hadithNumber": "81:68"
+        },
+        {
+          "kind": "hadith",
+          "collection": "bukhari",
+          "hadithNumber": "86:35"
+        },
+        {
+          "kind": "hadith",
+          "collection": "muslim",
+          "hadithNumber": "12:117"
+        },
+        {
+          "kind": "hadith",
+          "collection": "tirmidhi",
+          "hadithNumber": "36:88"
+        },
+        {
+          "kind": "hadith",
+          "collection": "nasai",
+          "hadithNumber": "49:2"
+        }
+      ],
+      "evidence": [
+        {
+          "rule": {
+            "source": "hadith",
+            "all": [
+              "سبعة يظلهم الله"
+            ]
+          },
+          "matches": 7
+        }
+      ]
+    },
+    {
+      "id": "h-strong-ar",
+      "question": "الشديد بالصرعة",
+      "language": "arabic",
+      "kind": "exact-quote",
+      "corpus": "hadith",
+      "tags": [
+        "exact-quote",
+        "hadith"
+      ],
+      "minExpected": 1,
+      "expected": [
+        {
+          "kind": "hadith",
+          "collection": "bukhari",
+          "hadithNumber": "78:141"
+        },
+        {
+          "kind": "hadith",
+          "collection": "muslim",
+          "hadithNumber": "45:140"
+        },
+        {
+          "kind": "hadith",
+          "collection": "muslim",
+          "hadithNumber": "45:141"
+        }
+      ],
+      "evidence": [
+        {
+          "rule": {
+            "source": "hadith",
+            "all": [
+              "الشديد بالصرعة"
+            ]
+          },
+          "matches": 3
+        }
+      ]
+    },
+    {
+      "id": "h-strong-en",
+      "question": "The strong man is not the one who wrestles others down but who controls himself when angry",
+      "language": "english",
+      "kind": "paraphrase",
+      "corpus": "hadith",
+      "tags": [
+        "paraphrase",
+        "cross-lingual",
+        "hadith"
+      ],
+      "minExpected": 1,
+      "expected": [
+        {
+          "kind": "hadith",
+          "collection": "bukhari",
+          "hadithNumber": "78:141"
+        },
+        {
+          "kind": "hadith",
+          "collection": "muslim",
+          "hadithNumber": "45:140"
+        },
+        {
+          "kind": "hadith",
+          "collection": "muslim",
+          "hadithNumber": "45:141"
+        }
+      ],
+      "evidence": [
+        {
+          "rule": {
+            "source": "hadith",
+            "all": [
+              "الشديد بالصرعة"
+            ]
+          },
+          "matches": 3
+        }
+      ]
+    },
+    {
+      "id": "h-smile-en",
+      "question": "Is smiling at your brother a charity?",
+      "language": "english",
+      "kind": "paraphrase",
+      "corpus": "hadith",
+      "tags": [
+        "paraphrase",
+        "cross-lingual",
+        "hadith"
+      ],
+      "minExpected": 1,
+      "expected": [
+        {
+          "kind": "hadith",
+          "collection": "tirmidhi",
+          "hadithNumber": "27:62"
+        }
+      ],
+      "evidence": [
+        {
+          "rule": {
+            "source": "hadith",
+            "all": [
+              "تبسمك في وجه اخيك"
+            ]
+          },
+          "matches": 1
+        }
+      ]
+    },
+    {
+      "id": "h-neighbor-ar",
+      "question": "ما زال جبريل يوصيني بالجار",
+      "language": "arabic",
+      "kind": "exact-quote",
+      "corpus": "hadith",
+      "tags": [
+        "exact-quote",
+        "hadith"
+      ],
+      "minExpected": 1,
+      "expected": [
+        {
+          "kind": "hadith",
+          "collection": "bukhari",
+          "hadithNumber": "78:46"
+        },
+        {
+          "kind": "hadith",
+          "collection": "muslim",
+          "hadithNumber": "45:182"
+        },
+        {
+          "kind": "hadith",
+          "collection": "muslim",
+          "hadithNumber": "45:184"
+        },
+        {
+          "kind": "hadith",
+          "collection": "abu_dawud",
+          "hadithNumber": "43:379"
+        },
+        {
+          "kind": "hadith",
+          "collection": "abu_dawud",
+          "hadithNumber": "43:380"
+        },
+        {
+          "kind": "hadith",
+          "collection": "tirmidhi",
+          "hadithNumber": "27:48"
+        },
+        {
+          "kind": "hadith",
+          "collection": "tirmidhi",
+          "hadithNumber": "27:49"
+        },
+        {
+          "kind": "hadith",
+          "collection": "ibn_majah",
+          "hadithNumber": "33:17"
+        },
+        {
+          "kind": "hadith",
+          "collection": "ibn_majah",
+          "hadithNumber": "33:18"
+        }
+      ],
+      "evidence": [
+        {
+          "rule": {
+            "source": "hadith",
+            "all": [
+              "يوصيني بالجار"
+            ]
+          },
+          "matches": 9
+        }
+      ]
+    },
+    {
+      "id": "h-neighbor-en",
+      "question": "rights of the neighbour in the Sunnah",
+      "language": "english",
+      "kind": "topical",
+      "corpus": "hadith",
+      "tags": [
+        "topical",
+        "cross-lingual",
+        "source-limited",
+        "hadith"
+      ],
+      "minExpected": 1,
+      "expected": [
+        {
+          "kind": "hadith",
+          "collection": "bukhari",
+          "hadithNumber": "78:46"
+        },
+        {
+          "kind": "hadith",
+          "collection": "muslim",
+          "hadithNumber": "45:182"
+        },
+        {
+          "kind": "hadith",
+          "collection": "muslim",
+          "hadithNumber": "45:184"
+        },
+        {
+          "kind": "hadith",
+          "collection": "abu_dawud",
+          "hadithNumber": "43:379"
+        },
+        {
+          "kind": "hadith",
+          "collection": "abu_dawud",
+          "hadithNumber": "43:380"
+        },
+        {
+          "kind": "hadith",
+          "collection": "tirmidhi",
+          "hadithNumber": "27:48"
+        },
+        {
+          "kind": "hadith",
+          "collection": "tirmidhi",
+          "hadithNumber": "27:49"
+        },
+        {
+          "kind": "hadith",
+          "collection": "ibn_majah",
+          "hadithNumber": "33:17"
+        },
+        {
+          "kind": "hadith",
+          "collection": "ibn_majah",
+          "hadithNumber": "33:18"
+        },
+        {
+          "kind": "hadith",
+          "collection": "bukhari",
+          "hadithNumber": "78:49"
+        },
+        {
+          "kind": "hadith",
+          "collection": "bukhari",
+          "hadithNumber": "78:50"
+        },
+        {
+          "kind": "hadith",
+          "collection": "bukhari",
+          "hadithNumber": "78:163"
+        },
+        {
+          "kind": "hadith",
+          "collection": "bukhari",
+          "hadithNumber": "81:64"
+        },
+        {
+          "kind": "hadith",
+          "collection": "muslim",
+          "hadithNumber": "1:80"
+        },
+        {
+          "kind": "hadith",
+          "collection": "abu_dawud",
+          "hadithNumber": "43:382"
+        }
+      ],
+      "evidence": [
+        {
+          "rule": {
+            "source": "hadith",
+            "all": [
+              "يوصيني بالجار"
+            ]
+          },
+          "matches": 9
+        },
+        {
+          "rule": {
+            "source": "hadith",
+            "all": [
+              "فليقل خيرا او ليصمت",
+              "جاره"
+            ]
+          },
+          "matches": 6
+        }
+      ]
+    },
+    {
+      "id": "h-ramadan-ar",
+      "question": "من صام رمضان إيمانا واحتسابا",
+      "language": "arabic",
+      "kind": "exact-quote",
+      "corpus": "hadith",
+      "tags": [
+        "exact-quote",
+        "hadith"
+      ],
+      "minExpected": 1,
+      "expected": [
+        {
+          "kind": "hadith",
+          "collection": "bukhari",
+          "hadithNumber": "2:31"
+        },
+        {
+          "kind": "hadith",
+          "collection": "bukhari",
+          "hadithNumber": "30:11"
+        },
+        {
+          "kind": "hadith",
+          "collection": "bukhari",
+          "hadithNumber": "32:1"
+        },
+        {
+          "kind": "hadith",
+          "collection": "muslim",
+          "hadithNumber": "6:209"
+        },
+        {
+          "kind": "hadith",
+          "collection": "abu_dawud",
+          "hadithNumber": "6:2"
+        },
+        {
+          "kind": "hadith",
+          "collection": "nasai",
+          "hadithNumber": "22:114"
+        },
+        {
+          "kind": "hadith",
+          "collection": "nasai",
+          "hadithNumber": "22:115"
+        },
+        {
+          "kind": "hadith",
+          "collection": "nasai",
+          "hadithNumber": "22:116"
+        },
+        {
+          "kind": "hadith",
+          "collection": "ibn_majah",
+          "hadithNumber": "7:4"
+        }
+      ],
+      "evidence": [
+        {
+          "rule": {
+            "source": "hadith",
+            "all": [
+              "من صام رمضان ايمانا واحتسابا"
+            ]
+          },
+          "matches": 9
+        }
+      ]
+    },
+    {
+      "id": "h-ramadan-en",
+      "question": "Reward for fasting Ramadan with faith and hoping for reward",
+      "language": "english",
+      "kind": "paraphrase",
+      "corpus": "hadith",
+      "tags": [
+        "paraphrase",
+        "cross-lingual",
+        "hadith"
+      ],
+      "minExpected": 1,
+      "expected": [
+        {
+          "kind": "hadith",
+          "collection": "bukhari",
+          "hadithNumber": "2:31"
+        },
+        {
+          "kind": "hadith",
+          "collection": "bukhari",
+          "hadithNumber": "30:11"
+        },
+        {
+          "kind": "hadith",
+          "collection": "bukhari",
+          "hadithNumber": "32:1"
+        },
+        {
+          "kind": "hadith",
+          "collection": "muslim",
+          "hadithNumber": "6:209"
+        },
+        {
+          "kind": "hadith",
+          "collection": "abu_dawud",
+          "hadithNumber": "6:2"
+        },
+        {
+          "kind": "hadith",
+          "collection": "nasai",
+          "hadithNumber": "22:114"
+        },
+        {
+          "kind": "hadith",
+          "collection": "nasai",
+          "hadithNumber": "22:115"
+        },
+        {
+          "kind": "hadith",
+          "collection": "nasai",
+          "hadithNumber": "22:116"
+        },
+        {
+          "kind": "hadith",
+          "collection": "ibn_majah",
+          "hadithNumber": "7:4"
+        }
+      ],
+      "evidence": [
+        {
+          "rule": {
+            "source": "hadith",
+            "all": [
+              "من صام رمضان ايمانا واحتسابا"
+            ]
+          },
+          "matches": 9
+        }
+      ]
+    },
+    {
+      "id": "h-haya-ar",
+      "question": "حديث عن الحياء من الإيمان",
+      "language": "arabic",
+      "kind": "topical",
+      "corpus": "hadith",
+      "tags": [
+        "topical",
+        "source-limited",
+        "hadith"
+      ],
+      "minExpected": 1,
+      "expected": [
+        {
+          "kind": "hadith",
+          "collection": "bukhari",
+          "hadithNumber": "2:2"
+        },
+        {
+          "kind": "hadith",
+          "collection": "muslim",
+          "hadithNumber": "1:59"
+        },
+        {
+          "kind": "hadith",
+          "collection": "muslim",
+          "hadithNumber": "1:60"
+        },
+        {
+          "kind": "hadith",
+          "collection": "abu_dawud",
+          "hadithNumber": "42:81"
+        },
+        {
+          "kind": "hadith",
+          "collection": "nasai",
+          "hadithNumber": "47:20"
+        },
+        {
+          "kind": "hadith",
+          "collection": "nasai",
+          "hadithNumber": "47:21"
+        },
+        {
+          "kind": "hadith",
+          "collection": "nasai",
+          "hadithNumber": "47:22"
+        },
+        {
+          "kind": "hadith",
+          "collection": "bukhari",
+          "hadithNumber": "2:17"
+        },
+        {
+          "kind": "hadith",
+          "collection": "bukhari",
+          "hadithNumber": "78:145"
+        },
+        {
+          "kind": "hadith",
+          "collection": "muslim",
+          "hadithNumber": "1:61"
+        },
+        {
+          "kind": "hadith",
+          "collection": "abu_dawud",
+          "hadithNumber": "43:23"
+        },
+        {
+          "kind": "hadith",
+          "collection": "tirmidhi",
+          "hadithNumber": "27:115"
+        },
+        {
+          "kind": "hadith",
+          "collection": "tirmidhi",
+          "hadithNumber": "40:10"
+        },
+        {
+          "kind": "hadith",
+          "collection": "nasai",
+          "hadithNumber": "47:49"
+        },
+        {
+          "kind": "hadith",
+          "collection": "ibn_majah",
+          "hadithNumber": "37:85"
+        }
+      ],
+      "evidence": [
+        {
+          "rule": {
+            "source": "hadith",
+            "all": [
+              "الحياء شعبة من الايمان"
+            ]
+          },
+          "matches": 7
+        },
+        {
+          "rule": {
+            "source": "hadith",
+            "all": [
+              "الحياء من الايمان"
+            ]
+          },
+          "matches": 8
+        }
+      ]
+    },
+    {
+      "id": "h-haya-en",
+      "question": "hadith about modesty being part of faith",
+      "language": "english",
+      "kind": "topical",
+      "corpus": "hadith",
+      "tags": [
+        "topical",
+        "cross-lingual",
+        "source-limited",
+        "hadith"
+      ],
+      "minExpected": 1,
+      "expected": [
+        {
+          "kind": "hadith",
+          "collection": "bukhari",
+          "hadithNumber": "2:2"
+        },
+        {
+          "kind": "hadith",
+          "collection": "muslim",
+          "hadithNumber": "1:59"
+        },
+        {
+          "kind": "hadith",
+          "collection": "muslim",
+          "hadithNumber": "1:60"
+        },
+        {
+          "kind": "hadith",
+          "collection": "abu_dawud",
+          "hadithNumber": "42:81"
+        },
+        {
+          "kind": "hadith",
+          "collection": "nasai",
+          "hadithNumber": "47:20"
+        },
+        {
+          "kind": "hadith",
+          "collection": "nasai",
+          "hadithNumber": "47:21"
+        },
+        {
+          "kind": "hadith",
+          "collection": "nasai",
+          "hadithNumber": "47:22"
+        },
+        {
+          "kind": "hadith",
+          "collection": "bukhari",
+          "hadithNumber": "2:17"
+        },
+        {
+          "kind": "hadith",
+          "collection": "bukhari",
+          "hadithNumber": "78:145"
+        },
+        {
+          "kind": "hadith",
+          "collection": "muslim",
+          "hadithNumber": "1:61"
+        },
+        {
+          "kind": "hadith",
+          "collection": "abu_dawud",
+          "hadithNumber": "43:23"
+        },
+        {
+          "kind": "hadith",
+          "collection": "tirmidhi",
+          "hadithNumber": "27:115"
+        },
+        {
+          "kind": "hadith",
+          "collection": "tirmidhi",
+          "hadithNumber": "40:10"
+        },
+        {
+          "kind": "hadith",
+          "collection": "nasai",
+          "hadithNumber": "47:49"
+        },
+        {
+          "kind": "hadith",
+          "collection": "ibn_majah",
+          "hadithNumber": "37:85"
+        }
+      ],
+      "evidence": [
+        {
+          "rule": {
+            "source": "hadith",
+            "all": [
+              "الحياء شعبة من الايمان"
+            ]
+          },
+          "matches": 7
+        },
+        {
+          "rule": {
+            "source": "hadith",
+            "all": [
+              "الحياء من الايمان"
+            ]
+          },
+          "matches": 8
+        }
+      ]
+    },
+    {
+      "id": "h-animals-en",
+      "question": "kindness to animals",
+      "language": "english",
+      "kind": "topical",
+      "corpus": "hadith",
+      "tags": [
+        "topical",
+        "cross-lingual",
+        "hadith"
+      ],
+      "minExpected": 1,
+      "expected": [
+        {
+          "kind": "hadith",
+          "collection": "bukhari",
+          "hadithNumber": "42:11"
+        },
+        {
+          "kind": "hadith",
+          "collection": "bukhari",
+          "hadithNumber": "46:27"
+        },
+        {
+          "kind": "hadith",
+          "collection": "bukhari",
+          "hadithNumber": "78:40"
+        },
+        {
+          "kind": "hadith",
+          "collection": "muslim",
+          "hadithNumber": "39:210"
+        },
+        {
+          "kind": "hadith",
+          "collection": "abu_dawud",
+          "hadithNumber": "15:74"
+        },
+        {
+          "kind": "hadith",
+          "collection": "bukhari",
+          "hadithNumber": "42:13"
+        },
+        {
+          "kind": "hadith",
+          "collection": "bukhari",
+          "hadithNumber": "59:124"
+        },
+        {
+          "kind": "hadith",
+          "collection": "bukhari",
+          "hadithNumber": "60:149"
+        },
+        {
+          "kind": "hadith",
+          "collection": "muslim",
+          "hadithNumber": "10:11"
+        },
+        {
+          "kind": "hadith",
+          "collection": "muslim",
+          "hadithNumber": "39:203"
+        },
+        {
+          "kind": "hadith",
+          "collection": "muslim",
+          "hadithNumber": "39:206"
+        },
+        {
+          "kind": "hadith",
+          "collection": "muslim",
+          "hadithNumber": "45:172"
+        },
+        {
+          "kind": "hadith",
+          "collection": "muslim",
+          "hadithNumber": "45:174"
+        },
+        {
+          "kind": "hadith",
+          "collection": "muslim",
+          "hadithNumber": "50:29"
+        },
+        {
+          "kind": "hadith",
+          "collection": "nasai",
+          "hadithNumber": "16:24"
+        },
+        {
+          "kind": "hadith",
+          "collection": "nasai",
+          "hadithNumber": "16:38"
+        },
+        {
+          "kind": "hadith",
+          "collection": "ibn_majah",
+          "hadithNumber": "37:157"
+        }
+      ],
+      "evidence": [
+        {
+          "rule": {
+            "source": "hadith",
+            "all": [
+              "يلهث ياكل الثري"
+            ]
+          },
+          "matches": 5
+        },
+        {
+          "rule": {
+            "source": "hadith",
+            "all": [
+              "امراة",
+              "في هرة"
+            ]
+          },
+          "matches": 12
+        }
+      ]
+    },
+    {
+      "id": "h-animals-ar",
+      "question": "الرفق بالحيوان",
+      "language": "arabic",
+      "kind": "topical",
+      "corpus": "hadith",
+      "tags": [
+        "topical",
+        "hadith"
+      ],
+      "minExpected": 1,
+      "expected": [
+        {
+          "kind": "hadith",
+          "collection": "bukhari",
+          "hadithNumber": "42:11"
+        },
+        {
+          "kind": "hadith",
+          "collection": "bukhari",
+          "hadithNumber": "46:27"
+        },
+        {
+          "kind": "hadith",
+          "collection": "bukhari",
+          "hadithNumber": "78:40"
+        },
+        {
+          "kind": "hadith",
+          "collection": "muslim",
+          "hadithNumber": "39:210"
+        },
+        {
+          "kind": "hadith",
+          "collection": "abu_dawud",
+          "hadithNumber": "15:74"
+        },
+        {
+          "kind": "hadith",
+          "collection": "bukhari",
+          "hadithNumber": "42:13"
+        },
+        {
+          "kind": "hadith",
+          "collection": "bukhari",
+          "hadithNumber": "59:124"
+        },
+        {
+          "kind": "hadith",
+          "collection": "bukhari",
+          "hadithNumber": "60:149"
+        },
+        {
+          "kind": "hadith",
+          "collection": "muslim",
+          "hadithNumber": "10:11"
+        },
+        {
+          "kind": "hadith",
+          "collection": "muslim",
+          "hadithNumber": "39:203"
+        },
+        {
+          "kind": "hadith",
+          "collection": "muslim",
+          "hadithNumber": "39:206"
+        },
+        {
+          "kind": "hadith",
+          "collection": "muslim",
+          "hadithNumber": "45:172"
+        },
+        {
+          "kind": "hadith",
+          "collection": "muslim",
+          "hadithNumber": "45:174"
+        },
+        {
+          "kind": "hadith",
+          "collection": "muslim",
+          "hadithNumber": "50:29"
+        },
+        {
+          "kind": "hadith",
+          "collection": "nasai",
+          "hadithNumber": "16:24"
+        },
+        {
+          "kind": "hadith",
+          "collection": "nasai",
+          "hadithNumber": "16:38"
+        },
+        {
+          "kind": "hadith",
+          "collection": "ibn_majah",
+          "hadithNumber": "37:157"
+        }
+      ],
+      "evidence": [
+        {
+          "rule": {
+            "source": "hadith",
+            "all": [
+              "يلهث ياكل الثري"
+            ]
+          },
+          "matches": 5
+        },
+        {
+          "rule": {
+            "source": "hadith",
+            "all": [
+              "امراة",
+              "في هرة"
+            ]
+          },
+          "matches": 12
+        }
+      ]
+    },
+    {
+      "id": "h-cat-en",
+      "question": "the woman who went to hell because of a cat",
+      "language": "english",
+      "kind": "paraphrase",
+      "corpus": "hadith",
+      "tags": [
+        "paraphrase",
+        "cross-lingual",
+        "hadith"
+      ],
+      "minExpected": 1,
+      "expected": [
+        {
+          "kind": "hadith",
+          "collection": "bukhari",
+          "hadithNumber": "42:13"
+        },
+        {
+          "kind": "hadith",
+          "collection": "bukhari",
+          "hadithNumber": "59:124"
+        },
+        {
+          "kind": "hadith",
+          "collection": "bukhari",
+          "hadithNumber": "60:149"
+        },
+        {
+          "kind": "hadith",
+          "collection": "muslim",
+          "hadithNumber": "10:11"
+        },
+        {
+          "kind": "hadith",
+          "collection": "muslim",
+          "hadithNumber": "39:203"
+        },
+        {
+          "kind": "hadith",
+          "collection": "muslim",
+          "hadithNumber": "39:206"
+        },
+        {
+          "kind": "hadith",
+          "collection": "muslim",
+          "hadithNumber": "45:172"
+        },
+        {
+          "kind": "hadith",
+          "collection": "muslim",
+          "hadithNumber": "45:174"
+        },
+        {
+          "kind": "hadith",
+          "collection": "muslim",
+          "hadithNumber": "50:29"
+        },
+        {
+          "kind": "hadith",
+          "collection": "nasai",
+          "hadithNumber": "16:24"
+        },
+        {
+          "kind": "hadith",
+          "collection": "nasai",
+          "hadithNumber": "16:38"
+        },
+        {
+          "kind": "hadith",
+          "collection": "ibn_majah",
+          "hadithNumber": "37:157"
+        }
+      ],
+      "evidence": [
+        {
+          "rule": {
+            "source": "hadith",
+            "all": [
+              "امراة",
+              "في هرة"
+            ]
+          },
+          "matches": 12
+        }
+      ]
+    },
+    {
+      "id": "h-anger-en",
+      "question": "advice of the Prophet about controlling anger",
+      "language": "english",
+      "kind": "topical",
+      "corpus": "hadith",
+      "tags": [
+        "topical",
+        "cross-lingual",
+        "hadith"
+      ],
+      "minExpected": 1,
+      "expected": [
+        {
+          "kind": "hadith",
+          "collection": "bukhari",
+          "hadithNumber": "78:143"
+        },
+        {
+          "kind": "hadith",
+          "collection": "bukhari",
+          "hadithNumber": "78:141"
+        },
+        {
+          "kind": "hadith",
+          "collection": "muslim",
+          "hadithNumber": "45:140"
+        },
+        {
+          "kind": "hadith",
+          "collection": "muslim",
+          "hadithNumber": "45:141"
+        }
+      ],
+      "evidence": [
+        {
+          "rule": {
+            "source": "hadith",
+            "all": [
+              "اوصني قال لا تغضب"
+            ]
+          },
+          "matches": 1
+        },
+        {
+          "rule": {
+            "source": "hadith",
+            "all": [
+              "الشديد بالصرعة"
+            ]
+          },
+          "matches": 3
+        }
+      ]
+    },
+    {
+      "id": "h-anger-ar",
+      "question": "ماذا قال النبي عن الغضب",
+      "language": "arabic",
+      "kind": "topical",
+      "corpus": "hadith",
+      "tags": [
+        "topical",
+        "hadith"
+      ],
+      "minExpected": 1,
+      "expected": [
+        {
+          "kind": "hadith",
+          "collection": "bukhari",
+          "hadithNumber": "78:143"
+        },
+        {
+          "kind": "hadith",
+          "collection": "bukhari",
+          "hadithNumber": "78:141"
+        },
+        {
+          "kind": "hadith",
+          "collection": "muslim",
+          "hadithNumber": "45:140"
+        },
+        {
+          "kind": "hadith",
+          "collection": "muslim",
+          "hadithNumber": "45:141"
+        }
+      ],
+      "evidence": [
+        {
+          "rule": {
+            "source": "hadith",
+            "all": [
+              "اوصني قال لا تغضب"
+            ]
+          },
+          "matches": 1
+        },
+        {
+          "rule": {
+            "source": "hadith",
+            "all": [
+              "الشديد بالصرعة"
+            ]
+          },
+          "matches": 3
+        }
+      ]
+    },
+    {
+      "id": "h-patience-en",
+      "question": "patience in hardship",
+      "language": "english",
+      "kind": "topical",
+      "corpus": "mixed",
+      "tags": [
+        "topical",
+        "cross-lingual",
+        "mixed"
+      ],
+      "minExpected": 1,
+      "expected": [
+        {
+          "kind": "hadith",
+          "collection": "muslim",
+          "hadithNumber": "55:82"
+        },
+        {
+          "kind": "hadith",
+          "collection": "bukhari",
+          "hadithNumber": "23:43"
+        },
+        {
+          "kind": "hadith",
+          "collection": "bukhari",
+          "hadithNumber": "23:60"
+        },
+        {
+          "kind": "hadith",
+          "collection": "muslim",
+          "hadithNumber": "11:17"
+        },
+        {
+          "kind": "hadith",
+          "collection": "abu_dawud",
+          "hadithNumber": "21:36"
+        },
+        {
+          "kind": "hadith",
+          "collection": "tirmidhi",
+          "hadithNumber": "10:24"
+        },
+        {
+          "kind": "hadith",
+          "collection": "nasai",
+          "hadithNumber": "21:52"
+        },
+        {
+          "kind": "hadith",
+          "collection": "ibn_majah",
+          "hadithNumber": "6:164"
+        },
+        {
+          "kind": "quran",
+          "verseKey": "2:153"
+        },
+        {
+          "kind": "quran",
+          "verseKey": "2:155"
+        },
+        {
+          "kind": "quran",
+          "verseKey": "2:177"
+        },
+        {
+          "kind": "quran",
+          "verseKey": "2:249"
+        },
+        {
+          "kind": "quran",
+          "verseKey": "3:17"
+        },
+        {
+          "kind": "quran",
+          "verseKey": "3:142"
+        },
+        {
+          "kind": "quran",
+          "verseKey": "3:146"
+        },
+        {
+          "kind": "quran",
+          "verseKey": "8:46"
+        },
+        {
+          "kind": "quran",
+          "verseKey": "8:66"
+        },
+        {
+          "kind": "quran",
+          "verseKey": "21:85"
+        },
+        {
+          "kind": "quran",
+          "verseKey": "22:35"
+        },
+        {
+          "kind": "quran",
+          "verseKey": "33:35"
+        },
+        {
+          "kind": "quran",
+          "verseKey": "37:102"
+        },
+        {
+          "kind": "quran",
+          "verseKey": "47:31"
+        }
+      ],
+      "evidence": [
+        {
+          "rule": {
+            "source": "hadith",
+            "all": [
+              "عجبا لامر المومن"
+            ]
+          },
+          "matches": 1
+        },
+        {
+          "rule": {
+            "source": "hadith",
+            "all": [
+              "الصبر عند الصدمة الاولي"
+            ]
+          },
+          "matches": 7
+        },
+        {
+          "rule": {
+            "source": "quran",
+            "all": [
+              "الصابرين"
+            ]
+          },
+          "matches": 14
+        }
+      ]
+    },
+    {
+      "id": "h-patience-ar",
+      "question": "الصبر عند المصيبة",
+      "language": "arabic",
+      "kind": "topical",
+      "corpus": "mixed",
+      "tags": [
+        "topical",
+        "mixed"
+      ],
+      "minExpected": 1,
+      "expected": [
+        {
+          "kind": "hadith",
+          "collection": "muslim",
+          "hadithNumber": "55:82"
+        },
+        {
+          "kind": "hadith",
+          "collection": "bukhari",
+          "hadithNumber": "23:43"
+        },
+        {
+          "kind": "hadith",
+          "collection": "bukhari",
+          "hadithNumber": "23:60"
+        },
+        {
+          "kind": "hadith",
+          "collection": "muslim",
+          "hadithNumber": "11:17"
+        },
+        {
+          "kind": "hadith",
+          "collection": "abu_dawud",
+          "hadithNumber": "21:36"
+        },
+        {
+          "kind": "hadith",
+          "collection": "tirmidhi",
+          "hadithNumber": "10:24"
+        },
+        {
+          "kind": "hadith",
+          "collection": "nasai",
+          "hadithNumber": "21:52"
+        },
+        {
+          "kind": "hadith",
+          "collection": "ibn_majah",
+          "hadithNumber": "6:164"
+        },
+        {
+          "kind": "quran",
+          "verseKey": "2:153"
+        },
+        {
+          "kind": "quran",
+          "verseKey": "2:155"
+        },
+        {
+          "kind": "quran",
+          "verseKey": "2:177"
+        },
+        {
+          "kind": "quran",
+          "verseKey": "2:249"
+        },
+        {
+          "kind": "quran",
+          "verseKey": "3:17"
+        },
+        {
+          "kind": "quran",
+          "verseKey": "3:142"
+        },
+        {
+          "kind": "quran",
+          "verseKey": "3:146"
+        },
+        {
+          "kind": "quran",
+          "verseKey": "8:46"
+        },
+        {
+          "kind": "quran",
+          "verseKey": "8:66"
+        },
+        {
+          "kind": "quran",
+          "verseKey": "21:85"
+        },
+        {
+          "kind": "quran",
+          "verseKey": "22:35"
+        },
+        {
+          "kind": "quran",
+          "verseKey": "33:35"
+        },
+        {
+          "kind": "quran",
+          "verseKey": "37:102"
+        },
+        {
+          "kind": "quran",
+          "verseKey": "47:31"
+        }
+      ],
+      "evidence": [
+        {
+          "rule": {
+            "source": "hadith",
+            "all": [
+              "عجبا لامر المومن"
+            ]
+          },
+          "matches": 1
+        },
+        {
+          "rule": {
+            "source": "hadith",
+            "all": [
+              "الصبر عند الصدمة الاولي"
+            ]
+          },
+          "matches": 7
+        },
+        {
+          "rule": {
+            "source": "quran",
+            "all": [
+              "الصابرين"
+            ]
+          },
+          "matches": 14
+        }
+      ]
+    },
+    {
+      "id": "h-honesty-en",
+      "question": "truthfulness leads to paradise",
+      "language": "english",
+      "kind": "paraphrase",
+      "corpus": "hadith",
+      "tags": [
+        "paraphrase",
+        "cross-lingual",
+        "hadith"
+      ],
+      "minExpected": 1,
+      "expected": [
+        {
+          "kind": "hadith",
+          "collection": "bukhari",
+          "hadithNumber": "78:121"
+        },
+        {
+          "kind": "hadith",
+          "collection": "muslim",
+          "hadithNumber": "45:134"
+        },
+        {
+          "kind": "hadith",
+          "collection": "muslim",
+          "hadithNumber": "45:136"
+        },
+        {
+          "kind": "hadith",
+          "collection": "abu_dawud",
+          "hadithNumber": "43:217"
+        },
+        {
+          "kind": "hadith",
+          "collection": "tirmidhi",
+          "hadithNumber": "27:77"
+        },
+        {
+          "kind": "hadith",
+          "collection": "ibn_majah",
+          "hadithNumber": "34:23"
+        }
+      ],
+      "evidence": [
+        {
+          "rule": {
+            "source": "hadith",
+            "all": [
+              "ان الصدق يهدي الي البر"
+            ]
+          },
+          "matches": 5
+        },
+        {
+          "rule": {
+            "source": "hadith",
+            "all": [
+              "عليكم بالصدق"
+            ]
+          },
+          "matches": 4
+        }
+      ]
+    },
+    {
+      "id": "h-kinship-ar",
+      "question": "فضل صلة الرحم وسعة الرزق",
+      "language": "arabic",
+      "kind": "topical",
+      "corpus": "hadith",
+      "tags": [
+        "topical",
+        "hadith"
+      ],
+      "minExpected": 1,
+      "expected": [
+        {
+          "kind": "hadith",
+          "collection": "bukhari",
+          "hadithNumber": "78:16"
+        },
+        {
+          "kind": "hadith",
+          "collection": "bukhari",
+          "hadithNumber": "78:17"
+        },
+        {
+          "kind": "hadith",
+          "collection": "muslim",
+          "hadithNumber": "45:24"
+        },
+        {
+          "kind": "hadith",
+          "collection": "abu_dawud",
+          "hadithNumber": "9:138"
+        },
+        {
+          "kind": "hadith",
+          "collection": "bukhari",
+          "hadithNumber": "78:22"
+        },
+        {
+          "kind": "hadith",
+          "collection": "abu_dawud",
+          "hadithNumber": "9:142"
+        },
+        {
+          "kind": "hadith",
+          "collection": "tirmidhi",
+          "hadithNumber": "27:14"
+        }
+      ],
+      "evidence": [
+        {
+          "rule": {
+            "source": "hadith",
+            "all": [
+              "يبسط له في رزقه"
+            ]
+          },
+          "matches": 4
+        },
+        {
+          "rule": {
+            "source": "hadith",
+            "all": [
+              "ليس الواصل بالمكافي"
+            ]
+          },
+          "matches": 3
+        }
+      ]
+    },
+    {
+      "id": "h-kinship-en",
+      "question": "maintaining ties of kinship increases provision",
+      "language": "english",
+      "kind": "topical",
+      "corpus": "hadith",
+      "tags": [
+        "topical",
+        "cross-lingual",
+        "hadith"
+      ],
+      "minExpected": 1,
+      "expected": [
+        {
+          "kind": "hadith",
+          "collection": "bukhari",
+          "hadithNumber": "78:16"
+        },
+        {
+          "kind": "hadith",
+          "collection": "bukhari",
+          "hadithNumber": "78:17"
+        },
+        {
+          "kind": "hadith",
+          "collection": "muslim",
+          "hadithNumber": "45:24"
+        },
+        {
+          "kind": "hadith",
+          "collection": "abu_dawud",
+          "hadithNumber": "9:138"
+        }
+      ],
+      "evidence": [
+        {
+          "rule": {
+            "source": "hadith",
+            "all": [
+              "يبسط له في رزقه"
+            ]
+          },
+          "matches": 4
+        }
+      ]
+    },
+    {
+      "id": "h-knowledge-en",
+      "question": "whoever travels a path seeking knowledge",
+      "language": "english",
+      "kind": "paraphrase",
+      "corpus": "hadith",
+      "tags": [
+        "paraphrase",
+        "cross-lingual",
+        "hadith"
+      ],
+      "minExpected": 1,
+      "expected": [
+        {
+          "kind": "hadith",
+          "collection": "muslim",
+          "hadithNumber": "48:48"
+        },
+        {
+          "kind": "hadith",
+          "collection": "tirmidhi",
+          "hadithNumber": "41:2"
+        },
+        {
+          "kind": "hadith",
+          "collection": "tirmidhi",
+          "hadithNumber": "46:19"
+        }
+      ],
+      "evidence": [
+        {
+          "rule": {
+            "source": "hadith",
+            "all": [
+              "يلتمس فيه علما"
+            ]
+          },
+          "matches": 3
+        },
+        {
+          "rule": {
+            "source": "hadith",
+            "all": [
+              "طريقا يلتمس"
+            ]
+          },
+          "matches": 3
+        }
+      ]
+    },
+    {
+      "id": "h-good-word-ar",
+      "question": "الكلمة الطيبة صدقة",
+      "language": "arabic",
+      "kind": "exact-quote",
+      "corpus": "hadith",
+      "tags": [
+        "exact-quote",
+        "hadith"
+      ],
+      "minExpected": 1,
+      "expected": [
+        {
+          "kind": "hadith",
+          "collection": "bukhari",
+          "hadithNumber": "56:198"
+        },
+        {
+          "kind": "hadith",
+          "collection": "muslim",
+          "hadithNumber": "12:72"
+        }
+      ],
+      "evidence": [
+        {
+          "rule": {
+            "source": "hadith",
+            "all": [
+              "الكلمة الطيبة صدقة"
+            ]
+          },
+          "matches": 2
+        }
+      ]
+    },
+    {
+      "id": "q-kursi-ref",
+      "question": "2:255",
+      "language": "arabic",
+      "kind": "reference",
+      "corpus": "quran",
+      "tags": [
+        "reference",
+        "quran"
+      ],
+      "minExpected": 1,
+      "expected": [
+        {
+          "kind": "quran",
+          "verseKey": "2:255"
+        }
+      ],
+      "evidence": [
+        {
+          "rule": {
+            "source": "quran",
+            "verseKeys": [
+              "2:255"
+            ]
+          },
+          "matches": 1
+        }
+      ]
+    },
+    {
+      "id": "q-kursi-ar",
+      "question": "تفسير آية الكرسي",
+      "language": "arabic",
+      "kind": "reference",
+      "corpus": "quran",
+      "tags": [
+        "reference",
+        "source-limited",
+        "quran"
+      ],
+      "minExpected": 1,
+      "expected": [
+        {
+          "kind": "quran",
+          "verseKey": "2:255"
+        }
+      ],
+      "evidence": [
+        {
+          "rule": {
+            "source": "quran",
+            "verseKeys": [
+              "2:255"
+            ]
+          },
+          "matches": 1
+        }
+      ]
+    },
+    {
+      "id": "q-kursi-en",
+      "question": "Explain Ayat al-Kursi",
+      "language": "english",
+      "kind": "reference",
+      "corpus": "quran",
+      "tags": [
+        "reference",
+        "cross-lingual",
+        "source-limited",
+        "quran"
+      ],
+      "minExpected": 1,
+      "expected": [
+        {
+          "kind": "quran",
+          "verseKey": "2:255"
+        }
+      ],
+      "evidence": [
+        {
+          "rule": {
+            "source": "quran",
+            "verseKeys": [
+              "2:255"
+            ]
+          },
+          "matches": 1
+        }
+      ]
+    },
+    {
+      "id": "q-286-en",
+      "question": "Explain verse 2:286",
+      "language": "english",
+      "kind": "reference",
+      "corpus": "quran",
+      "tags": [
+        "reference",
+        "cross-lingual",
+        "source-limited",
+        "quran"
+      ],
+      "minExpected": 1,
+      "expected": [
+        {
+          "kind": "quran",
+          "verseKey": "2:286"
+        }
+      ],
+      "evidence": [
+        {
+          "rule": {
+            "source": "quran",
+            "verseKeys": [
+              "2:286"
+            ]
+          },
+          "matches": 1
+        }
+      ]
+    },
+    {
+      "id": "q-yusr-ar",
+      "question": "إن مع العسر يسرا",
+      "language": "arabic",
+      "kind": "exact-quote",
+      "corpus": "quran",
+      "tags": [
+        "exact-quote",
+        "quran"
+      ],
+      "minExpected": 1,
+      "expected": [
+        {
+          "kind": "quran",
+          "verseKey": "94:5"
+        },
+        {
+          "kind": "quran",
+          "verseKey": "94:6"
+        }
+      ],
+      "evidence": [
+        {
+          "rule": {
+            "source": "quran",
+            "all": [
+              "مع العسر يسرا"
+            ]
+          },
+          "matches": 2
+        }
+      ]
+    },
+    {
+      "id": "q-sabr-salah-ar",
+      "question": "واستعينوا بالصبر والصلاة",
+      "language": "arabic",
+      "kind": "exact-quote",
+      "corpus": "quran",
+      "tags": [
+        "exact-quote",
+        "quran"
+      ],
+      "minExpected": 1,
+      "expected": [
+        {
+          "kind": "quran",
+          "verseKey": "2:45"
+        },
+        {
+          "kind": "quran",
+          "verseKey": "2:153"
+        }
+      ],
+      "evidence": [
+        {
+          "rule": {
+            "source": "quran",
+            "all": [
+              "استعينوا بالصبر والصلاة"
+            ]
+          },
+          "matches": 2
+        }
+      ]
+    },
+    {
+      "id": "q-taawun-ar",
+      "question": "آية وتعاونوا على البر والتقوى",
+      "language": "arabic",
+      "kind": "exact-quote",
+      "corpus": "quran",
+      "tags": [
+        "exact-quote",
+        "source-limited",
+        "quran"
+      ],
+      "minExpected": 1,
+      "expected": [
+        {
+          "kind": "quran",
+          "verseKey": "5:2"
+        }
+      ],
+      "evidence": [
+        {
+          "rule": {
+            "source": "quran",
+            "all": [
+              "وتعاونوا علي البر والتقوي"
+            ]
+          },
+          "matches": 1
+        }
+      ]
+    },
+    {
+      "id": "q-wus-ar",
+      "question": "لا يكلف الله نفسا إلا وسعها",
+      "language": "arabic",
+      "kind": "exact-quote",
+      "corpus": "quran",
+      "tags": [
+        "exact-quote",
+        "quran"
+      ],
+      "minExpected": 1,
+      "expected": [
+        {
+          "kind": "quran",
+          "verseKey": "2:286"
+        }
+      ],
+      "evidence": [
+        {
+          "rule": {
+            "source": "quran",
+            "verseKeys": [
+              "2:286"
+            ]
+          },
+          "matches": 1
+        }
+      ]
+    },
+    {
+      "id": "q-dua-ar",
+      "question": "ادعوني أستجب لكم",
+      "language": "arabic",
+      "kind": "exact-quote",
+      "corpus": "quran",
+      "tags": [
+        "exact-quote",
+        "quran"
+      ],
+      "minExpected": 1,
+      "expected": [
+        {
+          "kind": "quran",
+          "verseKey": "40:60"
+        }
+      ],
+      "evidence": [
+        {
+          "rule": {
+            "source": "quran",
+            "all": [
+              "ادعوني استجب لكم"
+            ]
+          },
+          "matches": 1
+        }
+      ]
+    },
+    {
+      "id": "q-ikhlas-ar",
+      "question": "قل هو الله أحد",
+      "language": "arabic",
+      "kind": "exact-quote",
+      "corpus": "quran",
+      "tags": [
+        "exact-quote",
+        "quran"
+      ],
+      "minExpected": 1,
+      "expected": [
+        {
+          "kind": "quran",
+          "verseKey": "112:1"
+        }
+      ],
+      "evidence": [
+        {
+          "rule": {
+            "source": "quran",
+            "all": [
+              "قل هو الله احد"
+            ]
+          },
+          "matches": 1
+        }
+      ]
+    },
+    {
+      "id": "q-compulsion-en",
+      "question": "Quran verse: there is no compulsion in religion",
+      "language": "english",
+      "kind": "paraphrase",
+      "corpus": "quran",
+      "tags": [
+        "paraphrase",
+        "cross-lingual",
+        "source-limited",
+        "quran"
+      ],
+      "minExpected": 1,
+      "expected": [
+        {
+          "kind": "quran",
+          "verseKey": "2:256"
+        }
+      ],
+      "evidence": [
+        {
+          "rule": {
+            "source": "quran",
+            "verseKeys": [
+              "2:256"
+            ]
+          },
+          "matches": 1
+        }
+      ]
+    },
+    {
+      "id": "q-parents-en",
+      "question": "What does the Quran say about kindness to parents?",
+      "language": "english",
+      "kind": "topical",
+      "corpus": "quran",
+      "tags": [
+        "topical",
+        "cross-lingual",
+        "source-limited",
+        "quran"
+      ],
+      "minExpected": 1,
+      "expected": [
+        {
+          "kind": "quran",
+          "verseKey": "2:83"
+        },
+        {
+          "kind": "quran",
+          "verseKey": "4:36"
+        },
+        {
+          "kind": "quran",
+          "verseKey": "6:151"
+        },
+        {
+          "kind": "quran",
+          "verseKey": "17:23"
+        }
+      ],
+      "evidence": [
+        {
+          "rule": {
+            "source": "quran",
+            "all": [
+              "وبالوالدين احسانا"
+            ]
+          },
+          "matches": 4
+        }
+      ]
+    },
+    {
+      "id": "q-parents-ar",
+      "question": "بر الوالدين في القرآن",
+      "language": "arabic",
+      "kind": "topical",
+      "corpus": "quran",
+      "tags": [
+        "topical",
+        "source-limited",
+        "quran"
+      ],
+      "minExpected": 1,
+      "expected": [
+        {
+          "kind": "quran",
+          "verseKey": "2:83"
+        },
+        {
+          "kind": "quran",
+          "verseKey": "4:36"
+        },
+        {
+          "kind": "quran",
+          "verseKey": "6:151"
+        },
+        {
+          "kind": "quran",
+          "verseKey": "17:23"
+        }
+      ],
+      "evidence": [
+        {
+          "rule": {
+            "source": "quran",
+            "all": [
+              "وبالوالدين احسانا"
+            ]
+          },
+          "matches": 4
+        }
+      ]
+    },
+    {
+      "id": "q-nations-ar",
+      "question": "وجعلناكم شعوبا وقبائل لتعارفوا",
+      "language": "arabic",
+      "kind": "exact-quote",
+      "corpus": "quran",
+      "tags": [
+        "exact-quote",
+        "quran"
+      ],
+      "minExpected": 1,
+      "expected": [
+        {
+          "kind": "quran",
+          "verseKey": "49:13"
+        }
+      ],
+      "evidence": [
+        {
+          "rule": {
+            "source": "quran",
+            "all": [
+              "شعوبا وقبائل لتعارفوا"
+            ]
+          },
+          "matches": 1
+        }
+      ]
+    },
+    {
+      "id": "q-brothers-ar",
+      "question": "إنما المؤمنون إخوة",
+      "language": "arabic",
+      "kind": "exact-quote",
+      "corpus": "quran",
+      "tags": [
+        "exact-quote",
+        "quran"
+      ],
+      "minExpected": 1,
+      "expected": [
+        {
+          "kind": "quran",
+          "verseKey": "49:10"
+        }
+      ],
+      "evidence": [
+        {
+          "rule": {
+            "source": "quran",
+            "all": [
+              "انما المؤمنون اخوة"
+            ]
+          },
+          "matches": 1
+        }
+      ]
+    },
+    {
+      "id": "q-riba-ar",
+      "question": "آيات تحريم الربا في القرآن",
+      "language": "arabic",
+      "kind": "topical",
+      "corpus": "quran",
+      "tags": [
+        "topical",
+        "source-limited",
+        "quran"
+      ],
+      "minExpected": 1,
+      "expected": [
+        {
+          "kind": "quran",
+          "verseKey": "2:275"
+        },
+        {
+          "kind": "quran",
+          "verseKey": "2:276"
+        },
+        {
+          "kind": "quran",
+          "verseKey": "2:278"
+        },
+        {
+          "kind": "quran",
+          "verseKey": "3:130"
+        },
+        {
+          "kind": "quran",
+          "verseKey": "4:161"
+        }
+      ],
+      "evidence": [
+        {
+          "rule": {
+            "source": "quran",
+            "verseKeys": [
+              "2:275",
+              "2:276",
+              "2:278",
+              "3:130",
+              "4:161"
+            ]
+          },
+          "matches": 5
+        }
+      ]
+    },
+    {
+      "id": "q-backbiting-en",
+      "question": "Quran on backbiting",
+      "language": "english",
+      "kind": "topical",
+      "corpus": "quran",
+      "tags": [
+        "topical",
+        "cross-lingual",
+        "source-limited",
+        "quran"
+      ],
+      "minExpected": 1,
+      "expected": [
+        {
+          "kind": "quran",
+          "verseKey": "49:12"
+        }
+      ],
+      "evidence": [
+        {
+          "rule": {
+            "source": "quran",
+            "all": [
+              "ولا يغتب بعضكم بعضا"
+            ]
+          },
+          "matches": 1
+        }
+      ]
+    },
+    {
+      "id": "q-fasting-ar",
+      "question": "يا أيها الذين آمنوا كتب عليكم الصيام",
+      "language": "arabic",
+      "kind": "exact-quote",
+      "corpus": "quran",
+      "tags": [
+        "exact-quote",
+        "quran"
+      ],
+      "minExpected": 1,
+      "expected": [
+        {
+          "kind": "quran",
+          "verseKey": "2:183"
+        }
+      ],
+      "evidence": [
+        {
+          "rule": {
+            "source": "quran",
+            "all": [
+              "كتب عليكم الصيام"
+            ]
+          },
+          "matches": 1
+        }
+      ]
+    },
+    {
+      "id": "q-fasting-en",
+      "question": "Which verse made fasting obligatory?",
+      "language": "english",
+      "kind": "paraphrase",
+      "corpus": "quran",
+      "tags": [
+        "paraphrase",
+        "cross-lingual",
+        "source-limited",
+        "quran"
+      ],
+      "minExpected": 1,
+      "expected": [
+        {
+          "kind": "quran",
+          "verseKey": "2:183"
+        }
+      ],
+      "evidence": [
+        {
+          "rule": {
+            "source": "quran",
+            "all": [
+              "كتب عليكم الصيام"
+            ]
+          },
+          "matches": 1
+        }
+      ]
+    },
+    {
+      "id": "q-hamd-ref",
+      "question": "1:2",
+      "language": "english",
+      "kind": "reference",
+      "corpus": "quran",
+      "tags": [
+        "reference",
+        "cross-lingual",
+        "quran"
+      ],
+      "minExpected": 1,
+      "expected": [
+        {
+          "kind": "quran",
+          "verseKey": "1:2"
+        }
+      ],
+      "evidence": [
+        {
+          "rule": {
+            "source": "quran",
+            "verseKeys": [
+              "1:2"
+            ]
+          },
+          "matches": 1
+        }
+      ]
+    }
+  ]
+}

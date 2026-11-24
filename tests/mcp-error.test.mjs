@@ -44,3 +44,15 @@ test("caps MCP stderr at four KiB", () => {
   assert.equal(formatted.length, 4096);
   assert.ok(formatted.startsWith("…"));
 });
+
+test("keeps the rolling stderr buffer bounded to the newest output", () => {
+  const { appendStderrChunk } = loadMcpError();
+  const chunks = [];
+
+  appendStderrChunk(chunks, "a".repeat(8), 10);
+  appendStderrChunk(chunks, "b".repeat(8), 10);
+  assert.deepEqual(chunks, ["b".repeat(8)]);
+
+  appendStderrChunk(chunks, "c".repeat(30), 10);
+  assert.deepEqual(chunks, ["c".repeat(10)]);
+});

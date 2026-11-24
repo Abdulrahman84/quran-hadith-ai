@@ -12,6 +12,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    "convex/_generated/**",
+    ".claude/**",
     // Capacitor native projects, which hold copies of the exported bundle.
     "android/**",
     "ios/**",

@@ -44,6 +44,27 @@ The source retrieval layer still needs:
 
 Only the web app should be public. Keep database files and MCP processes private to the host.
 
+## Rate Limits and Caching
+
+`/api/search` and `/api/check` limit each client IP, using the first `X-Forwarded-For` hop, then `X-Real-IP`.
+Over the limit they return HTTP 429 with a `Retry-After` header and the warning code `rate_limited`.
+
+```bash
+RATE_LIMIT_ENABLED=true
+RATE_LIMIT_PER_MINUTE=10
+RATE_LIMIT_PER_DAY=200
+# Optional cost backstop: total model-backed requests per day for the whole instance.
+GLOBAL_DAILY_REQUEST_CAP=
+SEARCH_CACHE_TTL_MS=21600000
+SEARCH_CACHE_MAX_ENTRIES=500
+```
+
+Answers that completed with a ready grounded answer are cached by normalized question, language and source filters.
+A cache hit still counts against the client's limit but not against `GLOBAL_DAILY_REQUEST_CAP`, and it is still
+recorded in the dashboard. Set `SEARCH_CACHE_TTL_MS=0` to turn caching off.
+
+Limits and cache live in server memory, so they reset on restart and each instance keeps its own counts.
+
 ## Mobile Credit Alerts
 
 Install the ntfy app on iOS or Android, subscribe to the exact value configured in `NTFY_TOPIC`, and allow phone

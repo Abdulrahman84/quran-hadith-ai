@@ -6,6 +6,9 @@ import {
   isHadithCollectionSelection,
   type HadithCollectionSelection,
 } from "@/lib/retrieval/hadith-collections";
+import { getClientIp } from "@/lib/server/client-ip";
+import { consumeClientQuota, consumeGlobalDailyQuota, rateLimitMessage } from "@/lib/server/rate-limit";
+import { responseCacheKey, sharedResponseCache } from "@/lib/server/response-cache";
 
 export const runtime = "nodejs";
 
@@ -22,6 +25,7 @@ function errorResponse(
   status: number,
   checkType: CheckType = "ayah",
   language: "arabic" | "english" = "arabic",
+  headers?: HeadersInit,
 ): Response {
   const payload: CheckResponse = {
     status: "error",
@@ -35,11 +39,25 @@ function errorResponse(
     provenanceNotes: [],
   };
 
-  return Response.json(payload, { status });
+  return Response.json(payload, { status, headers });
+}
+
+const checkCache = sharedResponseCache<CheckResponse>("check");
+
+function isCacheableCheckResponse(response: CheckResponse) {
+  return response.status === "ok" && response.answer?.status === "ready";
 }
 
 export async function POST(request: Request) {
   const startedAt = Date.now();
+  const clientQuota = consumeClientQuota(getClientIp(request));
+
+  if (!clientQuota.allowed) {
+    return errorResponse(rateLimitMessage(clientQuota), "rate_limited", 429, undefined, undefined, {
+      "Retry-After": String(clientQuota.retryAfterSeconds),
+    });
+  }
+
   let body: CheckRequestBody;
 
   try {
@@ -74,12 +92,39 @@ export async function POST(request: Request) {
   const hadithCollection: HadithCollectionSelection = isHadithCollectionSelection(body.hadithCollection)
     ? body.hadithCollection
     : "all";
+  const cacheKey = responseCacheKey({ text, checkType: body.checkType, language, hadithCollection });
+  const cached = checkCache.get(cacheKey);
+
+  if (cached) {
+    await recordCheckRun({
+      text,
+      checkType: body.checkType,
+      language,
+      response: cached,
+      durationMs: Date.now() - startedAt,
+    });
+
+    return Response.json(cached, { headers: { "X-Search-Cache": "hit" } });
+  }
+
+  const globalQuota = consumeGlobalDailyQuota();
+
+  if (!globalQuota.allowed) {
+    return errorResponse(rateLimitMessage(globalQuota), "rate_limited", 429, body.checkType, language, {
+      "Retry-After": String(globalQuota.retryAfterSeconds),
+    });
+  }
+
   const result = await executeCheck({
     text,
     checkType: body.checkType,
     language,
     hadithCollection,
   });
+
+  if (isCacheableCheckResponse(result)) {
+    checkCache.set(cacheKey, result);
+  }
 
   await recordCheckRun({
     text,

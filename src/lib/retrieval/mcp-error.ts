@@ -26,3 +26,19 @@ export function appendMcpStderr(error: unknown, chunks: string[]) {
   const message = error instanceof Error ? error.message : "Unknown MCP process error.";
   return new Error(details ? `${message} MCP stderr: ${details}` : message, { cause: error });
 }
+
+const MAX_BUFFERED_STDERR_LENGTH = 16_384;
+
+/** Appends to a rolling stderr buffer, dropping the oldest chunks once it exceeds the cap. */
+export function appendStderrChunk(chunks: string[], chunk: string, maximumLength = MAX_BUFFERED_STDERR_LENGTH) {
+  chunks.push(chunk);
+  let total = chunks.reduce((sum, value) => sum + value.length, 0);
+
+  while (total > maximumLength && chunks.length > 1) {
+    total -= chunks.shift()?.length ?? 0;
+  }
+
+  if (total > maximumLength) {
+    chunks[0] = chunks[0].slice(-maximumLength);
+  }
+}

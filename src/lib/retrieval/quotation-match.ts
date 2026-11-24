@@ -1,3 +1,4 @@
+import { collapseWhitespace, normalizeArabic as normalizeArabicText } from "../text/arabic";
 import type { QuotationMatch, RetrievalLanguage, SourceRecord } from "./types";
 
 type QuoteCandidate = {
@@ -10,22 +11,15 @@ const quotedTextPattern = /«([^»]+)»|“([^”]+)”|"([^"]+)"/gu;
 const arabicQuestionOpeners = /^(?:هل|ما|ماذا|كيف|لماذا|من|اين|أين|متى|اشرح|فسر|فسّر|ابحث|اعرض|اعطني|أعطني|ارني|أرني|ما صحة)\b/u;
 const englishQuestionOpeners = /^(?:is|are|does|do|did|what|which|who|where|when|why|how|explain|find|show|search|give|can|could|would)\b/i;
 
-function cleanWhitespace(value: string) {
-  return value.replace(/\s+/g, " ").trim();
-}
-
+// Keeps ة: the source-kind patterns below spell words like "اية" with ة.
 function normalizeArabic(value: string) {
-  return value
-    .replace(/[\u0610-\u061A\u064B-\u065F\u0670\u06D6-\u06ED]/g, "")
-    .replace(/\u0640/g, "")
-    .replace(/[إأآٱ]/g, "ا")
-    .replace(/ى/g, "ي");
+  return normalizeArabicText(value, { foldTaMarbuta: false });
 }
 
 function normalizeLiteralText(value: string, useArabic: boolean) {
   const normalized = useArabic ? normalizeArabic(value) : value.toLowerCase();
 
-  return cleanWhitespace(normalized.replace(/[^\p{L}\p{N}\s]/gu, " "));
+  return collapseWhitespace(normalized.replace(/[^\p{L}\p{N}\s]/gu, " "));
 }
 
 function tokens(value: string, useArabic: boolean) {
@@ -63,7 +57,7 @@ function quotedCandidates(question: string): QuoteCandidate[] {
 
   return [...question.matchAll(quotedTextPattern)]
     .map((match) => {
-      return cleanWhitespace(match[1] || match[2] || match[3] || "")
+      return collapseWhitespace(match[1] || match[2] || match[3] || "")
         .replace(/^(?:(?:\.\.\.)|…)+|(?:(?:\.\.\.)|…)+$/gu, "")
         .trim();
     })
@@ -84,7 +78,7 @@ function textAfterMarker(question: string, markerIndex: number, markerLength: nu
   const afterSeparator = afterMarker.match(/^[\s:：\-–—،,]*(.+)$/u)?.[1] || "";
   const afterFinalColon = question.match(/[:：]\s*([^:：]+)$/u)?.[1]?.trim();
 
-  return cleanWhitespace(afterFinalColon || afterSeparator);
+  return collapseWhitespace(afterFinalColon || afterSeparator);
 }
 
 function stripVerificationSuffix(value: string) {
@@ -136,7 +130,7 @@ function attributedCandidate(question: string): QuoteCandidate | null {
 }
 
 function unmarkedCandidate(question: string, language: RetrievalLanguage): QuoteCandidate | null {
-  const trimmed = cleanWhitespace(question);
+  const trimmed = collapseWhitespace(question);
   const useArabic = hasArabic(trimmed) || language === "arabic";
   const candidateTokens = tokens(trimmed, useArabic);
   const openerPattern = useArabic ? arabicQuestionOpeners : englishQuestionOpeners;
