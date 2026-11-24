@@ -64,11 +64,11 @@ export async function searchSources(
   query: string,
   language: RetrievalLanguage,
   options: { tafsirSource?: TafsirSourceSelection; hadithCollection?: HadithCollectionSelection } = {},
-  onProgress?: (completed: number, total: number) => void,
+  onProgress?: (completed: number, total: number, routes: SourceRoute[]) => void,
 ): Promise<RetrievalResponse> {
   const routeDecision = await planSourceRouteDecision(query);
   const routes = routeDecision.routes;
-  onProgress?.(0, routes.length);
+  onProgress?.(0, routes.length, routes);
 
   let completedRoutes = 0;
   const responses = await Promise.all(
@@ -79,7 +79,7 @@ export async function searchSources(
           : await searchHadithSources(query, language, { collection: options.hadithCollection });
 
       completedRoutes += 1;
-      onProgress?.(completedRoutes, routes.length);
+      onProgress?.(completedRoutes, routes.length, routes);
       return response;
     }),
   );

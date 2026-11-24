@@ -23,6 +23,7 @@ import {
   clientAcceptsAnswerDraft,
   createAnswerDraftCoalescer,
   searchStreamMediaType,
+  type SearchProgressDetail,
   type SearchProgressPhase,
   type SearchStreamEvent,
 } from "@/lib/search-stream";
@@ -43,11 +44,7 @@ type ValidatedSearchRequest = {
   tafsirSource: TafsirSourceSelection;
 };
 
-type ProgressReporter = (
-  progress: number,
-  phase: SearchProgressPhase,
-  routeProgress?: { completed: number; total: number },
-) => void;
+type ProgressReporter = (progress: number, phase: SearchProgressPhase, detail?: SearchProgressDetail) => void;
 
 function noAnswer(status: GroundedAnswer["status"], code: string, message: string): GroundedAnswer {
   return {
@@ -139,14 +136,14 @@ async function executeSearch(
     question,
     language,
     { tafsirSource, hadithCollection },
-    (completed, total) => {
+    (completed, total, sources) => {
       const progress = total === 0 ? 22 : 22 + Math.round((completed / total) * 50);
-      report?.(progress, "retrieving", { completed, total });
+      report?.(progress, "retrieving", { completed, total, sources });
     },
   );
   const quotationMatch = assessQuotationMatch(question, language, response.records);
 
-  report?.(76, "answering");
+  report?.(76, "answering", { records: response.records.length });
   const answer = await generateGroundedAnswer(
     {
       question,
@@ -191,13 +188,13 @@ function streamSearch(request: Request, input: ValidatedSearchRequest, startedAt
           controller.enqueue(encoder.encode(`${JSON.stringify(event)}\n`));
         }
       };
-      const report: ProgressReporter = (progress, phase, routeProgress) => {
+      const report: ProgressReporter = (progress, phase, detail) => {
         send({
           version: 1,
           type: "progress",
           progress: Math.max(0, Math.min(99, progress)),
           phase,
-          ...routeProgress,
+          ...detail,
         });
       };
 
