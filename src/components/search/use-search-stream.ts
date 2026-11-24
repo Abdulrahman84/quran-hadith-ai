@@ -12,7 +12,9 @@ import {
   readSearchResponse,
   searchStreamFeaturesHeader,
   searchStreamMediaType,
+  type SearchProgressDetail,
   type SearchProgressPhase,
+  type SearchSourceRoute,
 } from "@/lib/search-stream";
 
 import { getWarningKey } from "./search-display";
@@ -22,12 +24,48 @@ type UseSearchStreamOptions = {
   t: (key: TranslationKey) => string;
 };
 
+export type SearchSelection = {
+  hadithCollection: HadithCollectionSelection;
+  tafsirSource: TafsirSourceSelection;
+};
+
+const sourceRoutes = new Set<SearchSourceRoute>(["tafsir", "hadith"]);
+
+function countOrUndefined(value: unknown) {
+  return typeof value === "number" && Number.isInteger(value) && value >= 0 ? value : undefined;
+}
+
+// Keeps only well-formed details from a progress event; anything else is dropped, never guessed.
+function progressDetailFrom(event: SearchProgressDetail): SearchProgressDetail {
+  const detail: SearchProgressDetail = {};
+  const completed = countOrUndefined(event.completed);
+  const total = countOrUndefined(event.total);
+  const records = countOrUndefined(event.records);
+
+  if (completed !== undefined && total !== undefined && completed <= total) {
+    detail.completed = completed;
+    detail.total = total;
+  }
+
+  if (Array.isArray(event.sources)) {
+    detail.sources = event.sources.filter((source): source is SearchSourceRoute => sourceRoutes.has(source));
+  }
+
+  if (records !== undefined) {
+    detail.records = records;
+  }
+
+  return detail;
+}
+
 /** Owns one in-flight /api/search request: progress, the streamed answer draft, and the final result. */
 export function useSearchStream({ language, t }: UseSearchStreamOptions) {
   const [submittedQuestion, setSubmittedQuestion] = useState("");
   const [isRetrieving, setIsRetrieving] = useState(false);
   const [searchProgress, setSearchProgress] = useState(0);
   const [searchProgressPhase, setSearchProgressPhase] = useState<SearchProgressPhase>("starting");
+  const [searchProgressDetail, setSearchProgressDetail] = useState<SearchProgressDetail>({});
+  const [searchSelection, setSearchSelection] = useState<SearchSelection>({ hadithCollection: "all", tafsirSource: "all" });
   const [retrieval, setRetrieval] = useState<RetrievalResponse | null>(null);
   const [answerDraft, setAnswerDraft] = useState("");
   const [draftWasReplaced, setDraftWasReplaced] = useState(false);
@@ -48,6 +86,8 @@ export function useSearchStream({ language, t }: UseSearchStreamOptions) {
     setRequestErrorHelp("result.checkPaths");
     setSearchProgress(8);
     setSearchProgressPhase("starting");
+    setSearchProgressDetail({});
+    setSearchSelection({ hadithCollection: selectedHadithCollection, tafsirSource: selectedTafsirSource });
     setIsRetrieving(true);
     requestAbortRef.current?.abort();
     const requestController = new AbortController();
@@ -85,6 +125,7 @@ export function useSearchStream({ language, t }: UseSearchStreamOptions) {
 
           setSearchProgress((current) => Math.max(current, event.progress));
           setSearchProgressPhase(event.phase);
+          setSearchProgressDetail((current) => ({ ...current, ...progressDetailFrom(event) }));
         },
         (event) => {
           if (!isCurrentRequest()) {
@@ -156,6 +197,8 @@ export function useSearchStream({ language, t }: UseSearchStreamOptions) {
     isRetrieving,
     searchProgress,
     searchProgressPhase,
+    searchProgressDetail,
+    searchSelection,
     retrieval,
     answerDraft,
     draftWasReplaced,

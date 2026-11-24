@@ -32,6 +32,8 @@ export default function Home() {
     isRetrieving,
     searchProgress,
     searchProgressPhase,
+    searchProgressDetail,
+    searchSelection,
     retrieval,
     answerDraft,
     draftWasReplaced,
@@ -163,7 +165,9 @@ export default function Home() {
                   requestError={requestError}
                   requestErrorHelp={requestErrorHelp}
                   searchProgress={searchProgress}
+                  searchProgressDetail={searchProgressDetail}
                   searchProgressPhase={searchProgressPhase}
+                  searchSelection={searchSelection}
                   submittedQuestion={submittedQuestion}
                   t={t}
                 >

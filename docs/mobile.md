@@ -98,7 +98,6 @@ pages so it stays legible at favicon size. It lives as vector markup in
 
 - the header and footer logo (`SanadLogo`: the mark plus a live-text
   "سند / Sanad AI" wordmark set in Readex Pro);
-- the search loader, where the antenna pulses and the eyes blink;
 - `public/brand/sanad-mark.svg` (favicon), `public/brand/sanad-app-icon.png`
   (touch icon) and `src/app/icon.png`;
 - `assets/*.png`: the deep-green app icon tile, the Android adaptive icon

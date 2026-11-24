@@ -1,11 +1,14 @@
-import type { TranslationKey } from "@/lib/i18n";
+import type { Language, TranslationKey } from "@/lib/i18n";
+import { hadithCollections, type HadithCollectionSelection } from "@/lib/retrieval/hadith-collections";
 import {
   formatHadithGrade,
   formatHadithGradeReference,
   formatHadithGradeSource,
   formatSourceDetailLabel,
 } from "@/lib/retrieval/source-display";
+import { tafsirSources, type TafsirSourceSelection } from "@/lib/retrieval/tafsir-sources";
 import type { RetrievalResponse, RetrievalWarning, SourceRecord } from "@/lib/retrieval/types";
+import type { SearchProgressDetail, SearchProgressPhase, SearchSourceRoute } from "@/lib/search-stream";
 
 type Translate = (key: TranslationKey) => string;
 
@@ -135,4 +138,57 @@ export function recordMetadata(record: SourceRecord, language: string, t: Transl
   ]
     .filter(Boolean)
     .join(" / ");
+}
+
+type ProgressDetailSelection = {
+  hadithCollection: HadithCollectionSelection;
+  tafsirSource: TafsirSourceSelection;
+};
+
+function sourceRouteLabel(
+  route: SearchSourceRoute,
+  selection: ProgressDetailSelection,
+  language: Language,
+  t: Translate,
+) {
+  const labelField = language === "ar" ? "labelAr" : "labelEn";
+
+  if (route === "hadith" && selection.hadithCollection !== "all") {
+    return hadithCollections.find((collection) => collection.id === selection.hadithCollection)?.[labelField] ?? t("loading.source.hadith");
+  }
+
+  if (route === "tafsir" && selection.tafsirSource !== "all") {
+    return tafsirSources.find((source) => source.id === selection.tafsirSource)?.[labelField] ?? t("loading.source.tafsir");
+  }
+
+  return t(route === "hadith" ? "loading.source.hadith" : "loading.source.tafsir");
+}
+
+/**
+ * The quiet sub-line under the active loading step. Built only from what the
+ * progress events reported: the source routes being searched and how many
+ * finished, then the number of records retrieval returned.
+ */
+export function formatProgressDetail(
+  phase: SearchProgressPhase,
+  detail: SearchProgressDetail,
+  selection: ProgressDetailSelection,
+  language: Language,
+  t: Translate,
+): string | null {
+  if (phase === "retrieving" && detail.sources?.length) {
+    const names = detail.sources.map((route) => sourceRouteLabel(route, selection, language, t)).join(language === "ar" ? "، " : ", ");
+    const done =
+      detail.total !== undefined && detail.completed !== undefined && detail.total > 1
+        ? ` · ${t("loading.sourcesDone").replace("{completed}", String(detail.completed)).replace("{total}", String(detail.total))}`
+        : "";
+
+    return `${names}${done}`;
+  }
+
+  if ((phase === "answering" || phase === "finalizing") && detail.records !== undefined) {
+    return t("loading.records").replace("{count}", String(detail.records));
+  }
+
+  return null;
 }

@@ -498,112 +498,157 @@ textarea {
   animation: pulse-dot 1.2s ease-in-out infinite;
 }
 
-.source-loading {
+/* Search progress as a short chain of steps: done steps get a gold tick,
+   the active one a pulsing gold lozenge, pending ones a hollow ring. The rule
+   between the markers echoes a chain of narration. */
+.search-steps {
+  width: 100%;
+  max-width: 26rem;
+  margin-inline: auto;
+}
+
+.search-steps[data-compact] {
+  max-width: none;
+  margin-inline: 0;
+}
+
+.search-steps-title {
+  margin-bottom: 0.9rem;
+  color: var(--color-ink);
+  font-family: var(--font-display), var(--font-geist-sans), sans-serif;
+  font-size: 1.05rem;
+  font-weight: 600;
+}
+
+.search-steps-list {
   display: grid;
-  justify-items: center;
-  gap: 0.75rem;
-  align-items: center;
-  padding: 0.75rem 0 0.25rem;
 }
 
-.source-loading-mark {
-  display: block;
-  width: 4.75rem;
-  height: auto;
+.search-step {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1.25rem minmax(0, 1fr);
+  column-gap: 0.85rem;
+  align-items: start;
+  padding-block: 0.6rem;
 }
 
-/* While sources are traced, the antenna signal pulses and the eyes blink. */
-.source-loading-mark .sanad-mark-signal {
-  animation: mark-signal 1.6s ease-in-out infinite;
+.search-steps[data-compact] .search-step {
+  padding-block: 0;
 }
 
-.source-loading-mark .sanad-mark-eye {
-  transform-box: fill-box;
-  transform-origin: center;
-  animation: mark-blink 3.2s ease-in-out infinite;
+.search-step:not(:last-child)::after {
+  content: "";
+  position: absolute;
+  inset-inline-start: calc(0.625rem - 0.5px);
+  top: 2.05rem;
+  bottom: -0.35rem;
+  width: 1px;
+  background: var(--color-rule);
 }
 
-@keyframes mark-signal {
+.search-step[data-state="done"]::after {
+  background: var(--color-gold);
+}
+
+.search-step-marker {
+  display: grid;
+  width: 1.25rem;
+  height: 1.25rem;
+  margin-top: 0.2rem;
+  place-items: center;
+  border: 1.5px solid var(--color-rule);
+  border-radius: 999px;
+  background: var(--color-surface);
+  color: var(--color-surface);
+}
+
+.search-step-marker svg {
+  width: 0.75rem;
+  height: 0.75rem;
+}
+
+.search-step[data-state="done"] .search-step-marker {
+  border-color: var(--color-gold);
+  background: var(--color-gold);
+}
+
+.search-step[data-state="active"] .search-step-marker {
+  border-color: var(--color-gold);
+}
+
+.search-step[data-state="active"] .search-step-marker::before {
+  content: "";
+  width: 0.42rem;
+  height: 0.42rem;
+  background: var(--color-gold);
+  transform: rotate(45deg);
+  animation: step-pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes step-pulse {
   0%,
   100% {
     opacity: 0.35;
+    transform: rotate(45deg) scale(0.8);
   }
 
   50% {
     opacity: 1;
+    transform: rotate(45deg) scale(1.1);
   }
 }
 
-@keyframes mark-blink {
-  0%,
-  88%,
-  100% {
-    transform: scaleY(1);
-  }
-
-  93% {
-    transform: scaleY(0.15);
-  }
+.search-step-body {
+  display: grid;
+  gap: 0.15rem;
+  min-width: 0;
 }
 
-.source-loading p {
+.search-step-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.2rem 0.6rem;
+}
+
+.search-step-label {
+  color: var(--color-muted);
+  font-size: 0.95rem;
+  font-weight: 500;
+  line-height: 1.7;
+}
+
+.search-step[data-state="active"] .search-step-label {
   color: var(--color-ink);
-  font-family: var(--font-display), var(--font-geist-sans), sans-serif;
-  font-size: 1.15rem;
   font-weight: 700;
 }
 
-.search-progress-copy {
-  display: grid;
-  justify-items: center;
-  gap: 0.3rem;
-  text-align: center;
+.search-step[data-state="pending"] .search-step-label {
+  color: color-mix(in srgb, var(--color-muted) 55%, transparent);
 }
 
-.search-progress-copy span {
-  color: var(--color-green);
+.search-step-detail {
+  color: var(--color-muted);
+  font-size: 0.8rem;
+  line-height: 1.6;
+}
+
+.search-step-time {
+  color: var(--color-gold);
   font-size: 0.78rem;
-  font-weight: 700;
-}
-
-.search-progress {
-  display: grid;
-  width: min(20rem, 72vw);
-  grid-template-columns: minmax(0, 1fr) 3rem;
-  align-items: center;
-  gap: 0.75rem;
-}
-
-.search-progress-track {
-  height: 0.25rem;
-  overflow: hidden;
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--color-green) 13%, transparent);
-}
-
-.search-progress-fill {
-  display: block;
-  height: 100%;
-  border-radius: inherit;
-  background: var(--color-green);
-  transition: width 420ms ease-out;
-}
-
-.search-progress strong {
-  color: var(--color-green);
-  font-size: 0.9rem;
   font-variant-numeric: tabular-nums;
-  text-align: end;
+  white-space: nowrap;
+}
+
+.answer-text-draft {
+  color: color-mix(in srgb, var(--color-ink) 78%, transparent);
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .search-progress-fill {
-    transition: none;
-  }
-
-  .source-loading-mark .sanad-mark-signal,
-  .source-loading-mark .sanad-mark-eye {
+  .search-step[data-state="active"] .search-step-marker::before {
     animation: none;
+    opacity: 1;
   }
 }
 

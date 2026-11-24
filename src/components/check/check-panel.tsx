@@ -197,11 +197,7 @@ export function CheckPanel() {
         >
           {isLoading ? (
             <div className="flex min-h-[clamp(18rem,48svh,36rem)] items-center justify-center p-4">
-              <SearchLoading
-                label={t("check.searchingMeaning")}
-                phaseLabel={t("result.progressRetrieving")}
-                progress={48}
-              />
+              <SearchLoading label={t("check.searchingMeaning")} phase="retrieving" progress={48} />
             </div>
           ) : error ? (
             <div role="alert">
