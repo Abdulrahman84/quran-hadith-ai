@@ -1,5 +1,5 @@
-import { completeLlmText, streamLlmText, type LlmCompletionResult } from "./provider";
-import { collapseWhitespace, normalizeArabic, stripArabicDiacritics, tokenize } from "../text/arabic";
+import { completeLlmText, streamLlmText, type LlmCompletionResult } from "../provider";
+import { collapseWhitespace, normalizeArabic, stripArabicDiacritics, tokenize } from "../../text/arabic";
 import type { GroundedAnswer, QuotationMatch, RetrievalLanguage, SourceRecord } from "@/lib/retrieval/types";
 
 type GenerateGroundedAnswerInput = {

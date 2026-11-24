@@ -189,9 +189,9 @@ test("stream reader forwards draft events and skips unknown event types", async 
 });
 
 function loadGroundedAnswer(streamLlmText) {
-  return loadModule("src/lib/llm/grounded-answer.ts", {
+  return loadModule("src/lib/llm/grounded-answer/index.ts", {
     stubs: {
-      "./provider": {
+      "../provider": {
         completeLlmText: async () => ({ status: "error", error: "unused", provider: "openrouter", model: "m" }),
         streamLlmText,
       },
