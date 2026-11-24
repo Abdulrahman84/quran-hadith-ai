@@ -1,4 +1,5 @@
 import { completeLlmText } from "./provider";
+import { collapseWhitespace, normalizeArabic, stripArabicDiacritics, tokenize } from "../text/arabic";
 import type { GroundedAnswer, QuotationMatch, RetrievalLanguage, SourceRecord } from "@/lib/retrieval/types";
 
 type GenerateGroundedAnswerInput = {
@@ -229,24 +230,13 @@ function selectAnswerRecords(records: SourceRecord[], prioritizedRecordIds: stri
   return [...selected.values()].sort((left, right) => left.citationNumber - right.citationNumber);
 }
 
-function cleanWhitespace(value: string) {
-  return value.replace(/\s+/g, " ").trim();
-}
-
 function cleanArabicForExcerpt(value: string) {
-  return cleanWhitespace(
-    value
-      .replace(/[\u064B-\u065F\u0670]/g, "")
-      .replace(/\u0640/g, ""),
-  );
+  return collapseWhitespace(stripArabicDiacritics(value));
 }
 
+// Keeps ة because the caveat patterns below spell words like "العبارة" with ة.
 function normalizeArabicForMatching(value: string) {
-  return cleanWhitespace(
-    cleanArabicForExcerpt(value)
-      .replace(/[إأآٱ]/g, "ا")
-      .replace(/ى/g, "ي"),
-  );
+  return collapseWhitespace(normalizeArabic(value, { foldTaMarbuta: false }));
 }
 
 function escapeRegExp(value: string) {
@@ -274,7 +264,7 @@ function findLastArabicPhraseIndex(text: string, phrases: string[]) {
 }
 
 function stripArabicNarratorOpening(value: string) {
-  const text = cleanWhitespace(value);
+  const text = collapseWhitespace(value);
   const narratorOpening = /^(?:حدثنا|حدثني|أخبرنا|اخبرنا|أنبأنا|انبانا|أنبا|انبا|سمعت)(?:\s|،|,)/;
 
   if (!narratorOpening.test(text)) {
@@ -329,7 +319,7 @@ function excerptArabicText(value: string) {
 }
 
 function excerptEnglishText(value: string) {
-  const text = cleanWhitespace(value);
+  const text = collapseWhitespace(value);
   const markers = ["saying,", "said,", "reported that", "narrated that", "the Prophet"];
   const markerIndex = markers
     .map((marker) => text.toLowerCase().indexOf(marker))
@@ -348,7 +338,7 @@ function contentExcerpt(record: SourceRecord, language: RetrievalLanguage) {
   }
 
   if (record.sourceKind !== "hadith") {
-    return cleanWhitespace(text).slice(0, language === "arabic" ? 260 : 230);
+    return collapseWhitespace(text).slice(0, language === "arabic" ? 260 : 230);
   }
 
   return language === "arabic" ? excerptArabicText(text) : excerptEnglishText(text);
@@ -408,21 +398,9 @@ function passesGroundingGuardrails(text: string, language: RetrievalLanguage) {
 }
 
 function tokenizeForGrounding(value: string, language: RetrievalLanguage) {
-  const normalized =
-    language === "arabic"
-      ? value
-          .replace(/[\u064B-\u065F\u0670]/g, "")
-          .replace(/\u0640/g, "")
-          .replace(/[إأآٱ]/g, "ا")
-          .replace(/ى/g, "ي")
-          .replace(/ة/g, "ه")
-      : value.toLowerCase();
+  const normalized = language === "arabic" ? normalizeArabic(value) : value.toLowerCase();
 
-  return normalized
-    .replace(/[^\p{L}\p{N}\s]/gu, " ")
-    .split(/\s+/)
-    .map((token) => token.trim())
-    .filter((token) => token.length > 2 && !/^\d+$/.test(token));
+  return tokenize(normalized).filter((token) => token.length > 2 && !/^\d+$/.test(token));
 }
 
 function groundingRecordText(record: SourceRecord, language: RetrievalLanguage) {
@@ -523,11 +501,11 @@ function isCaveatedQuestionQuotation(
 
   const normalizedQuote = input.language === "arabic"
     ? normalizeArabicForMatching(quotedText)
-    : cleanWhitespace(quotedText).toLowerCase();
+    : collapseWhitespace(quotedText).toLowerCase();
   const isUnmatchedCandidate = input.quotationMatch.unmatchedCandidateTexts.some((candidateText) => {
     const normalizedCandidate = input.language === "arabic"
       ? normalizeArabicForMatching(candidateText)
-      : cleanWhitespace(candidateText).toLowerCase();
+      : collapseWhitespace(candidateText).toLowerCase();
 
     return normalizedCandidate === normalizedQuote;
   });
@@ -556,7 +534,7 @@ function isCaveatedQuestionQuotation(
     return hasVerificationTarget && hasNegativeVerification && !reversesToPositiveAttribution;
   }
 
-  const normalizedSentence = cleanWhitespace(sentence).toLowerCase()
+  const normalizedSentence = collapseWhitespace(sentence).toLowerCase()
     .replace(/["«»“”]/gu, "");
   const quoteIndex = normalizedSentence.indexOf(normalizedQuote);
   const localContext = normalizedSentence.slice(
@@ -581,7 +559,7 @@ function passesDirectQuoteGuardrail(text: string, input: GenerateGroundedAnswerI
   const quotePattern = /«([^»]+)»|“([^”]+)”|"([^"]+)"/gu;
 
   return [...text.matchAll(quotePattern)].every((match) => {
-    const quotedText = cleanWhitespace(match[1] || match[2] || match[3] || "");
+    const quotedText = collapseWhitespace(match[1] || match[2] || match[3] || "");
     const quoteStart = match.index || 0;
     const sentence = sentenceAroundRange(text, quoteStart, quoteStart + match[0].length);
     const citationNumbers = citationNumbersInText(sentence);
@@ -622,7 +600,7 @@ function passesDirectQuoteGuardrail(text: string, input: GenerateGroundedAnswerI
         );
       }
 
-      return cleanWhitespace(recordText).toLowerCase().includes(
+      return collapseWhitespace(recordText).toLowerCase().includes(
         quotedText.toLowerCase(),
       );
     });

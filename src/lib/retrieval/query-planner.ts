@@ -1,3 +1,4 @@
+import { normalizeArabic, tokenize } from "../text/arabic";
 import type { RetrievalLanguage } from "./types";
 
 type PlannedQuery = {
@@ -59,23 +60,6 @@ const englishPromptTerms = new Set([
   "source",
   "sources",
 ]);
-
-function normalizeArabic(value: string) {
-  return value
-    .replace(/[\u064B-\u065F\u0670]/g, "")
-    .replace(/\u0640/g, "")
-    .replace(/[إأآٱ]/g, "ا")
-    .replace(/ى/g, "ي")
-    .replace(/ة/g, "ه");
-}
-
-function tokenize(value: string) {
-  return value
-    .replace(/[^\p{L}\p{N}\s]/gu, " ")
-    .split(/\s+/)
-    .map((token) => token.trim())
-    .filter(Boolean);
-}
 
 function isArabicPromptTerm(token: string) {
   return arabicPromptTerms.has(token) || arabicPromptTerms.has(normalizeArabic(token));

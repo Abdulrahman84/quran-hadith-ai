@@ -1,3 +1,4 @@
+import { collapseWhitespace, normalizeArabic, tokenize } from "../text/arabic";
 import type { RetrievalLanguage, SourceRecord } from "./types";
 
 export type HadithRerankCandidate = {
@@ -7,32 +8,18 @@ export type HadithRerankCandidate = {
   firstSearchOrder: number;
 };
 
-function cleanWhitespace(value: string) {
-  return value.replace(/\s+/g, " ").trim();
-}
-
-function normalizeArabic(value: string) {
-  return cleanWhitespace(
-    value
-      .replace(/[\u064B-\u065F\u0670]/g, "")
-      .replace(/\u0640/g, "")
-      .replace(/[إأآٱ]/g, "ا")
-      .replace(/ى/g, "ي")
-      .replace(/ة/g, "ه"),
-  );
-}
-
 function normalizeForSearch(value: string, language: RetrievalLanguage) {
-  const normalized = language === "arabic" ? normalizeArabic(value) : cleanWhitespace(value.toLowerCase());
+  const normalized = language === "arabic" ? normalizeArabicText(value) : collapseWhitespace(value.toLowerCase());
 
   return normalized.replace(/[^\p{L}\p{N}\s]/gu, " ");
 }
 
-function tokenize(value: string, language: RetrievalLanguage) {
-  return normalizeForSearch(value, language)
-    .split(/\s+/)
-    .map((token) => token.trim())
-    .filter((token) => token.length > 1 && !/^\d+$/.test(token));
+function normalizeArabicText(value: string) {
+  return collapseWhitespace(normalizeArabic(value));
+}
+
+function searchTerms(value: string, language: RetrievalLanguage) {
+  return tokenize(normalizeForSearch(value, language)).filter((token) => token.length > 1 && !/^\d+$/.test(token));
 }
 
 function tokenOverlapScore(text: string, terms: string[], weight: number) {
@@ -78,7 +65,7 @@ function lastWholePhraseIndex(text: string, phrases: string[]) {
 }
 
 function arabicMatn(value: string) {
-  const text = normalizeArabic(value);
+  const text = normalizeArabicText(value);
   const strongMarkers = ["قال رسول الله", "سمعت رسول الله", "ان رسول الله", "كان رسول الله", "يصف النبي", "عن النبي", "قال النبي", "ان النبي"];
   const markerIndex = lastWholePhraseIndex(text, strongMarkers);
 
@@ -93,7 +80,7 @@ function arabicMatn(value: string) {
 }
 
 function englishMatn(value: string) {
-  const text = cleanWhitespace(value.toLowerCase());
+  const text = collapseWhitespace(value.toLowerCase());
   const markers = ["messenger of allah", "allah's messenger", "the prophet", "reported that", "narrated that", "said,"];
   const markerIndex = markers
     .map((marker) => text.indexOf(marker))
@@ -114,7 +101,7 @@ function metadataText(record: SourceRecord, language: RetrievalLanguage) {
 }
 
 function phraseScore(text: string, phrase: string, language: RetrievalLanguage) {
-  const terms = tokenize(phrase, language);
+  const terms = searchTerms(phrase, language);
 
   if (terms.length === 0) {
     return 0;
@@ -182,7 +169,7 @@ function prophetTraitScore(matn: string, query: string, searchQueries: string[],
 function candidateScore(candidate: HadithRerankCandidate, query: string, language: RetrievalLanguage) {
   const matn = normalizeForSearch(hadithMatnForSearch(candidate.record, language), language);
   const metadata = metadataText(candidate.record, language);
-  const queryTerms = tokenize(query, language);
+  const queryTerms = searchTerms(query, language);
   const queryScore = tokenOverlapScore(matn, queryTerms, 4) + tokenOverlapScore(metadata, queryTerms, 1.5);
   const searchQueryScore = candidate.searchQueries.reduce((score, searchQuery) => score + phraseScore(matn, searchQuery, language), 0);
   const traitScore = prophetTraitScore(matn, query, candidate.searchQueries, language);

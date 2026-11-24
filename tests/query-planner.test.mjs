@@ -1,12 +1,12 @@
 import assert from "node:assert/strict";
 import fs from "node:fs";
-import { createRequire } from "node:module";
 import path from "node:path";
 import test from "node:test";
 import vm from "node:vm";
 import ts from "typescript";
 
-const require = createRequire(import.meta.url);
+import { createTsRequire } from "./helpers/ts-require.mjs";
+
 
 function loadQueryPlanner() {
   const filename = path.join(process.cwd(), "src/lib/retrieval/query-planner.ts");
@@ -22,7 +22,7 @@ function loadQueryPlanner() {
   const sandbox = {
     exports: {},
     module: { exports: {} },
-    require,
+    require: createTsRequire(filename),
   };
 
   sandbox.exports = sandbox.module.exports;
