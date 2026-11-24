@@ -439,22 +439,17 @@ export default function Home() {
 
   return (
     <main className="relative min-h-screen overflow-x-clip bg-[var(--color-sand)] pt-20 text-[var(--color-ink)]">
-      <div className="source-grid" aria-hidden="true" />
 
       <section
-        className={`relative z-10 mx-auto flex w-full max-w-[920px] flex-col items-center px-4 text-center sm:px-8 ${
-          hasScenario ? "py-4 sm:py-8" : "home-stage min-h-[calc(100vh-80px)] py-8 sm:py-10"
+        className={`relative z-10 mx-auto flex w-full max-w-[780px] flex-col px-5 text-start sm:px-8 ${
+          hasScenario ? "py-4 sm:py-8" : "home-stage min-h-[calc(100vh-80px)] pb-12 pt-8 sm:pt-14"
         }`}
       >
         {!hasScenario ? (
           <>
-            <p className="animate-rise inline-flex items-center gap-2 rounded-full border border-[var(--color-green)]/10 bg-[var(--color-green)]/5 px-4 py-2 text-xs font-bold text-[var(--color-green)]">
-              <span className="h-2 w-2 rounded-full bg-[var(--color-green)]" aria-hidden="true" />
-              {t("home.eyebrow")}
-            </p>
-            <h1 className="animate-rise mt-4 text-balance text-[2.15rem] font-bold leading-[1.2] tracking-tight text-[var(--color-ink)] [animation-delay:80ms] sm:mt-5 sm:text-[3.5rem]">
-              {t("home.title")}
-            </h1>
+            <p className="home-kicker animate-rise">{t("home.eyebrow")}</p>
+            <h1 className="home-title animate-rise [animation-delay:60ms]">{t("home.title")}</h1>
+            <p className="home-lede animate-rise [animation-delay:120ms]">{t("home.lede")}</p>
           </>
         ) : null}
 
@@ -606,30 +601,26 @@ export default function Home() {
 
         {!hasScenario ? (
           <>
-            <div className="animate-rise mt-5 w-full max-w-3xl [animation-delay:220ms]">
-              <div className="flex w-full flex-wrap justify-center gap-2">
+            <div className="home-suggestions animate-rise [animation-delay:200ms]">
+              <p className="home-section-label">{t("home.tryLabel")}</p>
+              <ul>
                 {suggestionKeys.map((suggestionKey) => (
-                  <button
-                    className="chip w-full justify-center whitespace-normal text-center sm:w-auto"
-                    key={suggestionKey}
-                    onClick={() => void runSearch(t(suggestionKey))}
-                    type="button"
-                  >
-                    {t(suggestionKey)}
-                  </button>
+                  <li key={suggestionKey}>
+                    <button className="suggestion-row" onClick={() => void runSearch(t(suggestionKey))} type="button">
+                      <span>{t(suggestionKey)}</span>
+                      <svg aria-hidden="true" className="suggestion-arrow rtl:rotate-180" fill="none" viewBox="0 0 24 24">
+                        <path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" />
+                      </svg>
+                    </button>
+                  </li>
                 ))}
-              </div>
+              </ul>
             </div>
 
-            <div className="animate-rise relative mt-8 w-full max-w-3xl overflow-hidden rounded-3xl border border-[var(--color-gold)]/40 bg-[var(--color-gold)]/10 p-5 shadow-inner [animation-delay:300ms] sm:mt-10 sm:p-9">
-              <span className="absolute -end-7 -top-7 h-28 w-28 rounded-full border border-[var(--color-gold)]/20" aria-hidden="true" />
-              <p className="relative text-base font-bold text-[var(--color-green)]">
-                {t("home.startTitle")}
-              </p>
-              <p className="relative mx-auto mt-3 max-w-xl text-sm font-medium leading-7 text-[var(--color-muted)]">
-                {t("home.startText")}
-              </p>
-            </div>
+            <aside className="home-note animate-rise [animation-delay:260ms]">
+              <p className="home-note-title">{t("home.startTitle")}</p>
+              <p className="home-note-text">{t("home.startText")}</p>
+            </aside>
           </>
         ) : null}
 
@@ -652,17 +643,17 @@ export default function Home() {
             ) : null}
 
             <div
-              className={`answer-preview scroll-mt-24 flex flex-col rounded-2xl bg-[var(--color-green)] p-4 ${
+              className={`answer-preview scroll-mt-24 flex flex-col rounded-2xl p-4 sm:p-5 ${
                 isRetrieving ? "min-h-[clamp(18rem,48svh,36rem)]" : ""
               }`}
               ref={loadingPanelRef}
             >
-              <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 pb-3">
+              <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--color-border)] pb-3">
                 <div>
-                  <h2 className="text-lg font-bold text-white">
+                  <h2 className="text-2xl font-bold text-[var(--color-ink)]">
                     {isRetrieving ? t("result.tracing") : t("result.recordsTitle")}
                   </h2>
-                  <p className="mt-2 line-clamp-2 max-w-xl whitespace-pre-wrap text-sm font-medium leading-6 text-white/72">
+                  <p className="mt-1 line-clamp-2 max-w-xl whitespace-pre-wrap text-sm font-medium leading-6 text-[var(--color-muted)]">
                     {submittedQuestion}
                   </p>
                 </div>
@@ -670,7 +661,7 @@ export default function Home() {
               </div>
 
               <div
-                className={`mt-4 rounded-xl border border-[var(--color-gold)]/55 bg-[var(--color-sand)] p-4 text-[var(--color-ink)] ${
+                className={`mt-4 text-[var(--color-ink)] ${
                   isRetrieving && !answerDraft ? "flex flex-1 items-center justify-center" : ""
                 }`}
               >
@@ -715,12 +706,12 @@ export default function Home() {
                       </p>
                     ) : null}
                     {retrieval?.answer?.status === "ready" && retrieval.answer.text ? (
-                      <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4">
-                        <p className="mb-3 text-xs font-bold uppercase tracking-[0.14em] text-[var(--color-green-soft)]">
+                      <div className="answer-block">
+                        <p className="home-section-label">
                           {t("result.answerTitle")}
                         </p>
                         <p
-                          className="whitespace-pre-wrap text-sm font-semibold leading-8 text-[var(--color-green)]"
+                          className="answer-text whitespace-pre-wrap"
                           dir={language === "ar" ? "rtl" : "ltr"}
                         >
                           {retrieval.answer.text}

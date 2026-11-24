@@ -49,7 +49,7 @@ export function SourceDirectory() {
     >
       <div className="grid gap-12 lg:grid-cols-[minmax(0,0.8fr)_minmax(0,2fr)] lg:gap-16">
         <div>
-          <p className="text-xs font-bold text-[var(--color-green)]">{t("policy.sources.eyebrow")}</p>
+          <p className="page-kicker">{t("policy.sources.eyebrow")}</p>
           <h2 className="mt-4 text-3xl font-bold leading-tight text-[var(--color-ink)]">{t("policy.sources.title")}</h2>
           <p className="mt-5 text-sm font-medium leading-7 text-[var(--color-muted)]">{t("policy.sources.text")}</p>
         </div>
@@ -64,7 +64,7 @@ export function SourceDirectory() {
               style={{ animationDelay: `${index * 80}ms` }}
             >
               <div className="flex items-center gap-3">
-                <span aria-hidden="true" className="h-2 w-2 rounded-full bg-[var(--color-gold)]" />
+                <span aria-hidden="true" className="rule-diamond" />
                 <h3 className="text-lg font-bold text-[var(--color-green)]">{t(group.titleKey)}</h3>
               </div>
               <p className="mt-3 text-sm font-medium leading-7 text-[var(--color-muted)]">{t(group.textKey)}</p>

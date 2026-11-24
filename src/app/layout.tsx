@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Geist_Mono, IBM_Plex_Sans_Arabic } from "next/font/google";
+import { Amiri, Geist_Mono, IBM_Plex_Sans_Arabic } from "next/font/google";
 import { ConvexClientProvider } from "@/components/convex-client-provider";
 import { I18nProvider } from "@/components/i18n-provider";
 import { AppTabBar } from "@/components/native/app-tab-bar";
@@ -12,6 +12,14 @@ import "./globals.css";
 const ibmPlexSansArabic = IBM_Plex_Sans_Arabic({
   variable: "--font-geist-sans",
   weight: ["400", "500", "600", "700"],
+  subsets: ["arabic", "latin"],
+});
+
+// Classical naskh for headings, answers and the wordmark: reads like a printed
+// reference work rather than an app UI.
+const amiri = Amiri({
+  variable: "--font-display",
+  weight: ["400", "700"],
   subsets: ["arabic", "latin"],
 });
 
@@ -38,7 +46,7 @@ export const viewport: Viewport = {
   // Lets the mobile app webviews draw under the notch and home indicator;
   // globals.css pads the header and page with the safe-area insets.
   viewportFit: "cover",
-  themeColor: "#fbfaf5",
+  themeColor: "#f6f1e7",
 };
 
 export default function RootLayout({
@@ -51,7 +59,7 @@ export default function RootLayout({
       dir="rtl"
       lang="ar"
       data-native-app={isNativeApp ? "" : undefined}
-      className={`${ibmPlexSansArabic.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${ibmPlexSansArabic.variable} ${amiri.variable} ${geistMono.variable} h-full antialiased`}
       suppressHydrationWarning
     >
       <body className="min-h-full flex flex-col">

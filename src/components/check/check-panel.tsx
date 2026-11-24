@@ -118,7 +118,7 @@ export function CheckPanel() {
         {isLoading ? (
           <div className="flex min-h-[4.5rem] items-center gap-3 px-4 py-3 sm:px-5">
             <div aria-atomic="true" aria-live="polite" className="min-w-0 flex-1" role="status">
-              <p className="text-[0.7rem] font-bold uppercase tracking-[0.14em] text-[var(--color-green-soft)]">
+              <p className="text-xs font-bold text-[var(--color-muted)]">
                 {t("check.checking")}
               </p>
               <p className="mt-1 line-clamp-1 whitespace-pre-wrap text-sm font-semibold text-[var(--color-ink)]">
@@ -152,14 +152,11 @@ export function CheckPanel() {
         <div className="mt-5 grid gap-4 border-t border-[var(--color-border)] pt-5 sm:grid-cols-[1fr_auto]">
           <fieldset>
             <legend className="mb-2 text-xs font-bold text-[var(--color-muted)]">{t("check.typeLabel")}</legend>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="workflow-tabs-row">
               {checkTypes.map((type) => (
                 <label
-                  className={`cursor-pointer rounded-lg border px-3 py-3 text-center text-sm font-bold transition ${
-                    checkType === type
-                      ? "border-[var(--color-green)] bg-[var(--color-primary-soft)] text-[var(--color-green)]"
-                      : "border-[var(--color-border)] text-[var(--color-muted)]"
-                  }`}
+                  className="workflow-tab cursor-pointer"
+                  data-active={checkType === type}
                   key={type}
                 >
                   <input
@@ -194,12 +191,12 @@ export function CheckPanel() {
       {(isLoading || result || error) ? (
         <div
           aria-live="polite"
-          className="mt-4 scroll-mt-24 rounded-2xl bg-[var(--color-green)] p-4 text-start outline-none"
+          className="answer-preview mt-4 scroll-mt-24 rounded-2xl p-4 text-start outline-none sm:p-5"
           ref={resultRef}
           tabIndex={-1}
         >
           {isLoading ? (
-            <div className="flex min-h-[clamp(18rem,48svh,36rem)] items-center justify-center rounded-xl bg-[var(--color-sand)] p-4">
+            <div className="flex min-h-[clamp(18rem,48svh,36rem)] items-center justify-center p-4">
               <SearchLoading
                 label={t("check.searchingMeaning")}
                 phaseLabel={t("result.progressRetrieving")}
@@ -207,20 +204,18 @@ export function CheckPanel() {
               />
             </div>
           ) : error ? (
-            <div className="rounded-xl bg-[var(--color-sand)] p-4" role="alert">
+            <div role="alert">
               <strong className="text-sm text-[var(--color-red)]">{t("check.failed")}</strong>
               <p className="mt-2 text-sm text-[var(--color-muted)]">{error}</p>
             </div>
           ) : result?.outcome ? (
-            <div className="rounded-xl bg-[var(--color-sand)] p-4">
-              <p className="text-xs font-bold uppercase tracking-[0.14em] text-[var(--color-green-soft)]">
-                {t("check.resultLabel")}
-              </p>
-              <h2 className="mt-2 text-xl font-bold text-[var(--color-green)]">
+            <div>
+              <p className="home-section-label">{t("check.resultLabel")}</p>
+              <h2 className="text-2xl font-bold text-[var(--color-ink)]">
                 {t(outcomeKeys[result.outcome])}
               </h2>
               {result.answer ? (
-                <p className="mt-3 whitespace-pre-wrap text-sm font-semibold leading-7 text-[var(--color-ink)]">
+                <p className="answer-text mt-3 whitespace-pre-wrap">
                   {result.answer.text}
                 </p>
               ) : null}

@@ -15,18 +15,11 @@ const workflows: Array<{ id: HomeWorkflow; labelKey: TranslationKey }> = [
 
 export function WorkflowSwitch({ value, onChange, t }: WorkflowSwitchProps) {
   return (
-    <fieldset className="animate-rise mb-4 mt-5 w-full max-w-md">
+    <fieldset className="workflow-tabs animate-rise">
       <legend className="sr-only">{t("workflow.label")}</legend>
-      <div className="grid grid-cols-2 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-1 shadow-sm">
+      <div className="workflow-tabs-row">
         {workflows.map((workflow) => (
-          <label
-            className={`cursor-pointer rounded-lg px-4 py-2.5 text-center text-sm font-bold transition ${
-              value === workflow.id
-                ? "bg-[var(--color-green)] text-white shadow-sm"
-                : "text-[var(--color-muted)] hover:bg-[var(--color-primary-soft)] hover:text-[var(--color-green)]"
-            }`}
-            key={workflow.id}
-          >
+          <label className="workflow-tab" data-active={value === workflow.id} key={workflow.id}>
             <input
               checked={value === workflow.id}
               className="sr-only"

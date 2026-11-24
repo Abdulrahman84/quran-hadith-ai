@@ -17,8 +17,8 @@ export function CheckOverview({ language, stats, t }: CheckOverviewProps) {
   ];
 
   return (
-    <article className="rounded-2xl border border-[var(--color-border)] border-t-[3px] border-t-[var(--color-gold)] bg-[var(--color-surface)] p-5 shadow-[0_12px_34px_rgba(23,26,25,0.05)]">
-      <p className="text-xs font-bold text-[var(--color-green)]">{t("dashboard.check.eyebrow")}</p>
+    <article className="ledger-card p-5">
+      <p className="page-kicker">{t("dashboard.check.eyebrow")}</p>
       <div className="mt-2 flex items-baseline justify-between gap-4">
         <h2 className="text-xl font-bold text-[var(--color-ink)]">{t("dashboard.check.title")}</h2>
         <span className="text-2xl font-black tabular-nums text-[var(--color-green)]">

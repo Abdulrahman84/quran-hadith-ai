@@ -53,7 +53,7 @@ export function ProvenanceDisclosure({
             className={fieldIndex > 0 ? "lg:border-s lg:border-[var(--color-border)] lg:ps-6" : ""}
             key={field.label}
           >
-            <p className="text-xs font-bold text-[var(--color-green)]">{field.label}</p>
+            <p className="text-xs font-bold text-[var(--color-muted)]">{field.label}</p>
             <p className="mt-2 text-sm font-medium leading-7 text-[var(--color-muted)]">{field.text}</p>
           </div>
         ))}
