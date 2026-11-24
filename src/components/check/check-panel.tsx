@@ -4,6 +4,7 @@ import { FormEvent, useEffect, useRef, useState } from "react";
 
 import { useI18n } from "@/components/i18n-provider";
 import { SearchLoading } from "@/components/search-loading";
+import { ApiUnreachableError, fetchApi } from "@/lib/api-url";
 import { isVagueCheckPrompt } from "@/lib/check/input-validation";
 import type { CheckResponse, CheckType } from "@/lib/check/types";
 
@@ -78,7 +79,7 @@ export function CheckPanel() {
     setError("");
 
     try {
-      const response = await fetch("/api/check", {
+      const response = await fetchApi("/api/check", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -97,7 +98,11 @@ export function CheckPanel() {
       setResult(payload);
     } catch (caught) {
       if (!controller.signal.aborted) {
-        setError(caught instanceof Error ? caught.message : t("check.failed"));
+        if (caught instanceof ApiUnreachableError) {
+          setError(t("error.offline"));
+        } else {
+          setError(caught instanceof Error ? caught.message : t("check.failed"));
+        }
       }
     } finally {
       if (abortRef.current === controller) {

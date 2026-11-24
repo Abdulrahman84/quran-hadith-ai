@@ -13,8 +13,8 @@ test("Check is a separate workflow and endpoint from General Search", () => {
 
   assert.match(page, /workflow === "general"/);
   assert.match(page, /<CheckPanel \/>/);
-  assert.match(panel, /fetch\("\/api\/check"/);
-  assert.doesNotMatch(panel, /fetch\("\/api\/search"/);
+  assert.match(panel, /fetchApi\("\/api\/check"/);
+  assert.doesNotMatch(panel, /fetchApi\("\/api\/search"/);
 });
 
 test("Check exposes accessible Ayah and Hadith radio choices", () => {

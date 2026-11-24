@@ -7,6 +7,7 @@ import { useEffect, useRef } from "react";
 import { useI18n } from "@/components/i18n-provider";
 import { LanguageSwitcher } from "@/components/language-switcher";
 import { SanadLogo } from "@/components/sanad-logo";
+import { isNativeApp } from "@/lib/native-app";
 
 export function SiteHeader() {
   const { t } = useI18n();
@@ -45,6 +46,21 @@ export function SiteHeader() {
       document.removeEventListener("keydown", handleKeyDown);
     };
   }, []);
+
+  if (isNativeApp) {
+    // The app navigates with the bottom tab bar, so its header is a compact
+    // title bar: brand mark plus the language toggle.
+    return (
+      <header className="site-header fixed inset-x-0 top-0 z-50">
+        <div className="site-header-inner mx-auto flex w-full max-w-[1240px] items-center justify-between gap-3 px-4">
+          <Link className="flex min-w-0 items-center" href="/" aria-label="سند — Sanad AI">
+            <SanadLogo />
+          </Link>
+          <LanguageSwitcher idPrefix="app-language" />
+        </div>
+      </header>
+    );
+  }
 
   return (
     <header className="site-header fixed inset-x-0 top-0 z-50">

@@ -26,11 +26,20 @@
 }
 
 html {
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
   scroll-behavior: smooth;
-  scroll-padding-top: 6rem;
+  scroll-padding-top: calc(6rem + var(--safe-top));
+  -webkit-text-size-adjust: 100%;
 }
 
 body {
+  padding-top: var(--safe-top);
+  padding-right: var(--safe-right);
+  padding-bottom: var(--safe-bottom);
+  padding-left: var(--safe-left);
   background:
     radial-gradient(circle at 50% -18%, color-mix(in srgb, var(--color-gold) 9%, transparent), transparent 42%),
     var(--background);
@@ -73,6 +82,9 @@ textarea {
 }
 
 .site-header {
+  padding-top: var(--safe-top);
+  padding-right: var(--safe-right);
+  padding-left: var(--safe-left);
   border-bottom: 1px solid var(--color-border);
   background: color-mix(in srgb, var(--color-sand) 95%, transparent);
   backdrop-filter: blur(14px);
@@ -664,13 +676,16 @@ textarea {
 
 .mobile-nav-panel {
   position: fixed;
-  inset: 5rem 0 auto;
+  inset: calc(5rem + var(--safe-top)) 0 auto;
+  max-height: calc(100dvh - 5rem - var(--safe-top));
+  overflow-y: auto;
   display: grid;
   gap: 1rem;
   border-bottom: 1px solid var(--color-border);
   border-block-start: 3px solid var(--color-gold);
   background: color-mix(in srgb, var(--color-surface) 98%, transparent);
   padding: 1.5rem;
+  padding-bottom: calc(1.5rem + var(--safe-bottom));
   box-shadow: 0 18px 48px color-mix(in srgb, var(--color-green) 14%, transparent);
   backdrop-filter: blur(16px);
 }
@@ -788,4 +803,118 @@ textarea {
     scroll-behavior: auto !important;
     transition-duration: 1ms !important;
   }
+}
+
+/* Capacitor app shell (html[data-native-app], set only by the mobile build). */
+html[data-native-app] {
+  --app-header-height: 3.5rem;
+  --app-tab-bar-height: 3.5rem;
+  scroll-padding-top: calc(var(--app-header-height) + 1rem + var(--safe-top));
+  -webkit-tap-highlight-color: transparent;
+}
+
+html[data-native-app] body {
+  padding-bottom: calc(var(--app-tab-bar-height) + var(--safe-bottom));
+}
+
+html[data-native-app] main {
+  min-height: calc(100dvh - var(--safe-top) - var(--safe-bottom) - var(--app-tab-bar-height));
+  padding-top: var(--app-header-height);
+}
+
+html[data-native-app] .home-stage {
+  min-height: calc(100dvh - var(--safe-top) - var(--safe-bottom) - var(--app-header-height) - var(--app-tab-bar-height));
+}
+
+html[data-native-app] :is(header, nav, button, label, summary, .app-tab) {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* iOS zooms into focused fields under 16px. */
+html[data-native-app] :is(input:not([type="radio"], [type="checkbox"]), textarea) {
+  font-size: max(1rem, 16px);
+}
+
+html[data-native-app] .site-header-inner {
+  height: var(--app-header-height);
+}
+
+html[data-native-app] .site-header .sanad-logo {
+  height: 2.1rem;
+  width: auto;
+}
+
+html[data-native-app] .site-header .language-switcher {
+  display: inline-flex;
+}
+
+html[data-native-app] .site-header .language-select {
+  display: none;
+}
+
+html[data-native-app] .site-header .language-option {
+  min-width: 3rem;
+  min-height: 2.25rem;
+}
+
+.app-tab-bar {
+  position: fixed;
+  inset-inline: 0;
+  bottom: 0;
+  z-index: 50;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  height: calc(var(--app-tab-bar-height) + var(--safe-bottom));
+  padding-bottom: var(--safe-bottom);
+  padding-inline: var(--safe-left) var(--safe-right);
+  border-top: 1px solid var(--color-border);
+  background: color-mix(in srgb, var(--color-surface) 92%, transparent);
+  backdrop-filter: blur(18px) saturate(1.4);
+  transition: transform 200ms ease;
+}
+
+html[data-keyboard="open"] .app-tab-bar {
+  transform: translateY(100%);
+}
+
+html[data-keyboard="open"] body {
+  padding-bottom: 0;
+}
+
+.app-tab {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.15rem;
+  min-height: 2.75rem;
+  color: var(--color-muted);
+  line-height: 1;
+  transition:
+    color 160ms ease,
+    transform 120ms ease;
+}
+
+.app-tab:active {
+  transform: scale(0.94);
+}
+
+.app-tab[aria-current="page"] {
+  color: var(--color-green);
+}
+
+.app-tab-icon {
+  width: 1.5rem;
+  height: 1.5rem;
+}
+
+.app-tab-label {
+  font-size: 0.68rem;
+  font-weight: 700;
+}
+
+.app-tab[aria-current="page"] .app-tab-icon {
+  stroke-width: 2.2;
 }

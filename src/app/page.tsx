@@ -7,6 +7,7 @@ import { useI18n } from "@/components/i18n-provider";
 import { SearchLoading } from "@/components/search-loading";
 import { SourceRecordText } from "@/components/source-record-text";
 import { WorkflowSwitch, type HomeWorkflow } from "@/components/workflow-switch";
+import { ApiUnreachableError, fetchApi } from "@/lib/api-url";
 import type { TranslationKey } from "@/lib/i18n";
 import { hadithCollections, type HadithCollectionSelection } from "@/lib/retrieval/hadith-collections";
 import {
@@ -293,7 +294,7 @@ export default function Home() {
     requestAbortRef.current = requestController;
 
     try {
-      const response = await fetch("/api/search", {
+      const response = await fetchApi("/api/search", {
         method: "POST",
         headers: {
           Accept: searchStreamMediaType,
@@ -332,6 +333,12 @@ export default function Home() {
       setRetrieval(payload);
     } catch (error) {
       if (requestController.signal.aborted) {
+        return;
+      }
+
+      if (error instanceof ApiUnreachableError) {
+        setRequestError(t("error.offline"));
+        setRequestErrorHelp("error.offlineHelp");
         return;
       }
 
@@ -400,7 +407,7 @@ export default function Home() {
 
       <section
         className={`relative z-10 mx-auto flex w-full max-w-[920px] flex-col items-center px-4 text-center sm:px-8 ${
-          hasScenario ? "py-4 sm:py-8" : "min-h-[calc(100vh-80px)] py-8 sm:py-10"
+          hasScenario ? "py-4 sm:py-8" : "home-stage min-h-[calc(100vh-80px)] py-8 sm:py-10"
         }`}
       >
         {!hasScenario ? (

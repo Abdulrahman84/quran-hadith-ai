@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Sanad AI</string>
+    <string name="title_activity_main">Sanad AI</string>
+    <string name="package_name">ai.sanad.app</string>
+    <string name="custom_url_scheme">ai.sanad.app</string>
+</resources>

@@ -1,8 +1,11 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist_Mono, IBM_Plex_Sans_Arabic } from "next/font/google";
 import { ConvexClientProvider } from "@/components/convex-client-provider";
 import { I18nProvider } from "@/components/i18n-provider";
+import { AppTabBar } from "@/components/native/app-tab-bar";
+import { NativeAppBridge } from "@/components/native/native-app-bridge";
 import { SiteHeader } from "@/components/site-header";
+import { isNativeApp } from "@/lib/native-app";
 import "./globals.css";
 
 const ibmPlexSansArabic = IBM_Plex_Sans_Arabic({
@@ -29,6 +32,15 @@ export const metadata: Metadata = {
   },
 };
 
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  // Lets the mobile app webviews draw under the notch and home indicator;
+  // globals.css pads the header and page with the safe-area insets.
+  viewportFit: "cover",
+  themeColor: "#fbfaf5",
+};
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -38,6 +50,7 @@ export default function RootLayout({
     <html
       dir="rtl"
       lang="ar"
+      data-native-app={isNativeApp ? "" : undefined}
       className={`${ibmPlexSansArabic.variable} ${geistMono.variable} h-full antialiased`}
       suppressHydrationWarning
     >
@@ -46,6 +59,8 @@ export default function RootLayout({
           <I18nProvider>
             <SiteHeader />
             {children}
+            {isNativeApp ? <AppTabBar /> : null}
+            {isNativeApp ? <NativeAppBridge /> : null}
           </I18nProvider>
         </ConvexClientProvider>
       </body>
