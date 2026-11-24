@@ -475,17 +475,37 @@ function isSafeUncitedAnswerSentence(segment: string, language: RetrievalLanguag
   );
 }
 
+// The prompt asks the model to vary its closing pointer to the source cards, so it is
+// recognized by shape (short, last, names the sources below) instead of exact wording.
+const closingInvitationPatterns = {
+  arabic: /(?:المصادر|النصوص)[^.!؟]*أدناه|أدناه[^.!؟]*(?:المصادر|النصوص)/u,
+  english: /\b(?:sources?|source texts?|passages)\b[^.!?]*\bbelow\b|\bbelow\b[^.!?]*\bsources?\b/i,
+};
+const MAX_CLOSING_INVITATION_WORDS = 22;
+
+function isClosingSourceInvitation(segment: string, language: RetrievalLanguage) {
+  const plain = stripArabicDiacritics(segment);
+  return plain.split(/\s+/).length <= MAX_CLOSING_INVITATION_WORDS && closingInvitationPatterns[language].test(plain);
+}
+
 function answerSegments(text: string) {
   return text
-    .split(/(?<=[.!؟؛])\s+|\n+/u)
+    // A line break that does not end a sentence or start a list item is wrapping, not a boundary.
+    .replace(/([^\s.!؟:])\n+(?!\s*(?:[-•*]|\d+[.)]))/gu, "$1 ")
+    // "؛" joins clauses of one sentence, so it is not a boundary either.
+    .split(/(?<=[.!؟])\s+|\n+/u)
     .map((segment) => segment.trim())
     .filter(Boolean);
 }
 
 function passesCitationCoverageGuardrail(text: string, input: GenerateGroundedAnswerInput) {
-  const uncitedSubstantiveSegments = answerSegments(text).filter((segment) => {
+  const segments = answerSegments(text);
+  const uncitedSubstantiveSegments = segments.filter((segment, index) => {
+    const isLast = index === segments.length - 1;
+
     return citationNumbersInText(segment).length === 0
-      && !isSafeUncitedAnswerSentence(segment, input.language);
+      && !isSafeUncitedAnswerSentence(segment, input.language)
+      && !(isLast && isClosingSourceInvitation(segment, input.language));
   });
 
   return uncitedSubstantiveSegments.length <= 1;
@@ -1016,6 +1036,9 @@ async function composeGroundedAnswer(
 
   if (guardFailure) {
     const repair = await repairGroundedAnswer(input, text, guardFailure, completion.model);
+    console.warn(
+      `[grounded-answer] ${input.language} draft failed the ${guardFailure} guard; repair ${repair.text ? "succeeded" : `failed (${repair.guardFailure})`}.`,
+    );
 
     if (repair.text) {
       return readyGroundedAnswer(input, repair.text);
