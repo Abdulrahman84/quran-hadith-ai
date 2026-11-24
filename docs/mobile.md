@@ -79,9 +79,15 @@ base URL when building:
 NEXT_PUBLIC_API_BASE_URL=https://staging.example.com npm run mobile:build
 ```
 
-The server you point at must have the CORS proxy deployed. For a local API on
-`http://localhost:3000`, add `ALLOW_INSECURE_API_BASE_URL=1`. That only works
-in the iOS Simulator (or with `adb reverse` on Android) and must never ship.
+The server you point at must have the CORS proxy deployed, and its allowed
+headers (`src/lib/cors.ts`) must include every header the app sends.
+
+For a local API on `http://localhost:3000`, add `ALLOW_INSECURE_API_BASE_URL=1`.
+That works as is in the iOS Simulator. On the Android emulator, run
+`adb reverse tcp:3000 tcp:3000` and also add
+`android:usesCleartextTraffic="true"` to `<application>` in
+`android/app/src/main/AndroidManifest.xml` for that local build only, because
+Android blocks plain HTTP by default. Neither setting may ship.
 
 ## Logo, icons and splash screens
 
