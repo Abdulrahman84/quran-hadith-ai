@@ -1,4 +1,4 @@
-import { generateGroundedAnswer } from "@/lib/llm/grounded-answer";
+import { answerReplacedWarningCode, generateGroundedAnswer, type GenerateGroundedAnswerOptions } from "@/lib/llm/grounded-answer";
 import { recordQuestionRun } from "@/lib/analytics/record-question-run";
 import {
   isHadithCollectionSelection,
@@ -20,6 +20,8 @@ import {
 } from "@/lib/retrieval/tafsir-sources";
 import type { GroundedAnswer, RetrievalResponse } from "@/lib/retrieval/types";
 import {
+  clientAcceptsAnswerDraft,
+  createAnswerDraftCoalescer,
   searchStreamMediaType,
   type SearchProgressPhase,
   type SearchStreamEvent,
@@ -109,7 +111,27 @@ function cachedStreamResponse(payload: RetrievalResponse) {
   return new Response(body, { headers: { ...streamHeaders, "X-Search-Cache": "hit" } });
 }
 
-async function executeSearch(input: ValidatedSearchRequest, startedAt: number, report?: ProgressReporter) {
+// The replaced-draft notice only means something to the client that saw the draft.
+function withoutDraftWarnings(response: RetrievalResponse): RetrievalResponse {
+  if (!response.answer) {
+    return response;
+  }
+
+  return {
+    ...response,
+    answer: {
+      ...response.answer,
+      warnings: response.answer.warnings.filter((warning) => warning.code !== answerReplacedWarningCode),
+    },
+  };
+}
+
+async function executeSearch(
+  input: ValidatedSearchRequest,
+  startedAt: number,
+  report?: ProgressReporter,
+  draftOptions: GenerateGroundedAnswerOptions = {},
+) {
   const { question, language, hadithCollection, tafsirSource } = input;
 
   report?.(14, "routing");
@@ -125,17 +147,20 @@ async function executeSearch(input: ValidatedSearchRequest, startedAt: number, r
   const quotationMatch = assessQuotationMatch(question, language, response.records);
 
   report?.(76, "answering");
-  const answer = await generateGroundedAnswer({
-    question,
-    language,
-    records: response.records,
-    quotationMatch,
-  });
+  const answer = await generateGroundedAnswer(
+    {
+      question,
+      language,
+      records: response.records,
+      quotationMatch,
+    },
+    draftOptions,
+  );
 
   const result = { ...response, answer, quotationMatch } satisfies RetrievalResponse;
 
   if (isCacheableSearchResponse(result)) {
-    searchCache.set(searchCacheKey(input), result);
+    searchCache.set(searchCacheKey(input), withoutDraftWarnings(result));
   }
 
   report?.(94, "finalizing");
@@ -176,13 +201,23 @@ function streamSearch(request: Request, input: ValidatedSearchRequest, startedAt
         });
       };
 
+      const draft = clientAcceptsAnswerDraft(request) ? createAnswerDraftCoalescer(send) : null;
+      const draftOptions: GenerateGroundedAnswerOptions = draft
+        ? {
+            onDraft: (event) => (event.type === "delta" ? draft.delta(event.text) : draft.reset()),
+            signal: request.signal,
+          }
+        : {};
+
       report(8, "starting");
-      void executeSearch(input, startedAt, report)
+      void executeSearch(input, startedAt, report, draftOptions)
         .then((payload) => {
           if (request.signal.aborted) {
             close();
             return;
           }
+
+          draft?.flush();
 
           const httpStatus = payload.status === "error" ? 502 : 200;
           send({
@@ -196,6 +231,7 @@ function streamSearch(request: Request, input: ValidatedSearchRequest, startedAt
           close();
         })
         .catch((error: unknown) => {
+          draft?.reset();
           send({
             version: 1,
             type: "error",
