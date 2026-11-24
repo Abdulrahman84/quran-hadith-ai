@@ -35,10 +35,10 @@ export function QuestionResults(props: QuestionResultsProps) {
   const isLoadingMore = paginationStatus === "LoadingMore";
 
   return (
-    <section className="rounded-2xl border border-[var(--color-border)] border-t-[3px] border-t-[var(--color-gold)] bg-[var(--color-surface)] p-5 shadow-[0_12px_34px_rgba(23,26,25,0.05)] sm:p-6">
+    <section className="ledger-card p-5 sm:p-6">
       <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
         <div>
-          <p className="text-xs font-bold text-[var(--color-green)]">{t("dashboard.questions.eyebrow")}</p>
+          <p className="page-kicker">{t("dashboard.questions.eyebrow")}</p>
           <h2 className="mt-2 text-2xl font-bold text-[var(--color-ink)]">{t("dashboard.questions.title")}</h2>
           <p className="mt-2 max-w-2xl text-sm font-medium leading-6 text-[var(--color-muted)]">
             {t("dashboard.questions.description")}

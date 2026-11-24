@@ -23,8 +23,8 @@ test("stream progress is phase-based and returns 100 with the result", () => {
 
   assert.match(routeSource, /report\(8, "starting"\)/);
   assert.match(routeSource, /report\?\.\(14, "routing"\)/);
-  assert.match(routeSource, /report\?\.\(progress, "retrieving"/);
-  assert.match(routeSource, /report\?\.\(76, "answering"\)/);
+  assert.match(routeSource, /report\?\.\(progress, "retrieving", \{ completed, total, sources \}\)/);
+  assert.match(routeSource, /report\?\.\(76, "answering", \{ records: response\.records\.length \}\)/);
   assert.match(routeSource, /report\?\.\(94, "finalizing"\)/);
   assert.match(routeSource, /type: "result",\s+progress: 100/);
   assert.doesNotMatch(routeSource, /report\(100/);
@@ -33,7 +33,15 @@ test("stream progress is phase-based and returns 100 with the result", () => {
 test("progress reader handles arbitrary chunks and split Arabic UTF-8", async () => {
   const encoder = new TextEncoder();
   const events = [
-    JSON.stringify({ version: 1, type: "progress", progress: 22, phase: "retrieving" }),
+    JSON.stringify({
+      version: 1,
+      type: "progress",
+      progress: 22,
+      phase: "retrieving",
+      completed: 1,
+      total: 2,
+      sources: ["tafsir", "hadith"],
+    }),
     JSON.stringify({
       version: 1,
       type: "result",
@@ -59,10 +67,13 @@ test("progress reader handles arbitrary chunks and split Arabic UTF-8", async ()
   const progress = [];
   const result = await readSearchResponse(
     new Response(body, { headers: { "Content-Type": `${searchStreamMediaType}; charset=utf-8` } }),
-    (event) => progress.push(event.progress),
+    (event) => progress.push(event),
   );
 
-  assert.deepEqual(progress, [22]);
+  assert.deepEqual(
+    progress.map((event) => [event.progress, event.completed, event.total, event.sources]),
+    [[22, 1, 2, ["tafsir", "hadith"]]],
+  );
   assert.equal(result.payload.query, "بحث");
   assert.equal(result.ok, true);
 });

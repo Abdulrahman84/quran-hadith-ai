@@ -3,15 +3,10 @@ import type { ReactNode, RefObject } from "react";
 import { AnswerDraftPreview } from "@/components/answer-draft-preview";
 import { SearchLoading } from "@/components/search-loading";
 import type { Language, TranslationKey } from "@/lib/i18n";
-import type { SearchProgressPhase } from "@/lib/search-stream";
+import type { SearchProgressDetail, SearchProgressPhase } from "@/lib/search-stream";
 
-const progressPhaseLabels: Record<SearchProgressPhase, TranslationKey> = {
-  starting: "result.progressStarting",
-  routing: "result.progressRouting",
-  retrieving: "result.progressRetrieving",
-  answering: "result.progressAnswering",
-  finalizing: "result.progressFinalizing",
-};
+import { formatProgressDetail } from "./search-display";
+import type { SearchSelection } from "./use-search-stream";
 
 type AnswerPanelProps = {
   panelRef: RefObject<HTMLDivElement | null>;
@@ -20,6 +15,8 @@ type AnswerPanelProps = {
   answerDraft: string;
   searchProgress: number;
   searchProgressPhase: SearchProgressPhase;
+  searchProgressDetail: SearchProgressDetail;
+  searchSelection: SearchSelection;
   requestError: string;
   requestErrorHelp: TranslationKey;
   language: Language;
@@ -35,25 +32,29 @@ export function AnswerPanel({
   answerDraft,
   searchProgress,
   searchProgressPhase,
+  searchProgressDetail,
+  searchSelection,
   requestError,
   requestErrorHelp,
   language,
   t,
   children,
 }: AnswerPanelProps) {
+  const progressDetail = formatProgressDetail(searchProgressPhase, searchProgressDetail, searchSelection, language, t);
+
   return (
     <div
-      className={`answer-preview scroll-mt-24 flex flex-col rounded-2xl bg-[var(--color-green)] p-4 ${
+      className={`answer-preview scroll-mt-24 flex flex-col rounded-2xl p-4 sm:p-5 ${
         isRetrieving ? "min-h-[clamp(18rem,48svh,36rem)]" : ""
       }`}
       ref={panelRef}
     >
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 pb-3">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--color-border)] pb-3">
         <div>
-          <h2 className="text-lg font-bold text-white">
+          <h2 className="text-2xl font-bold text-[var(--color-ink)]">
             {isRetrieving ? t("result.tracing") : t("result.recordsTitle")}
           </h2>
-          <p className="mt-2 line-clamp-2 max-w-xl whitespace-pre-wrap text-sm font-medium leading-6 text-white/72">
+          <p className="mt-1 line-clamp-2 max-w-xl whitespace-pre-wrap text-sm font-medium leading-6 text-[var(--color-muted)]">
             {submittedQuestion}
           </p>
         </div>
@@ -61,23 +62,22 @@ export function AnswerPanel({
       </div>
 
       <div
-        className={`mt-4 rounded-xl border border-[var(--color-gold)]/55 bg-[var(--color-sand)] p-4 text-[var(--color-ink)] ${
+        className={`mt-4 text-[var(--color-ink)] ${
           isRetrieving && !answerDraft ? "flex flex-1 items-center justify-center" : ""
         }`}
       >
         {isRetrieving && answerDraft ? (
-          <AnswerDraftPreview
-            checkingLabel={t("result.draftChecking")}
-            dir={language === "ar" ? "rtl" : "ltr"}
-            text={answerDraft}
-            title={t("result.answerTitle")}
-          />
+          <div className="grid w-full gap-4">
+            <SearchLoading compact detail={progressDetail} phase={searchProgressPhase} progress={searchProgress} />
+            <AnswerDraftPreview
+              checkingLabel={t("result.draftChecking")}
+              dir={language === "ar" ? "rtl" : "ltr"}
+              text={answerDraft}
+              title={t("result.answerTitle")}
+            />
+          </div>
         ) : isRetrieving ? (
-          <SearchLoading
-            label={t("result.loading")}
-            phaseLabel={t(progressPhaseLabels[searchProgressPhase])}
-            progress={searchProgress}
-          />
+          <SearchLoading detail={progressDetail} phase={searchProgressPhase} progress={searchProgress} />
         ) : requestError ? (
           <div role="alert">
             <p className="text-xs font-bold uppercase tracking-[0.16em] text-[var(--color-red)]">

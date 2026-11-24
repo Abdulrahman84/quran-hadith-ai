@@ -38,7 +38,7 @@ export function DashboardShell() {
   const sortedRuns = [...runs.results].sort((left, right) => right.occurredAt - left.occurredAt);
 
   if (isLoading) {
-    return <div className="relative z-10 mx-auto mt-24 h-44 w-full max-w-lg animate-pulse rounded-2xl border-t-4 border-t-[var(--color-gold)] bg-[var(--color-gold-soft)]" aria-label={t("dashboard.loading")} />;
+    return <div className="relative z-10 mx-auto mt-24 h-44 w-full max-w-lg animate-pulse rounded-md bg-[var(--color-gold-soft)]" aria-label={t("dashboard.loading")} />;
   }
 
   if (!isAuthenticated) return <AdminSignIn t={t} />;
@@ -50,7 +50,7 @@ export function DashboardShell() {
       <div className="mt-8">
         {dashboardStats === undefined ? (
           <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3" aria-label={t("dashboard.loading")}>
-            {[0, 1, 2, 3, 4, 5].map((item) => <div className="h-40 animate-pulse rounded-2xl border-t-[3px] border-t-[var(--color-gold)] bg-[var(--color-gold-soft)]" key={item} />)}
+            {[0, 1, 2, 3, 4, 5].map((item) => <div className="h-40 animate-pulse rounded-md bg-[var(--color-gold-soft)]" key={item} />)}
           </div>
         ) : (
           <StatsGrid language={language} stats={dashboardStats} t={t} />
@@ -60,9 +60,9 @@ export function DashboardShell() {
       <div className="mt-4 grid gap-4 lg:grid-cols-2 xl:grid-cols-[minmax(0,1.15fr)_minmax(240px,0.75fr)_minmax(250px,0.8fr)]">
         {dashboardStats === undefined ? (
           <>
-            <div className="h-72 animate-pulse rounded-2xl border-t-[3px] border-t-[var(--color-gold)] bg-[var(--color-gold-soft)]" />
-            <div className="h-72 animate-pulse rounded-2xl border-t-[3px] border-t-[var(--color-gold)] bg-[var(--color-gold-soft)]" />
-            <div className="h-72 animate-pulse rounded-2xl border-t-[3px] border-t-[var(--color-gold)] bg-[var(--color-gold-soft)]" />
+            <div className="h-72 animate-pulse rounded-md bg-[var(--color-gold-soft)]" />
+            <div className="h-72 animate-pulse rounded-md bg-[var(--color-gold-soft)]" />
+            <div className="h-72 animate-pulse rounded-md bg-[var(--color-gold-soft)]" />
           </>
         ) : (
           <>

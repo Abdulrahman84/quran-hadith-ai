@@ -32,6 +32,8 @@ export default function Home() {
     isRetrieving,
     searchProgress,
     searchProgressPhase,
+    searchProgressDetail,
+    searchSelection,
     retrieval,
     answerDraft,
     draftWasReplaced,
@@ -119,11 +121,9 @@ export default function Home() {
 
   return (
     <main className="relative min-h-screen overflow-x-clip bg-[var(--color-sand)] pt-20 text-[var(--color-ink)]">
-      <div className="source-grid" aria-hidden="true" />
-
       <section
-        className={`relative z-10 mx-auto flex w-full max-w-[920px] flex-col items-center px-4 text-center sm:px-8 ${
-          hasScenario ? "py-4 sm:py-8" : "min-h-[calc(100vh-80px)] py-8 sm:py-10"
+        className={`relative z-10 mx-auto flex w-full max-w-[780px] flex-col px-5 text-start sm:px-8 ${
+          hasScenario ? "py-4 sm:py-8" : "home-stage min-h-[calc(100vh-80px)] pb-12 pt-8 sm:pt-14"
         }`}
       >
         {!hasScenario ? <HomeHero t={t} /> : null}
@@ -165,7 +165,9 @@ export default function Home() {
                   requestError={requestError}
                   requestErrorHelp={requestErrorHelp}
                   searchProgress={searchProgress}
+                  searchProgressDetail={searchProgressDetail}
                   searchProgressPhase={searchProgressPhase}
+                  searchSelection={searchSelection}
                   submittedQuestion={submittedQuestion}
                   t={t}
                 >

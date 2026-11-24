@@ -12,9 +12,21 @@
     "test": "node --test tests/*.test.mjs",
     "eval:retrieval": "tsx scripts/eval-retrieval.ts",
     "eval:build-dataset": "node eval/build-dataset.mjs",
-    "eval:compare": "node scripts/eval-retrieval-compare.mjs"
+    "eval:compare": "node scripts/eval-retrieval-compare.mjs",
+    "mobile:build": "node scripts/build-mobile.mjs && cap sync",
+    "mobile:ios": "npm run mobile:build && cap open ios",
+    "mobile:android": "npm run mobile:build && cap open android",
+    "mobile:assets": "npm run brand:assets && npx --yes @capacitor/assets@4.0.0 generate --ios --android --iconBackgroundColor \"#0b5d3e\" --iconBackgroundColorDark \"#0b5d3e\" --splashBackgroundColor \"#fbfaf5\" --splashBackgroundColorDark \"#0b5d3e\"",
+    "brand:assets": "node --no-warnings scripts/generate-brand-assets.mjs"
   },
   "dependencies": {
+    "@capacitor/android": "^8.6.2",
+    "@capacitor/app": "^8.1.2",
+    "@capacitor/core": "^8.6.2",
+    "@capacitor/haptics": "^8.0.2",
+    "@capacitor/ios": "^8.6.2",
+    "@capacitor/keyboard": "^8.0.6",
+    "@capacitor/splash-screen": "^8.0.2",
     "@convex-dev/aggregate": "^0.2.2",
     "@convex-dev/auth": "^0.0.94",
     "@modelcontextprotocol/sdk": "^1.29.0",
@@ -24,6 +36,7 @@
     "react-dom": "19.2.4"
   },
   "devDependencies": {
+    "@capacitor/cli": "^8.6.2",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",

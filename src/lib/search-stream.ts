@@ -8,15 +8,27 @@ export const answerDraftStreamFeature = "answer-draft";
 
 export type SearchProgressPhase = "starting" | "routing" | "retrieving" | "answering" | "finalizing";
 
+/** The source indexes a search queries: Quran and tafsir (Tafsir MCP) or hadith (Hadith MCP). */
+export type SearchSourceRoute = "tafsir" | "hadith";
+
+/** Real retrieval details carried on progress events, shown under the active loading step. */
+export type SearchProgressDetail = {
+  /** Source routes finished so far, out of `total`, while retrieving. */
+  completed?: number;
+  total?: number;
+  /** Which source indexes are being searched, while retrieving. */
+  sources?: SearchSourceRoute[];
+  /** How many records retrieval returned, once drafting starts. */
+  records?: number;
+};
+
 export type SearchStreamEvent =
   | {
       version: 1;
       type: "progress";
       progress: number;
       phase: SearchProgressPhase;
-      completed?: number;
-      total?: number;
-    }
+    } & SearchProgressDetail
   | {
       version: 1;
       type: "result";

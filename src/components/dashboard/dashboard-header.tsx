@@ -10,7 +10,7 @@ export function DashboardHeader({ onSignOut, t }: DashboardHeaderProps) {
     <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
       <div>
         <div className="flex flex-wrap items-center gap-2">
-          <p className="text-xs font-bold text-[var(--color-green)]">{t("dashboard.eyebrow")}</p>
+          <p className="page-kicker">{t("dashboard.eyebrow")}</p>
           <span className="rounded-md border border-[var(--color-gold)]/50 bg-[var(--color-gold-soft)] px-2 py-1 text-[0.65rem] font-bold text-[var(--color-ink)]">
             {t("dashboard.liveBadge")}
           </span>

@@ -29,27 +29,53 @@ test("source policy stays visible in the shared mobile header", () => {
   assert.doesNotMatch(headerSource, /nav-link-mobile-hidden/);
 });
 
-test("information pages have copy for the retrieval pipeline and source boundary", () => {
+test("information pages have copy for the retrieval pipeline and the data sources", () => {
   const dictionarySource = readProjectFile("src/lib/i18n.ts");
 
   for (const key of [
-    "how.pipeline.query",
-    "how.pipeline.sources",
-    "how.pipeline.answer",
-    "how.flow.title",
-    "policy.boundary.title",
-    "policy.flow.title",
-    "policy.flow.sources.title",
-    "policy.guardrails.title",
-    "policy.sources.title",
-    "policy.sources.tafsir.tabari",
-    "policy.sources.hadith.bukhari",
-    "policy.provenance.title",
-    "policy.provenance.useLabel",
-    "policy.provenance.quran.origin",
-    "policy.provenance.tafsir.visible",
-    "policy.provenance.hadith.note",
+    "how.step.understand.text",
+    "how.step.retrieve.text",
+    "how.step.retrieve.meaningSearch",
+    "how.step.draft.text",
+    "how.step.check.text",
+    "how.limits.title",
+    "how.limit.fatwa",
+    "policy.hadith.title",
+    "policy.hadith.gradedNote",
+    "policy.hadith.credit",
+    "policy.quran.title",
+    "policy.quran.credit",
+    "policy.quran.featureText",
   ]) {
-    assert.match(dictionarySource, new RegExp(`"${key}"`));
+    assert.equal(dictionarySource.match(new RegExp(`"${key.replaceAll(".", "\\.")}"`, "g"))?.length, 2, key);
   }
+});
+
+test("How it works names its steps with the same words as the search loader", () => {
+  const howSource = readProjectFile("src/app/how-it-works/page.tsx");
+  const loadingSource = readProjectFile("src/components/search-loading.tsx");
+
+  for (const key of ["loading.step.understand", "loading.step.retrieve", "loading.step.draft", "loading.step.check"]) {
+    assert.ok(howSource.includes(`"${key}"`), key);
+    assert.ok(loadingSource.includes(`"${key}"`), key);
+  }
+});
+
+test("data source counts match the hadith import report total", () => {
+  const policySource = readProjectFile("src/app/source-policy/page.tsx");
+  const counts = [...policySource.matchAll(/^\s+[a-z_]+: \{ count: (\d+)/gm)].map((match) => Number(match[1]));
+
+  assert.equal(counts.length, 6);
+  assert.equal(counts.reduce((sum, count) => sum + count, 0), 33736);
+});
+
+test("data sources page lists the books as semantic lists and has no privacy section", () => {
+  const policySource = readProjectFile("src/app/source-policy/page.tsx");
+  const shelfSource = readProjectFile("src/components/info/source-books.tsx");
+  const dictionarySource = readProjectFile("src/lib/i18n.ts");
+
+  assert.match(shelfSource, /<ul aria-label=\{label\} className="book-shelf"/);
+  assert.match(shelfSource, /<li className="book-cover"/);
+  assert.doesNotMatch(policySource, /policy\.privacy/);
+  assert.doesNotMatch(dictionarySource, /"policy\.privacy\./);
 });

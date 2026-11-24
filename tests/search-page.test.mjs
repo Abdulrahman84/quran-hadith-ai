@@ -117,3 +117,20 @@ test("long Quran and hadith source text can expand from a five-line preview", ()
   assert.match(expandableSourceText, /aria-controls=\{contentId\}/);
   assert.match(globalStyles, /-webkit-line-clamp: 5/);
 });
+
+test("search loading shows named steps instead of a percentage", () => {
+  const loadingSource = fs.readFileSync(path.join(process.cwd(), "src/components/search-loading.tsx"), "utf8");
+  const displaySource = fs.readFileSync(path.join(process.cwd(), "src/components/search/search-display.ts"), "utf8");
+  const i18nSource = fs.readFileSync(path.join(process.cwd(), "src/lib/i18n.ts"), "utf8");
+
+  for (const key of ["loading.step.understand", "loading.step.retrieve", "loading.step.draft", "loading.step.check"]) {
+    assert.match(loadingSource, new RegExp(`"${key.replaceAll(".", "\\.")}"`));
+    assert.equal(i18nSource.match(new RegExp(`"${key.replaceAll(".", "\\.")}"`, "g"))?.length, 2);
+  }
+
+  assert.match(loadingSource, /data-state=\{state\}/);
+  assert.match(loadingSource, /aria-live="polite"/);
+  assert.doesNotMatch(loadingSource, /\{safeProgress\}%/);
+  assert.match(displaySource, /detail\.sources/);
+  assert.match(displaySource, /detail\.records/);
+});

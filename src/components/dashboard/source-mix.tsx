@@ -18,8 +18,8 @@ export function SourceMix({ language, sources, t }: SourceMixProps) {
   ];
 
   return (
-    <article className="rounded-2xl border border-[var(--color-border)] border-t-[3px] border-t-[var(--color-gold)] bg-[var(--color-surface)] p-5 shadow-[0_12px_34px_rgba(23,26,25,0.05)]">
-      <p className="text-xs font-bold text-[var(--color-green)]">
+    <article className="ledger-card p-5">
+      <p className="page-kicker">
         {t("dashboard.sources.eyebrow")}
       </p>
       <h2 className="mt-2 text-xl font-bold text-[var(--color-ink)]">{t("dashboard.sources.title")}</h2>

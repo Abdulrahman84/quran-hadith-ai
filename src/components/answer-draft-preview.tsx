@@ -9,9 +9,9 @@ type AnswerDraftPreviewProps = {
 
 export function AnswerDraftPreview({ text, title, checkingLabel, dir }: AnswerDraftPreviewProps) {
   return (
-    <div className="w-full self-stretch rounded-xl border border-dashed border-[var(--color-border)] bg-[var(--color-surface)] p-4" aria-busy="true">
-      <p className="mb-3 text-xs font-bold uppercase tracking-[0.14em] text-[var(--color-green-soft)]">{title}</p>
-      <p className="whitespace-pre-wrap text-sm font-semibold leading-8 text-[var(--color-green)]/85" dir={dir}>
+    <div className="answer-block w-full self-stretch" aria-busy="true">
+      <p className="home-section-label">{title}</p>
+      <p className="answer-text answer-text-draft whitespace-pre-wrap" dir={dir}>
         {text}
         <span aria-hidden="true" className="answer-draft-caret" />
       </p>

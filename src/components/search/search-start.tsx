@@ -14,30 +14,26 @@ type SearchStartProps = {
 export function SearchStart({ onSuggestion, t }: SearchStartProps) {
   return (
     <>
-      <div className="animate-rise mt-5 w-full max-w-3xl [animation-delay:220ms]">
-        <div className="flex w-full flex-wrap justify-center gap-2">
+      <div className="home-suggestions animate-rise [animation-delay:200ms]">
+        <p className="home-section-label">{t("home.tryLabel")}</p>
+        <ul>
           {suggestionKeys.map((suggestionKey) => (
-            <button
-              className="chip w-full justify-center whitespace-normal text-center sm:w-auto"
-              key={suggestionKey}
-              onClick={() => onSuggestion(t(suggestionKey))}
-              type="button"
-            >
-              {t(suggestionKey)}
-            </button>
+            <li key={suggestionKey}>
+              <button className="suggestion-row" onClick={() => onSuggestion(t(suggestionKey))} type="button">
+                <span>{t(suggestionKey)}</span>
+                <svg aria-hidden="true" className="suggestion-arrow rtl:rotate-180" fill="none" viewBox="0 0 24 24">
+                  <path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" />
+                </svg>
+              </button>
+            </li>
           ))}
-        </div>
+        </ul>
       </div>
 
-      <div className="animate-rise relative mt-8 w-full max-w-3xl overflow-hidden rounded-3xl border border-[var(--color-gold)]/40 bg-[var(--color-gold)]/10 p-5 shadow-inner [animation-delay:300ms] sm:mt-10 sm:p-9">
-        <span className="absolute -end-7 -top-7 h-28 w-28 rounded-full border border-[var(--color-gold)]/20" aria-hidden="true" />
-        <p className="relative text-base font-bold text-[var(--color-green)]">
-          {t("home.startTitle")}
-        </p>
-        <p className="relative mx-auto mt-3 max-w-xl text-sm font-medium leading-7 text-[var(--color-muted)]">
-          {t("home.startText")}
-        </p>
-      </div>
+      <aside className="home-note animate-rise [animation-delay:260ms]">
+        <p className="home-note-title">{t("home.startTitle")}</p>
+        <p className="home-note-text">{t("home.startText")}</p>
+      </aside>
     </>
   );
 }

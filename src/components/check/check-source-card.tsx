@@ -24,7 +24,7 @@ export function CheckSourceCard({ record, language, t }: CheckSourceCardProps) {
   const grade = record.grade ? formatHadithGrade(record.grade.value, language) : null;
 
   return (
-    <article className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4">
+    <article className="border-t border-[var(--color-border)] pt-4">
       <div className="flex flex-wrap items-start justify-between gap-2">
         <strong className="text-sm font-bold text-[var(--color-green)]">
           {formatSourceRecordTitle(record, language)}

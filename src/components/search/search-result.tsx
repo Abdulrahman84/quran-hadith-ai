@@ -43,12 +43,12 @@ export function SearchResult({
         </p>
       ) : null}
       {retrieval?.answer?.status === "ready" && retrieval.answer.text ? (
-        <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4">
-          <p className="mb-3 text-xs font-bold uppercase tracking-[0.14em] text-[var(--color-green-soft)]">
+        <div className="answer-block">
+          <p className="home-section-label">
             {t("result.answerTitle")}
           </p>
           <p
-            className="whitespace-pre-wrap text-sm font-semibold leading-8 text-[var(--color-green)]"
+            className="answer-text whitespace-pre-wrap"
             dir={language === "ar" ? "rtl" : "ltr"}
           >
             {retrieval.answer.text}

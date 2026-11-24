@@ -32,15 +32,8 @@ export function AdminSignIn({ t }: AdminSignInProps) {
 
   return (
     <div className="relative z-10 mx-auto grid min-h-[calc(100vh-6rem)] w-full max-w-lg place-items-center px-5 py-10 sm:px-8">
-      <section className="w-full rounded-2xl border border-[var(--color-border)] border-t-4 border-t-[var(--color-gold)] bg-[var(--color-surface)] p-6 shadow-[0_20px_54px_rgba(23,26,25,0.1)] sm:p-8">
-        <div className="flex items-center gap-3">
-          <span aria-hidden="true" className="inline-flex items-center">
-            <span className="h-2 w-2 rounded-full bg-[var(--color-gold)]" />
-            <span className="h-px w-6 bg-[var(--color-gold)]/70" />
-            <span className="h-2 w-2 rounded-full bg-[var(--color-red)]" />
-          </span>
-          <p className="text-xs font-bold text-[var(--color-green)]">{t("dashboard.auth.eyebrow")}</p>
-        </div>
+      <section className="w-full ledger-card p-6 sm:p-8">
+        <p className="page-kicker">{t("dashboard.auth.eyebrow")}</p>
         <h1 className="mt-4 text-3xl font-bold text-[var(--color-ink)]">{t("dashboard.auth.title")}</h1>
         <p className="mt-3 text-sm font-medium leading-7 text-[var(--color-muted)]">{t("dashboard.auth.description")}</p>
 
