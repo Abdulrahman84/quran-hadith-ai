@@ -13,7 +13,8 @@
     "mobile:build": "node scripts/build-mobile.mjs && cap sync",
     "mobile:ios": "npm run mobile:build && cap open ios",
     "mobile:android": "npm run mobile:build && cap open android",
-    "mobile:assets": "node scripts/generate-mobile-assets.mjs && npx --yes @capacitor/assets@4.0.0 generate --ios --android --iconBackgroundColor \"#fbfaf5\" --splashBackgroundColor \"#fbfaf5\""
+    "mobile:assets": "npm run brand:assets && npx --yes @capacitor/assets@4.0.0 generate --ios --android --iconBackgroundColor \"#0b5d3e\" --iconBackgroundColorDark \"#0b5d3e\" --splashBackgroundColor \"#fbfaf5\" --splashBackgroundColorDark \"#0b5d3e\"",
+    "brand:assets": "node --no-warnings scripts/generate-brand-assets.mjs"
   },
   "dependencies": {
     "@capacitor/android": "^8.6.2",

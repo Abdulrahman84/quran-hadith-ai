@@ -28,7 +28,8 @@ The mobile build also sets `NEXT_PUBLIC_NATIVE_APP=1`. That switches on the app
 shell, which the website never ships:
 
 - a bottom tab bar (Ask, How it works, Sources) with light haptics instead of
-  the web header menu, and a compact header with the language toggle;
+  the web header menu and footer, and a compact header with a one-tap
+  language toggle;
 - safe-area padding for the notch, Dynamic Island and home indicator
   (`viewport-fit=cover` plus `env(safe-area-inset-*)`), and dark status bar
   icons on the sand background;
@@ -55,7 +56,7 @@ RTL Arabic and LTR English both work in the webview. The language toggle flips
 | `npm run mobile:build` | Export the UI to `out/` and `cap sync` it into `ios/` and `android/` |
 | `npm run mobile:ios` | `mobile:build`, then open the Xcode project |
 | `npm run mobile:android` | `mobile:build`, then open Android Studio |
-| `npm run mobile:assets` | Regenerate app icons and splash screens from `public/brand/sanad-icon-gold-forward.png` |
+| `npm run mobile:assets` | Regenerate the logo files, app icons and splash screens from the vector mark |
 
 To run on a simulator or device without opening the IDE:
 
@@ -82,13 +83,22 @@ The server you point at must have the CORS proxy deployed. For a local API on
 `http://localhost:3000`, add `ALLOW_INSECURE_API_BASE_URL=1`. That only works
 in the iOS Simulator (or with `adb reverse` on Android) and must never ship.
 
-## Icons and splash screens
+## Logo, icons and splash screens
 
-`scripts/generate-mobile-assets.mjs` builds the sources in `assets/` (opaque
-iOS icon, Android adaptive foreground and background, and a 2732px splash on
-the `#fbfaf5` sand background). `@capacitor/assets` then writes every platform
-size into `ios/` and `android/`. Both the sources and the generated images are
-committed. Run `npm run mobile:assets` again after the brand icon changes.
+The Sanad mark (the open book with the gold assistant) lives as vector markup
+in `src/lib/brand-mark.ts`. Everything else is drawn from it:
+
+- the header and footer logo (`SanadLogo`: the mark plus a live-text
+  "سند / Sanad AI" wordmark in the site font);
+- `public/brand/sanad-mark.svg` (favicon), `public/brand/sanad-app-icon.png`
+  (touch icon) and `src/app/icon.png`;
+- `assets/*.png`: the deep-green app icon tile, the Android adaptive icon
+  layers, and splash screens (sand in light mode, deep green in dark mode).
+
+`npm run brand:assets` regenerates the web files and `assets/`.
+`npm run mobile:assets` does that and then writes every iOS and Android size
+with `@capacitor/assets`. Both scripts need Node 23 or later, because they
+import the `.ts` mark directly. The generated images are committed.
 
 ## Notes
 

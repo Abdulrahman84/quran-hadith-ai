@@ -10,7 +10,7 @@ import { SanadLogo } from "@/components/sanad-logo";
 import { isNativeApp } from "@/lib/native-app";
 
 export function SiteHeader() {
-  const { t } = useI18n();
+  const { language, setLanguage, t } = useI18n();
   const pathname = usePathname();
   const mobileNavRef = useRef<HTMLDetailsElement>(null);
 
@@ -56,7 +56,18 @@ export function SiteHeader() {
           <Link className="flex min-w-0 items-center" href="/" aria-label="سند — Sanad AI">
             <SanadLogo />
           </Link>
-          <LanguageSwitcher idPrefix="app-language" />
+          <button
+            aria-label={t("language.switchTo")}
+            className="app-language-toggle"
+            onClick={() => setLanguage(language === "ar" ? "en" : "ar")}
+            type="button"
+          >
+            <svg aria-hidden="true" fill="none" viewBox="0 0 24 24">
+              <circle cx="12" cy="12" r="8.5" stroke="currentColor" strokeWidth="1.6" />
+              <path d="M3.5 12h17M12 3.5c2.3 2.4 3.4 5.2 3.4 8.5s-1.1 6.1-3.4 8.5c-2.3-2.4-3.4-5.2-3.4-8.5s1.1-6.1 3.4-8.5Z" stroke="currentColor" strokeWidth="1.6" />
+            </svg>
+            <span lang={language === "ar" ? "en" : "ar"}>{language === "ar" ? "EN" : "ع"}</span>
+          </button>
         </div>
       </header>
     );

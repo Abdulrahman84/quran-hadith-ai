@@ -85,7 +85,7 @@ export function AppTabBar() {
             key={tab.href}
             onClick={isActive ? scrollToTop : tapFeedback}
           >
-            {tab.icon}
+            <span className="app-tab-icon-wrap">{tab.icon}</span>
             <span className="app-tab-label">{t(tab.labelKey)}</span>
           </Link>
         );

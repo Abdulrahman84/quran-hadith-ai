@@ -4,6 +4,7 @@ import { ConvexClientProvider } from "@/components/convex-client-provider";
 import { I18nProvider } from "@/components/i18n-provider";
 import { AppTabBar } from "@/components/native/app-tab-bar";
 import { NativeAppBridge } from "@/components/native/native-app-bridge";
+import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
 import { isNativeApp } from "@/lib/native-app";
 import "./globals.css";
@@ -26,9 +27,8 @@ export const metadata: Metadata = {
     google: "P4KIgp2oN1afFuRDLRHg20NkD-cAUvc-WTVaow1cbuk",
   },
   icons: {
-    icon: "/brand/sanad-icon-gold-forward.png?v=gold-forward",
-    shortcut: "/brand/sanad-icon-gold-forward.png?v=gold-forward",
-    apple: "/brand/sanad-icon-gold-forward.png?v=gold-forward",
+    icon: [{ url: "/brand/sanad-mark.svg?v=vector-mark", type: "image/svg+xml" }],
+    apple: "/brand/sanad-app-icon.png?v=vector-mark",
   },
 };
 
@@ -59,7 +59,7 @@ export default function RootLayout({
           <I18nProvider>
             <SiteHeader />
             {children}
-            {isNativeApp ? <AppTabBar /> : null}
+            {isNativeApp ? <AppTabBar /> : <SiteFooter />}
             {isNativeApp ? <NativeAppBridge /> : null}
           </I18nProvider>
         </ConvexClientProvider>

@@ -88,3 +88,30 @@ test("Mobile export leaves the Node-only API routes and proxy out of the bundle"
   assert.match(capacitorConfig, /webDir: "out"/);
   assert.doesNotMatch(capacitorConfig, /server:\s*\{[^}]*url/);
 });
+
+test("The logo, favicon and app icons all come from the vector mark", () => {
+  const { markElements, markPalettes } = loadModule("src/lib/brand-mark.ts");
+  const logo = readSource("src/components/sanad-logo.tsx");
+  const layout = readSource("src/app/layout.tsx");
+
+  for (const palette of Object.values(markPalettes)) {
+    const markup = markElements(palette);
+    assert.match(markup, /<path d="M51 18c14 0/);
+    assert.ok(markup.includes(palette.book) && markup.includes(palette.accent));
+  }
+
+  assert.match(logo, /markElements\(markPalettes\.onLight\)/);
+  assert.match(logo, /سند/);
+  assert.doesNotMatch(logo, /<image/);
+  assert.match(layout, /\/brand\/sanad-mark\.svg/);
+
+  for (const file of [
+    "public/brand/sanad-mark.svg",
+    "public/brand/sanad-app-icon.png",
+    "assets/icon-only.png",
+    "assets/splash.png",
+    "ios/App/App/Assets.xcassets/AppIcon.appiconset/AppIcon-512@2x.png",
+  ]) {
+    assert.ok(fs.existsSync(path.join(process.cwd(), file)), `${file} is missing`);
+  }
+});
