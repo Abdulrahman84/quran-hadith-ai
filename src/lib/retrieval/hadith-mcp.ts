@@ -3,6 +3,7 @@ import type { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import type { HadithCollectionSelection } from "./hadith-collections";
 import { planHadithRetrievalQueries } from "./hadith-query-planner";
 import { rerankHadithRecords, type HadithRerankCandidate } from "./hadith-reranker";
+import { formatMcpStderr } from "./mcp-error";
 import { getMcpPayload, withStdioMcpClient, type McpCallResult } from "./mcp-stdio";
 import { planRetrievalQuery, splitFallbackQueries } from "./query-planner";
 import type { RetrievalLanguage, RetrievalResponse, SourceGrade, SourceRecord } from "./types";
@@ -46,19 +47,27 @@ type SearchAttempt = {
   query: string;
 };
 
-const DEFAULT_HADITH_MCP_ROOT = "/Users/abdulrahman/Projects/hadith-mcp";
-const DEFAULT_HADITH_MCP_DB_PATH = `${DEFAULT_HADITH_MCP_ROOT}/data/generated/hadith-meeatif.sqlite`;
-const DEFAULT_HADITH_MCP_CLI = `${DEFAULT_HADITH_MCP_ROOT}/packages/hadith-mcp/dist/cli.js`;
 const HADITH_SEARCH_LIMIT = 12;
 const HADITH_RESULT_LIMIT = 5;
 
-function getHadithMcpConfig() {
-  const command = process.env.HADITH_MCP_COMMAND?.trim() || "node";
-  const cliPath = process.env.HADITH_MCP_CLI_PATH?.trim() || DEFAULT_HADITH_MCP_CLI;
-  const dbPath = process.env.HADITH_MCP_DB_PATH?.trim() || DEFAULT_HADITH_MCP_DB_PATH;
-  const cwd = process.env.HADITH_MCP_CWD?.trim() || DEFAULT_HADITH_MCP_ROOT;
+type HadithMcpConfig = { command: string; cliPath: string; dbPath: string; cwd: string };
 
-  return { command, cliPath, dbPath, cwd };
+function getHadithMcpConfig(): { config: HadithMcpConfig; missing: [] } | { config: null; missing: string[] } {
+  const command = process.env.HADITH_MCP_COMMAND?.trim() || "node";
+  const cliPath = process.env.HADITH_MCP_CLI_PATH?.trim() ?? "";
+  const dbPath = process.env.HADITH_MCP_DB_PATH?.trim() ?? "";
+  const cwd = process.env.HADITH_MCP_CWD?.trim() ?? "";
+  const missing = [
+    ...(cliPath ? [] : ["HADITH_MCP_CLI_PATH"]),
+    ...(dbPath ? [] : ["HADITH_MCP_DB_PATH"]),
+    ...(cwd ? [] : ["HADITH_MCP_CWD"]),
+  ];
+
+  if (missing.length > 0) {
+    return { config: null, missing };
+  }
+
+  return { config: { command, cliPath, dbPath, cwd }, missing: [] };
 }
 
 function isSearchHadithOutput(value: unknown): value is SearchHadithOutput {
@@ -185,8 +194,24 @@ export async function searchHadithSources(
 ): Promise<RetrievalResponse> {
   const planned = planRetrievalQuery(query, language);
   const collection = options.collection ?? "all";
-  const config = getHadithMcpConfig();
-  const stderrChunks: string[] = [];
+  const { config, missing } = getHadithMcpConfig();
+
+  if (!config) {
+    return {
+      status: "error",
+      query,
+      retrievalQuery: planned.retrievalQuery,
+      sourceMode: "hadith-only",
+      records: [],
+      warnings: [
+        {
+          code: "hadith_mcp_not_configured",
+          message: `Hadith MCP is not configured. Set ${missing.join(", ")}.`,
+        },
+      ],
+      provenanceNotes: [],
+    };
+  }
 
   try {
     return await withStdioMcpClient(
@@ -202,31 +227,33 @@ export async function searchHadithSources(
         const candidates = new Map<string, HadithRerankCandidate>();
         const successfulQueries: string[] = [];
         const hadithQueryPlan = await planHadithRetrievalQueries(query, language, planned.retrievalQuery);
+        const collectAttempts = (attempts: Array<SearchAttempt | null>, firstSearchOrder: number) => {
+          attempts.forEach((attempt, index) => {
+            if (attempt) {
+              successfulQueries.push(attempt.query);
+              addSearchAttemptCandidates(candidates, attempt, firstSearchOrder + index);
+            }
+          });
+        };
 
-        for (const [searchOrder, searchQuery] of hadithQueryPlan.queries.entries()) {
-          const attempt = await callSearchHadith(client, searchQuery, language, collection);
-
-          if (attempt) {
-            successfulQueries.push(attempt.query);
-            addSearchAttemptCandidates(candidates, attempt, searchOrder);
-          }
-        }
+        collectAttempts(
+          await Promise.all(
+            hadithQueryPlan.queries.map((searchQuery) => callSearchHadith(client, searchQuery, language, collection)),
+          ),
+          0,
+        );
 
         if (candidates.size === 0) {
-          const fallbackQueries = splitFallbackQueries(query, language);
+          const fallbackQueries = splitFallbackQueries(query, language).filter(
+            (fallbackQuery) => fallbackQuery !== planned.retrievalQuery,
+          );
 
-          for (const [fallbackIndex, fallbackQuery] of fallbackQueries.entries()) {
-            if (fallbackQuery === planned.retrievalQuery) {
-              continue;
-            }
-
-            const fallbackAttempt = await callSearchHadith(client, fallbackQuery, language, collection);
-
-            if (fallbackAttempt) {
-              successfulQueries.push(fallbackAttempt.query);
-              addSearchAttemptCandidates(candidates, fallbackAttempt, hadithQueryPlan.queries.length + fallbackIndex);
-            }
-          }
+          collectAttempts(
+            await Promise.all(
+              fallbackQueries.map((fallbackQuery) => callSearchHadith(client, fallbackQuery, language, collection)),
+            ),
+            hadithQueryPlan.queries.length,
+          );
         }
 
         if (successfulQueries.length === 0) {
@@ -242,7 +269,7 @@ export async function searchHadithSources(
                 message: "Hadith MCP returned a response the product app could not normalize.",
               },
             ],
-            provenanceNotes: stderr.join("").trim() ? [stderr.join("").trim()] : [],
+            provenanceNotes: formatMcpStderr(stderr) ? [formatMcpStderr(stderr)] : [],
           };
         }
 
@@ -270,6 +297,7 @@ export async function searchHadithSources(
       },
     );
   } catch (error) {
+    // withStdioMcpClient already appends the server's recent stderr to the error message.
     const message = error instanceof Error ? error.message : "Unknown Hadith MCP error.";
 
     return {
@@ -284,7 +312,7 @@ export async function searchHadithSources(
           message,
         },
       ],
-      provenanceNotes: stderrChunks.join("").trim() ? [stderrChunks.join("").trim()] : [],
+      provenanceNotes: [],
     };
   }
 }
