@@ -75,7 +75,7 @@ export async function searchSources(
   const questionRewrite = startQuestionRewrite(query, language);
   // With QURAN_SEARCH_MODE=hybrid the question is embedded now too, so the Quran vector search is
   // usually done by the time routing and the keyword search finish. Explicit hadith-only requests skip it.
-  const quranVectorSearch = isExplicitHadithOnlyRequest(query) ? undefined : startQuranVectorSearch(query, questionRewrite);
+  const quranVectorSearch = isExplicitHadithOnlyRequest(query) ? undefined : startQuranVectorSearch(query);
   const routeDecision = await planSourceRouteDecision(query);
   const routes = routeDecision.routes;
   onProgress?.(0, routes.length, routes);

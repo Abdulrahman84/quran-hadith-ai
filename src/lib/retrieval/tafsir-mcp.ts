@@ -4,7 +4,7 @@ import { formatMcpStderr } from "./mcp-error";
 import { getMcpPayload, withStdioMcpClient, type McpCallResult } from "./mcp-stdio";
 import { planRetrievalQuery, splitFallbackQueries } from "./query-planner";
 import type { QuestionRewrite } from "./question-rewrite";
-import { fuseAyahRankings, QURAN_FUSION_K, type QuranVectorSearch } from "./quran-hybrid";
+import { fuseAyahRankings, QURAN_FUSION_K, quranVectorWaitMs, type QuranVectorSearch, type QuranVectorSearchHandle } from "./quran-hybrid";
 import { resolveTafsirSources, type TafsirSourceSelection } from "./tafsir-sources";
 import {
   normalizeFetchedAyahWithTafsir,
@@ -242,8 +242,8 @@ async function fetchAyahRecords(client: Client, verseKey: string, tafsirSources:
 
 /**
  * Reciprocal rank fusion of the keyword ayahs (in the order the keyword search returned them) with
- * the embedding searches. The question's and the rewrite's vector lists share one vote, so together
- * they weigh the same as the keyword list, as in Hadith MCP's own hybrid search. Each ayah's lead
+ * the embedding search. Vector lists share one vote, so together they weigh the same as the keyword
+ * list, as in Hadith MCP's own hybrid search. Each ayah's lead
  * record (its verse, or its tafsir when the keyword search only matched tafsir text) comes first in
  * fused order, then the rest of each ayah's records: the same shape the keyword search returns.
  */
@@ -288,7 +288,16 @@ async function fuseWithVectorSearch(
   };
 }
 
-function vectorProvenanceNotes(vectorSearch: QuranVectorSearch | null, hybrid: HybridOutcome | null, waitMs: number) {
+function vectorProvenanceNotes(
+  vectorSearch: QuranVectorSearch | null,
+  hybrid: HybridOutcome | null,
+  waitMs: number,
+  exactVerse: boolean,
+) {
+  if (exactVerse) {
+    return ["Quran semantic search skipped: the question names a verse, which is fetched directly."];
+  }
+
   if (vectorSearch === null) {
     return [];
   }
@@ -298,13 +307,13 @@ function vectorProvenanceNotes(vectorSearch: QuranVectorSearch | null, hybrid: H
   }
 
   if (hybrid === null) {
-    return ["Quran semantic search skipped: the question names a verse, which is fetched directly."];
+    return [];
   }
 
   const queries = vectorSearch.lists.map((list) => list.query).join(" | ");
   return [
     `Quran search: hybrid, reciprocal rank fusion (k=${QURAN_FUSION_K}, keyword and embedding lists weighted equally) of ${hybrid.keywordAyahs} keyword-matched ayahs and the nearest of ${vectorSearch.indexSize} ayah embeddings (${vectorSearch.model} via ${vectorSearch.provider}) for: ${queries}.`,
-    `Quran semantic search added ${hybrid.addedAyahs} ayahs the keyword search did not find. Timing: embeddings ready at ${vectorSearch.ms} ms, keyword search waited ${waitMs} ms for them, fetching added ayahs ${hybrid.fetchMs} ms.`,
+    `Quran semantic search added ${hybrid.addedAyahs} ayahs the keyword search did not find. Timing: vector lists collected ${vectorSearch.ms} ms after the question arrived, keyword search waited ${waitMs} ms for them, fetching added ayahs ${hybrid.fetchMs} ms.`,
     "Embedding similarity finds related meaning; it does not verify a quotation.",
   ];
 }
@@ -316,7 +325,7 @@ export async function searchTafsirSources(
     tafsirSource?: TafsirSourceSelection;
     questionRewrite?: Promise<QuestionRewrite>;
     /** Set when QURAN_SEARCH_MODE=hybrid; see startQuranVectorSearch. */
-    vectorSearch?: Promise<QuranVectorSearch>;
+    vectorSearch?: QuranVectorSearchHandle;
   } = {},
 ): Promise<RetrievalResponse> {
   const planned = planRetrievalQuery(query, language);
@@ -390,12 +399,10 @@ export async function searchTafsirSources(
 
         // A verse named by reference is already the answer; the embedding search would only add noise.
         const vectorWaitStartedAt = Date.now();
-        const vectorSearch = options.vectorSearch ? await options.vectorSearch : null;
+        const vectorSearch = options.vectorSearch && !exactVerse ? await options.vectorSearch.collect(quranVectorWaitMs(process.env)) : null;
         const waitMs = Date.now() - vectorWaitStartedAt;
         const hybrid =
-          vectorSearch?.status === "ok" && !exactVerse
-            ? await fuseWithVectorSearch(client, records, vectorSearch, selectedTafsirSources)
-            : null;
+          vectorSearch?.status === "ok" ? await fuseWithVectorSearch(client, records, vectorSearch, selectedTafsirSources) : null;
         records = hybrid?.records ?? records;
 
         return {
@@ -410,7 +417,7 @@ export async function searchTafsirSources(
             ...(rewrite?.fusha ? [`Question rewritten for search: ${rewrite.fusha}`] : []),
             `Timing (tafsir): ${attemptMs.length} search attempts across ${tafsirSearchSources(selectedTafsirSources, language).length} searched tafsir works (${attemptMs.join(" + ")} ms), total ${Date.now() - startedAt} ms.`,
             ...(planned.changed || retrievalQuery !== query ? [`Product query planner searched Tafsir MCP for: ${retrievalQuery}`] : []),
-            ...vectorProvenanceNotes(vectorSearch, hybrid, waitMs),
+            ...(options.vectorSearch ? vectorProvenanceNotes(vectorSearch, hybrid, waitMs, exactVerse) : []),
             ...(formatMcpStderr(stderr) ? [formatMcpStderr(stderr)] : []),
           ],
         };

@@ -1,5 +1,4 @@
 import { createQueryEmbedder, type QueryEmbedder } from "./query-embedding";
-import type { QuestionRewrite } from "./question-rewrite";
 import { getQuranVectorIndex, searchQuranVectorIndex, type QuranVectorHit, type QuranVectorIndex } from "./quran-vector-index";
 
 export type QuranSearchMode = "lexical" | "hybrid";
@@ -17,10 +16,18 @@ export function getQuranSearchMode(env: Env = process.env): QuranSearchMode {
 export type QuranVectorList = { query: string; hits: QuranVectorHit[] };
 
 export type QuranVectorSearch =
-  | { status: "ok"; lists: QuranVectorList[]; model: string; provider: string; indexSize: number; ms: number }
+  | {
+      status: "ok";
+      lists: QuranVectorList[];
+      model: string;
+      provider: string;
+      indexSize: number;
+      /** When the lists were collected, counted from when the question arrived. */
+      ms: number;
+    }
   | { status: "unavailable"; reason: string };
 
-/** Nearest ayahs taken from each vector search, before fusion. */
+/** Nearest ayahs taken from the vector search, before fusion. */
 export const QURAN_VECTOR_CANDIDATES = 20;
 
 type VectorSearchDeps = {
@@ -34,66 +41,104 @@ function errorMessage(error: unknown) {
 }
 
 /**
- * Embeds the question, and the Fusha rewrite once it arrives, and finds the nearest ayahs for
- * each. The source router starts this alongside its routing model call, so it is usually done
- * before the keyword search. Never rejects: a missing index or embedding API gives "unavailable".
+ * The vector search runs in the background while routing and the keyword search run. collect()
+ * waits for it until budgetMs after the question arrived, and no longer, so a slow embedding API
+ * costs a bounded wait instead of the full embedding timeout. When routing and the keyword search
+ * already took that long, it uses the vectors only if they are ready.
  */
-export async function searchQuranVectors(
-  query: string,
-  questionRewrite: Promise<QuestionRewrite> | undefined,
-  deps: VectorSearchDeps = {},
-): Promise<QuranVectorSearch> {
+export type QuranVectorSearchHandle = { collect(budgetMs: number): Promise<QuranVectorSearch> };
+
+/**
+ * OpenRouter's bge-m3 usually answers in 0.4 to 0.9 s and sometimes takes 2 s (November 2026). Most
+ * questions spend longer than this on the routing model call, so they never wait.
+ */
+export const QURAN_VECTOR_WAIT_MS = 2000;
+
+export function quranVectorWaitMs(env: Env = process.env) {
+  const value = Number.parseInt(env.QURAN_VECTOR_WAIT_MS ?? "", 10);
+  return Number.isFinite(value) && value >= 0 ? value : QURAN_VECTOR_WAIT_MS;
+}
+
+const unavailable = (reason: string): QuranVectorSearchHandle => ({
+  collect: async () => ({ status: "unavailable", reason }),
+});
+
+type Settled<T> = { ok: true; value: T } | { ok: false; reason: string };
+
+/**
+ * Starts embedding the question and finding its nearest ayahs. Never rejects: a missing index or a
+ * failed embedding gives "unavailable".
+ *
+ * Only the user's own question is embedded, not the Fusha rewrite: the keyword search already
+ * searches the rewrite, and OpenRouter serves parallel embedding calls noticeably slower (0.5 s
+ * alone, 1 to 2 s with three others in flight), which also slows the Hadith MCP's own calls.
+ */
+export function searchQuranVectors(query: string, deps: VectorSearchDeps = {}): QuranVectorSearchHandle {
   const env = deps.env ?? process.env;
   const startedAt = Date.now();
   const indexPath = env.QURAN_EMBEDDINGS_PATH?.trim();
 
   if (!indexPath) {
-    return { status: "unavailable", reason: "no Quran embedding index configured (QURAN_EMBEDDINGS_PATH)." };
+    return unavailable("no Quran embedding index configured (QURAN_EMBEDDINGS_PATH).");
   }
 
   const embedder = deps.embedder === undefined ? createQueryEmbedder(env) : deps.embedder;
 
   if (!embedder) {
-    return { status: "unavailable", reason: "no embedding provider configured." };
+    return unavailable("no embedding provider configured.");
   }
 
   const indexModel = env.EMBEDDINGS_INDEX_MODEL?.trim() || embedder.model;
+  const indexPromise = getQuranVectorIndex(indexPath, indexModel, deps.loadIndex);
+  const questionList: Promise<Settled<{ list: QuranVectorList; index: QuranVectorIndex }>> = Promise.all([
+    embedder.embed([query]),
+    indexPromise,
+  ]).then(
+    ([[vector], index]) => ({
+      ok: true,
+      value: { list: { query, hits: searchQuranVectorIndex(index, vector, QURAN_VECTOR_CANDIDATES) }, index },
+    }),
+    (error: unknown) => ({ ok: false, reason: errorMessage(error) }),
+  );
 
-  try {
-    const indexPromise = getQuranVectorIndex(indexPath, indexModel, deps.loadIndex);
-    const searchFor = async (text: string): Promise<QuranVectorList> => {
-      const [[vector], index] = await Promise.all([embedder.embed([text]), indexPromise]);
-      return { query: text, hits: searchQuranVectorIndex(index, vector, QURAN_VECTOR_CANDIDATES) };
-    };
-    // A rewrite failure only loses the second list; the question's own list still counts.
-    const rewriteList = (questionRewrite ?? Promise.resolve(null))
-      .then((rewrite) => (rewrite?.fusha ? searchFor(rewrite.fusha) : null))
-      .catch(() => null);
-    const [questionList, rewrittenList, index] = await Promise.all([searchFor(query), rewriteList, indexPromise]);
+  return {
+    async collect(budgetMs) {
+      let timer: ReturnType<typeof setTimeout> | undefined;
+      const deadline = new Promise<"late">((resolve) => {
+        timer = setTimeout(() => resolve("late"), Math.max(0, startedAt + budgetMs - Date.now()));
+      });
 
-    return {
-      status: "ok",
-      lists: rewrittenList ? [questionList, rewrittenList] : [questionList],
-      model: index.model,
-      provider: embedder.provider,
-      indexSize: index.size,
-      ms: Date.now() - startedAt,
-    };
-  } catch (error) {
-    return { status: "unavailable", reason: errorMessage(error) };
-  }
+      try {
+        const question = await Promise.race([questionList, deadline]);
+
+        if (question === "late") {
+          return { status: "unavailable", reason: `the question's embedding was not ready within ${budgetMs} ms.` };
+        }
+
+        if (!question.ok) {
+          return { status: "unavailable", reason: question.reason };
+        }
+
+        const { list, index } = question.value;
+
+        return {
+          status: "ok",
+          lists: [list],
+          model: index.model,
+          provider: embedder.provider,
+          indexSize: index.size,
+          ms: Date.now() - startedAt,
+        };
+      } finally {
+        clearTimeout(timer);
+      }
+    },
+  };
 }
 
-/**
- * Starts the vector search without letting an unused result go unhandled (hadith-only routes never
- * await it). Returns undefined when Quran search is not hybrid.
- */
-export function startQuranVectorSearch(
-  query: string,
-  questionRewrite: Promise<QuestionRewrite> | undefined,
-  env: Env = process.env,
-): Promise<QuranVectorSearch> | undefined {
-  return getQuranSearchMode(env) === "hybrid" ? searchQuranVectors(query, questionRewrite, { env }) : undefined;
+/** Starts the vector search when Quran search is hybrid; returns undefined otherwise. */
+export function startQuranVectorSearch(query: string, env: Env = process.env): QuranVectorSearchHandle | undefined {
+  return getQuranSearchMode(env) === "hybrid" ? searchQuranVectors(query, { env }) : undefined;
 }
 
 export const QURAN_FUSION_K = 60;

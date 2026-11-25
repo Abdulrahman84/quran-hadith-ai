@@ -20,6 +20,7 @@ function loadModule(filename, { env = {}, stubs = {}, globals = {} } = {}) {
     URL,
     AbortSignal,
     setTimeout,
+    clearTimeout,
     ...globals,
     require: (id) => (id in stubs ? stubs[id] : fallbackRequire(id)),
   };
@@ -64,7 +65,9 @@ test("Quran search mode defaults to lexical and accepts hybrid", () => {
   assert.equal(loadHybrid().getQuranSearchMode({}), "lexical");
   assert.equal(loadHybrid().getQuranSearchMode({ QURAN_SEARCH_MODE: "vector" }), "lexical");
   assert.equal(loadHybrid().getQuranSearchMode({ QURAN_SEARCH_MODE: " Hybrid " }), "hybrid");
-  assert.equal(loadHybrid().startQuranVectorSearch("الصبر", undefined, {}), undefined);
+  assert.equal(loadHybrid().startQuranVectorSearch("الصبر", {}), undefined);
+  assert.equal(loadHybrid().quranVectorWaitMs({}), 2000);
+  assert.equal(loadHybrid().quranVectorWaitMs({ QURAN_VECTOR_WAIT_MS: "250" }), 250);
 });
 
 test("ayah rankings fuse by reciprocal rank, counting duplicates once and keeping the keyword list ahead on ties", () => {
@@ -138,37 +141,40 @@ function fakeEmbedder(vectorsByText, calls = []) {
   };
 }
 
-test("the vector search embeds the question and its Fusha rewrite against the index", async () => {
+test("the vector search embeds the question once and returns its nearest ayahs", async () => {
   const file = writeTinyIndex();
   const calls = [];
-  const search = await loadHybrid().searchQuranVectors("وش معنى قل هو الله", Promise.resolve({ fusha: "سورة الإخلاص", warning: null }), {
-    env: { QURAN_EMBEDDINGS_PATH: file },
-    embedder: fakeEmbedder({ "وش معنى قل هو الله": unit([0.1, 0, 1]), "سورة الإخلاص": unit([0, 0.2, 1]) }, calls),
-  });
+  const search = await loadHybrid()
+    .searchQuranVectors("وش معنى قل هو الله", {
+      env: { QURAN_EMBEDDINGS_PATH: file },
+      embedder: fakeEmbedder({ "وش معنى قل هو الله": unit([0.1, 0, 1]) }, calls),
+    })
+    .collect(1000);
 
   assert.equal(search.status, "ok");
-  assert.deepEqual(calls, ["وش معنى قل هو الله", "سورة الإخلاص"]);
-  assert.equal(search.lists.length, 2);
+  assert.deepEqual(calls, ["وش معنى قل هو الله"]);
+  assert.equal(search.lists.length, 1);
   assert.equal(search.lists[0].hits[0].verseKey, "112:1");
   assert.equal(search.indexSize, 3);
 });
 
 test("the vector search reports why it is unavailable instead of failing", async () => {
-  const { searchQuranVectors } = loadHybrid();
+  const { searchQuranVectors: start } = loadHybrid();
+  const searchQuranVectors = (...args) => start(...args).collect(1000);
   const file = writeTinyIndex();
 
-  const noPath = await searchQuranVectors("الصبر", undefined, { env: {}, embedder: fakeEmbedder({}) });
+  const noPath = await searchQuranVectors("الصبر", { env: {}, embedder: fakeEmbedder({}) });
   assert.equal(noPath.status, "unavailable");
   assert.match(noPath.reason, /QURAN_EMBEDDINGS_PATH/);
 
-  const noProvider = await searchQuranVectors("الصبر", undefined, { env: { QURAN_EMBEDDINGS_PATH: file }, embedder: null });
+  const noProvider = await searchQuranVectors("الصبر", { env: { QURAN_EMBEDDINGS_PATH: file }, embedder: null });
   assert.match(noProvider.reason, /no embedding provider/);
 
-  const apiDown = await searchQuranVectors("الصبر", undefined, { env: { QURAN_EMBEDDINGS_PATH: file }, embedder: fakeEmbedder({}) });
+  const apiDown = await searchQuranVectors("الصبر", { env: { QURAN_EMBEDDINGS_PATH: file }, embedder: fakeEmbedder({}) });
   assert.equal(apiDown.status, "unavailable");
   assert.match(apiDown.reason, /no vector for/);
 
-  const missingFile = await searchQuranVectors("الصبر", undefined, {
+  const missingFile = await searchQuranVectors("الصبر", {
     env: { QURAN_EMBEDDINGS_PATH: path.join(path.dirname(file), "missing.bin") },
     embedder: fakeEmbedder({ الصبر: unit([1, 0, 0]) }),
   });
@@ -176,42 +182,34 @@ test("the vector search reports why it is unavailable instead of failing", async
   assert.match(missingFile.reason, /ENOENT/);
 });
 
-test("a failed rewrite still leaves the question's own vector list", async () => {
-  const file = writeTinyIndex();
-  const search = await loadHybrid().searchQuranVectors("الصبر", Promise.resolve({ fusha: "لا متجه له", warning: null }), {
-    env: { QURAN_EMBEDDINGS_PATH: file },
-    embedder: fakeEmbedder({ الصبر: unit([1, 0, 0]) }),
-  });
-
-  assert.equal(search.status, "ok");
-  assert.equal(search.lists.length, 1);
-});
-
-test("the query embedder uses OpenRouter with the app key and cleans harakat from the query", async () => {
-  const requests = [];
-  const fetchImpl = async (url, init) => {
-    requests.push({ url, init });
-    return new Response(JSON.stringify({ data: [{ index: 0, embedding: [3, 4] }] }), { status: 200 });
+function slowEmbedder(delays) {
+  return {
+    provider: "fake",
+    model: "bge-m3",
+    embed: ([text]) => new Promise((resolve) => setTimeout(() => resolve([Float32Array.from(unit([1, 0, 0]))]), delays[text])),
   };
-  const { createQueryEmbedder } = loadModule(path.join(retrievalDir, "query-embedding.ts"), {
-    stubs: { "./hadith-hybrid": loadModule(path.join(retrievalDir, "hadith-hybrid.ts")) },
-  });
-  const embedder = createQueryEmbedder(
-    {
-      EMBEDDINGS_PROVIDER: "openai",
-      EMBEDDINGS_BASE_URL: "https://openrouter.ai/api/v1/",
-      EMBEDDINGS_MODEL: "baai/bge-m3",
-      OPENROUTER_API_KEY: "or-key",
-    },
-    fetchImpl,
-  );
-  const [vector] = await embedder.embed(["الصَّبْرُ"]);
+}
 
-  assert.equal(requests[0].url, "https://openrouter.ai/api/v1/embeddings");
-  assert.equal(requests[0].init.headers.Authorization, "Bearer or-key");
-  assert.deepEqual(JSON.parse(requests[0].init.body), { model: "baai/bge-m3", input: ["الصبر"] });
-  assert.deepEqual([...vector].map((value) => Number(value.toFixed(3))), [0.6, 0.8]);
-  assert.equal(createQueryEmbedder({ EMBEDDINGS_PROVIDER: "none" }, fetchImpl), null);
+test("the keyword search waits a bounded time for a slow embedding, then gives up", async () => {
+  const file = writeTinyIndex();
+  const { searchQuranVectors } = loadHybrid();
+  const env = { QURAN_EMBEDDINGS_PATH: file };
+
+  const quick = await searchQuranVectors("الصبر", { env, embedder: slowEmbedder({ الصبر: 5 }) }).collect(200);
+  assert.equal(quick.status, "ok");
+
+  const startedAt = Date.now();
+  const late = await searchQuranVectors("الصبر", { env, embedder: slowEmbedder({ الصبر: 500 }) }).collect(40);
+  assert.equal(late.status, "unavailable");
+  assert.match(late.reason, /not ready within 40 ms/);
+  assert.ok(Date.now() - startedAt < 300);
+
+  // The budget counts from when the question arrived: a search collected after it ran out does not wait.
+  const handle = searchQuranVectors("الصبر", { env, embedder: slowEmbedder({ الصبر: 500 }) });
+  await new Promise((resolve) => setTimeout(resolve, 60));
+  const collectStartedAt = Date.now();
+  assert.equal((await handle.collect(50)).status, "unavailable");
+  assert.ok(Date.now() - collectStartedAt < 30);
 });
 
 // Tafsir MCP integration: keyword search through a stubbed MCP client, vector search injected.
@@ -258,7 +256,16 @@ function tafsirServer({ quranHits = [] } = {}) {
   };
 }
 
-const vectorOk = (...lists) => Promise.resolve({ status: "ok", lists: lists.map((keys, index) => ({ query: `q${index}`, hits: keys.map((verseKey) => ({ verseKey, similarity: 0.6 })) })), model: "bge-m3", provider: "fake", indexSize: 6236, ms: 5 });
+const vectorHandle = (search) => ({ collect: async () => search });
+const vectorOk = (...lists) =>
+  vectorHandle({
+    status: "ok",
+    lists: lists.map((keys, index) => ({ query: `q${index}`, hits: keys.map((verseKey) => ({ verseKey, similarity: 0.6 })) })),
+    model: "bge-m3",
+    provider: "fake",
+    indexSize: 6236,
+    ms: 5,
+  });
 
 test("hybrid Quran search fuses keyword and vector ayahs, verses first, and fetches what only the vectors found", async () => {
   const { tafsirMcp, calls } = loadTafsirMcp(tafsirServer({ quranHits: [[2, 184], [2, 183]] }));
@@ -311,7 +318,7 @@ test("an unavailable vector search falls back to keyword results with a provenan
   const { tafsirMcp } = loadTafsirMcp(tafsirServer({ quranHits: [[94, 5]] }));
   const response = await tafsirMcp.searchTafsirSources("فإن مع العسر يسرا", "arabic", {
     tafsirSource: "moyassar",
-    vectorSearch: Promise.resolve({ status: "unavailable", reason: "the Quran index was built with bge-m3, but EMBEDDINGS_INDEX_MODEL is x." }),
+    vectorSearch: vectorHandle({ status: "unavailable", reason: "the Quran index was built with bge-m3, but EMBEDDINGS_INDEX_MODEL is x." }),
   });
 
   assert.deepEqual(
@@ -323,10 +330,13 @@ test("an unavailable vector search falls back to keyword results with a provenan
 
 test("a verse named by reference is fetched directly, without vector additions", async () => {
   const { tafsirMcp, calls } = loadTafsirMcp(tafsirServer());
+  let collected = false;
   const response = await tafsirMcp.searchTafsirSources("2:183", "english", {
     tafsirSource: "moyassar",
-    vectorSearch: vectorOk(["2:185", "2:184"]),
+    vectorSearch: { collect: async () => ((collected = true), { status: "unavailable", reason: "unused" }) },
   });
+
+  assert.equal(collected, false, "the vector search is not waited for");
 
   assert.deepEqual([...new Set(response.records.map((record) => record.verseKey))], ["2:183"]);
   assert.equal(calls.filter((call) => call.name === "fetch_ayah").length, 1);
