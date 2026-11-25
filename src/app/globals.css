@@ -159,7 +159,7 @@ textarea {
   display: block;
   flex: none;
   width: auto;
-  height: 2.75rem;
+  height: 3rem;
   overflow: visible;
 }
 
@@ -189,7 +189,7 @@ textarea {
 
 @media (min-width: 768px) {
   .sanad-mark {
-    height: 3.1rem;
+    height: 3.4rem;
   }
 
   .sanad-logo-arabic {
@@ -961,7 +961,7 @@ html[data-native-app] .site-header-inner {
 }
 
 html[data-native-app] .site-header .sanad-mark {
-  height: 2.2rem;
+  height: 2.6rem;
 }
 
 html[data-native-app] .site-header .sanad-logo-arabic {

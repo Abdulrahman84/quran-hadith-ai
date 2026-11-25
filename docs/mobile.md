@@ -91,14 +91,19 @@ Android blocks plain HTTP by default. Neither setting may ship.
 
 ## Logo, icons and splash screens
 
-The Sanad mark is an open book with the gold assistant set into its gutter,
-drawn on a 64-unit grid with one stroke weight for the covers and one for the
-pages so it stays legible at favicon size. It lives as vector markup in
-`src/lib/brand-mark.ts`. Everything else is drawn from it:
+The Sanad mark is a friendly robot reading an open book that rests on a rahl
+(رحل), the folding stand used for the Quran. It is flat colour on a 64-unit
+grid; the book sits in front of the robot's chin and the stand with a
+transparent gap (an SVG mask), so it works on any background. It lives as
+vector markup in `src/lib/brand-mark.ts`, with a light tone for sand and
+paper and a dark tone for the green app icon. Everything else is drawn from
+it:
 
 - the header and footer logo (`SanadLogo`: the mark plus a live-text
   "سند / Sanad AI" wordmark set in Readex Pro);
-- `public/brand/sanad-mark.svg` (favicon), `public/brand/sanad-app-icon.png`
+- `public/brand/sanad-favicon.svg`, the browser tab icon: the head alone,
+  because the book and stand blur at 16-32px;
+- `public/brand/sanad-mark.svg` (the full mark), `public/brand/sanad-app-icon.png`
   (touch icon) and `src/app/icon.png`;
 - `assets/*.png`: the deep-green app icon tile, the Android adaptive icon
   layers, and splash screens (sand in light mode, deep green in dark mode).
