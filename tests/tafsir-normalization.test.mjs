@@ -179,3 +179,17 @@ test("plans Quran phrase searches without dropping Quranic stop words", () => {
     "تفسير آية كل من عليها فان",
   ]);
 });
+
+test("drops a phrase naming the Quran as the source, keeps the Quran as a topic", () => {
+  const { planTafsirSearchQueries, withoutQuranSourcePhrase } = loadTafsirNormalizer();
+
+  assert.deepEqual(Array.from(planTafsirSearchQueries("بر الوالدين في القرآن", "arabic")), [
+    "بر الوالدين",
+    "بر الوالدين في القرآن",
+  ]);
+  assert.equal(withoutQuranSourcePhrase("الصبر من القران الكريم؟", "arabic"), "الصبر؟");
+  assert.equal(withoutQuranSourcePhrase("الامانة بالقرآن", "arabic"), "الامانة");
+  assert.equal(withoutQuranSourcePhrase("فضل القرآن", "arabic"), "فضل القرآن");
+  assert.equal(withoutQuranSourcePhrase("في القرآن", "arabic"), "في القرآن");
+  assert.equal(withoutQuranSourcePhrase("patience in the Quran", "english"), "patience in the Quran");
+});

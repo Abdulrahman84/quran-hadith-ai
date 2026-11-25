@@ -229,6 +229,20 @@ test("Egyptian «ايه» (what) is not read as «آية» (verse)", () => {
   assert.equal(isExplicitQuranOnlyRequest("تفسير ايه الكرسي"), true);
 });
 
+test("the Quran as a topic is not a request to search only the Quran", () => {
+  const { isExplicitQuranOnlyRequest } = loadSourceIntent();
+
+  assert.equal(isExplicitQuranOnlyRequest("شنو ثواب اللي يقرا قرآن كل يوم"), false);
+  assert.equal(isExplicitQuranOnlyRequest("فضل حفظ القرآن"), false);
+  assert.equal(isExplicitQuranOnlyRequest("reward for reciting the Quran"), false);
+
+  assert.equal(isExplicitQuranOnlyRequest("بر الوالدين في القرآن"), true);
+  assert.equal(isExplicitQuranOnlyRequest("شو بيحكي القرآن عن الصبر"), true);
+  assert.equal(isExplicitQuranOnlyRequest("What does the Quran say about kindness to parents?"), true);
+  assert.equal(isExplicitQuranOnlyRequest("Quran on backbiting"), true);
+  assert.equal(isExplicitQuranOnlyRequest("the Quran about patience"), true);
+});
+
 test("heuristic routing treats ta marbuta spellings the same", () => {
   const { heuristicSourceRoutes, isExplicitQuranOnlyRequest } = loadSourceIntent();
 
