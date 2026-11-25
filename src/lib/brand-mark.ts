@@ -13,6 +13,12 @@ export type MarkPalette = {
   /** The face panel inside the shell. */
   screen: string;
   eye: string;
+  /**
+   * A centred pupil inside a pale eye. Without one the eye is solid and the
+   * highlight sits in its upper corner, which works for dark eyes; a dark dot
+   * in a pale eye off centre reads as a sideways glance.
+   */
+  pupil?: string;
   /** Small highlight in each eye. */
   shine: string;
   /** Antenna, ear bolts and the rahl. */
@@ -38,13 +44,12 @@ export const markPalettes = {
     pages: "#FBFAF5",
     trim: "#C69A4B",
   },
-  // The deep-green app icon tile and dark splash screen. The face matches the
-  // light version (dark eyes, light highlight): pale eyes with a dark dot read
-  // as pupils glancing up and to the side.
+  // The deep-green app icon tile and dark splash screen.
   onDark: {
     shell: "#FBFAF5",
-    screen: "#FBFAF5",
-    eye: "#0B5D3E",
+    screen: "#0B5D3E",
+    eye: "#FBFAF5",
+    pupil: "#0B5D3E",
     shine: "#FBFAF5",
     accent: "#D6B264",
     book: "#D6B264",
@@ -75,10 +80,18 @@ function headElements(palette: MarkPalette, cx: number, cy: number, w: number) {
   const eyes = [-1, 1]
     .map((side) => {
       const ex = cx + side * w * 0.19;
-      return (
-        `<circle class="sanad-mark-eye" cx="${n(ex)}" cy="${n(eyeY)}" r="${n(2.7 * k)}" fill="${palette.eye}"/>` +
-        `<circle cx="${n(ex - 0.7 * k)}" cy="${n(eyeY - 0.8 * k)}" r="${n(0.7 * k)}" fill="${palette.shine}"/>`
-      );
+      const r = 2.7 * k;
+      const eye = `<circle class="sanad-mark-eye" cx="${n(ex)}" cy="${n(eyeY)}" r="${n(r)}" fill="${palette.eye}"/>`;
+
+      if (palette.pupil) {
+        return (
+          eye +
+          `<circle cx="${n(ex)}" cy="${n(eyeY)}" r="${n(r * 0.5)}" fill="${palette.pupil}"/>` +
+          `<circle cx="${n(ex + r * 0.18)}" cy="${n(eyeY - r * 0.2)}" r="${n(r * 0.16)}" fill="${palette.shine}"/>`
+        );
+      }
+
+      return eye + `<circle cx="${n(ex - 0.7 * k)}" cy="${n(eyeY - 0.8 * k)}" r="${n(0.7 * k)}" fill="${palette.shine}"/>`;
     })
     .join("");
   const ears = [-1, 1]
