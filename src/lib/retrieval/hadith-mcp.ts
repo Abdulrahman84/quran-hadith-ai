@@ -2,6 +2,7 @@ import type { Client } from "@modelcontextprotocol/sdk/client/index.js";
 
 import type { HadithCollectionSelection } from "./hadith-collections";
 import { planHadithRetrievalQueries, type HadithQueryPlan } from "./hadith-query-planner";
+import type { QuestionRewrite } from "./question-rewrite";
 import { rerankHadithRecords, type HadithRerankCandidate } from "./hadith-reranker";
 import { fuseHadithRankings, getHadithSearchMode, hadithMcpEmbeddingEnv } from "./hadith-hybrid";
 import { formatMcpStderr } from "./mcp-error";
@@ -258,7 +259,11 @@ export function startHadithQueryPlan(query: string, language: RetrievalLanguage)
 export async function searchHadithSources(
   query: string,
   language: RetrievalLanguage,
-  options: { collection?: HadithCollectionSelection; queryPlan?: Promise<HadithQueryPlan> } = {},
+  options: {
+    collection?: HadithCollectionSelection;
+    queryPlan?: Promise<HadithQueryPlan>;
+    questionRewrite?: Promise<QuestionRewrite>;
+  } = {},
 ): Promise<RetrievalResponse> {
   const planned = planRetrievalQuery(query, language);
   const collection = options.collection ?? "all";
@@ -306,6 +311,16 @@ export async function searchHadithSources(
                 semanticMs = Date.now() - startedAt;
               })
             : Promise.resolve(null);
+        // Dialect and Arabizi embed poorly, so the Fusha rewrite gets a second semantic search.
+        // The user's own wording is kept too: a natural question embeds better than a terse topic.
+        let rewrittenQuery: string | null = null;
+        const rewriteSemanticSearch =
+          searchMode === "hybrid" && options.questionRewrite
+            ? options.questionRewrite.then((rewrite) => {
+                rewrittenQuery = rewrite.fusha;
+                return rewrite.fusha ? callSemanticSearchHadith(client, rewrite.fusha, language, collection) : null;
+              })
+            : Promise.resolve(null);
         const hadithQueryPlan = await (options.queryPlan ?? planHadithRetrievalQueries(query, language, planned.retrievalQuery));
         const planReadyMs = Date.now() - startedAt;
         let lexicalMs = 0;
@@ -342,9 +357,11 @@ export async function searchHadithSources(
           );
         }
 
+        const rewriteSemantic = await rewriteSemanticSearch;
         const semanticRecords = semantic?.attempt ? semantic.attempt.output.results.map(normalizeRecord) : [];
+        const rewriteSemanticRecords = rewriteSemantic?.attempt ? rewriteSemantic.attempt.output.results.map(normalizeRecord) : [];
 
-        if (successfulQueries.length === 0 && !semantic?.attempt) {
+        if (successfulQueries.length === 0 && !semantic?.attempt && !rewriteSemantic?.attempt) {
           return {
             status: "error",
             query,
@@ -369,7 +386,9 @@ export async function searchHadithSources(
         // The lexical reranker scores planner-phrase overlap, which would bury semantic matches
         // worded differently from the planned queries, so the two rankings are fused instead.
         const records = (
-          semantic?.attempt ? fuseHadithRankings([semanticRecords, lexicalRecords]) : lexicalRecords
+          semantic?.attempt || rewriteSemantic?.attempt
+            ? fuseHadithRankings([semanticRecords, rewriteSemanticRecords, lexicalRecords].filter((list) => list.length > 0))
+            : lexicalRecords
         ).slice(0, HADITH_RESULT_LIMIT);
 
         return {
@@ -387,6 +406,9 @@ export async function searchHadithSources(
             ...(semantic?.attempt ? ["Hadith ranking: reciprocal rank fusion (k=60) of the semantic and reranked lexical lists."] : []),
             ...(collection === "all" ? [] : [`Hadith collection filter: ${collection}.`]),
             `Hadith query planner: ${hadithQueryPlan.planner}.`,
+            ...(rewriteSemantic?.attempt && rewrittenQuery
+              ? [`Hadith semantic search also ran on the rewritten question: ${rewrittenQuery} (${rewriteSemanticRecords.length} results).`]
+              : []),
             `Timing (hadith): plan ready at ${planReadyMs} ms, ${hadithQueryPlan.queries.length} lexical queries ${lexicalMs} ms${
               semantic ? `, semantic done at ${semanticMs} ms` : ""
             }, rank ${Date.now() - rankStartedAt} ms, total ${Date.now() - startedAt} ms.`,
