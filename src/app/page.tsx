@@ -120,7 +120,7 @@ export default function Home() {
   }
 
   return (
-    <main className="relative min-h-screen overflow-x-clip bg-[var(--color-sand)] pt-20 text-[var(--color-ink)]">
+    <main className="relative min-h-screen overflow-x-clip pt-20 text-[var(--color-ink)]">
       <section
         className={`relative z-10 mx-auto flex w-full max-w-[780px] flex-col px-5 text-start sm:px-8 ${
           hasScenario ? "py-4 sm:py-8" : "home-stage min-h-[calc(100vh-80px)] pb-12 pt-8 sm:pt-14"
