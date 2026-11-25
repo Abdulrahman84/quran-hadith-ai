@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { ApiUnreachableError, fetchApi } from "@/lib/api-url";
 import type { Language, TranslationKey } from "@/lib/i18n";
@@ -17,6 +17,7 @@ import {
   type SearchSourceRoute,
 } from "@/lib/search-stream";
 
+import { DRAFT_REVEAL_MAX_WAIT_MS, DRAFT_REVEAL_TICK_MS, nextRevealLength } from "./draft-reveal";
 import { getWarningKey } from "./search-display";
 
 type UseSearchStreamOptions = {
@@ -36,6 +37,10 @@ function countOrUndefined(value: unknown) {
 }
 
 // Keeps only well-formed details from a progress event; anything else is dropped, never guessed.
+function prefersReducedMotion() {
+  return typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches === true;
+}
+
 function progressDetailFrom(event: SearchProgressDetail): SearchProgressDetail {
   const detail: SearchProgressDetail = {};
   const completed = countOrUndefined(event.completed);
@@ -72,6 +77,72 @@ export function useSearchStream({ language, t }: UseSearchStreamOptions) {
   const [requestError, setRequestError] = useState("");
   const [requestErrorHelp, setRequestErrorHelp] = useState<TranslationKey>("result.checkPaths");
   const requestAbortRef = useRef<AbortController | null>(null);
+  // The streamed draft as received, and how much of it is on screen. See draft-reveal.ts.
+  const draftTargetRef = useRef("");
+  const draftShownRef = useRef(0);
+  const draftTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const draftRevealedListenersRef = useRef<Array<() => void>>([]);
+
+  function notifyDraftRevealed() {
+    const listeners = draftRevealedListenersRef.current;
+    draftRevealedListenersRef.current = [];
+    listeners.forEach((listener) => listener());
+  }
+
+  function stopDraftReveal() {
+    if (draftTimerRef.current !== null) {
+      clearInterval(draftTimerRef.current);
+      draftTimerRef.current = null;
+    }
+  }
+
+  function resetDraft() {
+    stopDraftReveal();
+    draftTargetRef.current = "";
+    draftShownRef.current = 0;
+    setAnswerDraft("");
+    notifyDraftRevealed();
+  }
+
+  function revealDraftStep() {
+    const target = draftTargetRef.current;
+    const length = prefersReducedMotion() ? target.length : nextRevealLength(target, draftShownRef.current);
+    draftShownRef.current = length;
+    setAnswerDraft(target.slice(0, length));
+
+    if (length >= target.length) {
+      stopDraftReveal();
+      notifyDraftRevealed();
+    }
+  }
+
+  function appendDraft(text: string) {
+    draftTargetRef.current += text;
+
+    if (draftTimerRef.current === null) {
+      revealDraftStep();
+      if (draftShownRef.current < draftTargetRef.current.length) {
+        draftTimerRef.current = setInterval(revealDraftStep, DRAFT_REVEAL_TICK_MS);
+      }
+    }
+  }
+
+  /** Resolves once the whole draft is on screen, or after DRAFT_REVEAL_MAX_WAIT_MS. */
+  function waitForDraftReveal() {
+    if (draftShownRef.current >= draftTargetRef.current.length) {
+      return Promise.resolve();
+    }
+
+    return new Promise<void>((resolve) => {
+      const timeout = setTimeout(resolve, DRAFT_REVEAL_MAX_WAIT_MS);
+      draftRevealedListenersRef.current.push(() => {
+        clearTimeout(timeout);
+        resolve();
+      });
+    });
+  }
+
+  useEffect(() => stopDraftReveal, []);
 
   async function startSearch(
     trimmed: string,
@@ -80,7 +151,7 @@ export function useSearchStream({ language, t }: UseSearchStreamOptions) {
   ) {
     setSubmittedQuestion(trimmed);
     setRetrieval(null);
-    setAnswerDraft("");
+    resetDraft();
     setDraftWasReplaced(false);
     setRequestError("");
     setRequestErrorHelp("result.checkPaths");
@@ -133,19 +204,30 @@ export function useSearchStream({ language, t }: UseSearchStreamOptions) {
           }
 
           if (event.type === "answer_reset") {
-            setAnswerDraft("");
+            resetDraft();
             return;
           }
 
           draftWasShown = true;
-          setAnswerDraft((current) => current + event.text);
+          appendDraft(event.text);
         },
       );
       const payload = result.payload;
-      setAnswerDraft("");
-      setDraftWasReplaced(
-        draftWasShown && Boolean(payload.answer?.warnings.some((warning) => warning.code === "answer_replaced_after_check")),
-      );
+      const draftWasReplacedAfterCheck =
+        draftWasShown && Boolean(payload.answer?.warnings.some((warning) => warning.code === "answer_replaced_after_check"));
+
+      // Let the reader see the draft finish before the checked answer takes its place, unless
+      // the check replaced it, in which case the draft is no longer worth finishing.
+      if (draftWasShown && !draftWasReplacedAfterCheck && result.ok) {
+        await waitForDraftReveal();
+
+        if (!isCurrentRequest()) {
+          return;
+        }
+      }
+
+      resetDraft();
+      setDraftWasReplaced(draftWasReplacedAfterCheck);
 
       if (!result.ok) {
         const warning = payload.warnings.at(0);
@@ -177,6 +259,8 @@ export function useSearchStream({ language, t }: UseSearchStreamOptions) {
 
   /** Stops the in-flight request without clearing what is on screen. */
   function cancelSearch() {
+    stopDraftReveal();
+    notifyDraftRevealed();
     requestAbortRef.current?.abort();
     requestAbortRef.current = null;
     setIsRetrieving(false);
@@ -187,7 +271,7 @@ export function useSearchStream({ language, t }: UseSearchStreamOptions) {
     cancelSearch();
     setSubmittedQuestion("");
     setRetrieval(null);
-    setAnswerDraft("");
+    resetDraft();
     setDraftWasReplaced(false);
     setRequestError("");
   }
