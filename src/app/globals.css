@@ -531,7 +531,7 @@ textarea {
   margin-inline-start: 0.15ch;
   vertical-align: text-bottom;
   background: var(--color-gold);
-  animation: pulse-dot 1.2s ease-in-out infinite;
+  animation: answer-caret-pulse 1.2s ease-in-out infinite;
 }
 
 /* Search progress as a short chain of steps: done steps get a gold tick,
@@ -861,7 +861,21 @@ textarea {
   }
 }
 
+/* Keeps the 45° turn: a transform here replaces the element's own, and without it the
+   lozenge renders as a square. */
 @keyframes pulse-dot {
+  0%,
+  100% {
+    transform: rotate(45deg) scale(1);
+    opacity: 0.72;
+  }
+  50% {
+    transform: rotate(45deg) scale(1.15);
+    opacity: 1;
+  }
+}
+
+@keyframes answer-caret-pulse {
   0%,
   100% {
     transform: scale(1);

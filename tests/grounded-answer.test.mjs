@@ -195,12 +195,16 @@ test("English answer prompt teaches direct prose with positive and negative exam
   assert.match(messages[0].content, /retrieved results do not establish the claim/i);
   assert.match(messages[0].content, /Match the conclusion to the exact verification requested/i);
   assert.match(messages[0].content, /wording appears in a retrieved record/i);
-  assert.match(messages[0].content, /review the original source texts below/i);
+  assert.match(messages[0].content, /Make the answer complete on its own/i);
+  assert.match(messages[0].content, /Do not end with an invitation to review the sources below/i);
+  assert.match(messages[0].content, /no "a gentle reminder for us all,"/i);
+  assert.match(messages[0].content, /short paragraph of one or two sentences/i);
+  assert.doesNotMatch(messages[0].content, /reassuring/i);
   assert.match(messages[1].content, /Usually write three to five concise, friendly sentences/i);
   assert.match(messages[1].content, /recognizable voice of a gentle Islamic teacher/i);
   assert.match(messages[1].content, /do not open with a cold phrase/i);
-  assert.match(messages[1].content, /begin with a clear conclusion in reassuring human language/i);
-  assert.match(messages[1].content, /review the original source texts below/i);
+  assert.match(messages[1].content, /begin with a clear conclusion in calm human language/i);
+  assert.match(messages[1].content, /do not end with an invitation to review the sources below/i);
 });
 
 test("Arabic answer prompt teaches direct prose with positive and negative examples", async () => {
@@ -232,19 +236,23 @@ test("Arabic answer prompt teaches direct prose with positive and negative examp
   assert.match(messages[0].content, /لا تدّع أنك شيخ أو عالم/u);
   assert.match(messages[0].content, /تجنّب التحيات والأدعية الافتتاحية الجاهزة/u);
   assert.match(messages[0].content, /لا تجعل الجواب تقريرا تقنيا جافا/u);
-  assert.match(messages[0].content, /كتذكير لطيف يقرّب المعنى إلى القلب/u);
+  assert.match(messages[0].content, /يجوز أن تختم بفقرة قصيرة من جملة أو جملتين/u);
+  assert.match(messages[0].content, /لا «تذكير لطيف لنا جميعا»/u);
+  assert.match(messages[0].content, /اجعل الجواب كافيا وحده/u);
+  assert.doesNotMatch(messages[0].content, /مطمئنة/u);
   assert.match(messages[0].content, /نوّع بداية الإجابة وتركيب الجمل/);
   assert.match(messages[0].content, /بخطوة عملية واحدة فقط/);
   assert.match(messages[0].content, /عالم مؤهل/);
   assert.match(messages[0].content, /النتائج المسترجعة لا تثبت الادعاء/u);
   assert.match(messages[0].content, /طابق نتيجة التحقق مع ما طلبه المستخدم تحديدا/u);
   assert.match(messages[0].content, /وجود هذا اللفظ في ذلك السجل فقط/u);
-  assert.match(messages[0].content, /نصوص المصادر الأصلية أدناه/u);
+  assert.match(messages[0].content, /لا تختم بدعوة إلى مراجعة المصادر أدناه/u);
   assert.match(messages[1].content, /ثلاث إلى خمس جمل موجزة وودودة/u);
   assert.match(messages[1].content, /نبرة شيخ معلّم رفيق/u);
   assert.match(messages[1].content, /لا تبدأ بعبارة باردة/u);
-  assert.match(messages[1].content, /فابدأ بنتيجة واضحة بصياغة بشرية مطمئنة/u);
-  assert.match(messages[1].content, /مراجعة نصوص المصادر الأصلية أدناه/u);
+  assert.match(messages[1].content, /فابدأ بنتيجة واضحة بصياغة بشرية هادئة/u);
+  assert.match(messages[1].content, /اجعل الجواب كافيا وحده/u);
+  assert.match(messages[1].content, /من غير حث أو وعظ عام أو طمأنة/u);
 });
 
 test("similar quotation matches are treated as untrusted wording in the answer prompt", async () => {
@@ -309,7 +317,7 @@ test("literal quotation matches do not imply authenticity or grade", async () =>
   assert.match(userPrompt, /لا تعتبر المطابقة وحدها إثباتا لصحة النسبة أو درجة الحديث/u);
 });
 
-test("verification closing may direct the user to original sources without a citation", async () => {
+test("an uncited pointer to the sources below is dropped so the answer stands on its own", async () => {
   const text =
     "The retrieved report supports that actions are connected to intentions [1]. To verify the exact wording and full context, review the original source texts below.";
   const { generateGroundedAnswer } = loadGroundedAnswerModule({
@@ -328,7 +336,7 @@ test("verification closing may direct the user to original sources without a cit
   });
 
   assert.equal(answer.status, "ready");
-  assert.equal(answer.text, text);
+  assert.equal(answer.text, "The retrieved report supports that actions are connected to intentions [1].");
 });
 
 test("answer generation rejects citation numbers that are not in the source pack", async () => {
@@ -402,7 +410,7 @@ test("answer generation accepts a synthesized claim and safe context suggestion"
   assert.deepEqual(Array.from(answer.warnings), []);
 });
 
-test("Arabic Islamic teaching tone remains compatible with grounding guards", async () => {
+test("Arabic shaykh tone keeps a cited lesson and drops the pointer to the sources below", async () => {
   const text =
     "بارك الله فيك، تدل الرواية على أن قيمة العمل مرتبطة بالنية [1]. وفي هذا تذكير لطيف بالعناية بالمقصد [1]. وللتحقق من اللفظ والسياق الكامل، راجع نصوص المصادر الأصلية أدناه.";
   const { generateGroundedAnswer } = loadGroundedAnswerModule({
@@ -421,11 +429,14 @@ test("Arabic Islamic teaching tone remains compatible with grounding guards", as
   });
 
   assert.equal(answer.status, "ready");
-  assert.equal(answer.text, text);
+  assert.equal(
+    answer.text,
+    "بارك الله فيك، تدل الرواية على أن قيمة العمل مرتبطة بالنية [1]. وفي هذا تذكير لطيف بالعناية بالمقصد [1].",
+  );
   assert.deepEqual(Array.from(answer.warnings), []);
 });
 
-test("English Islamic teaching tone remains compatible with grounding guards", async () => {
+test("English teaching tone keeps a cited lesson and drops the pointer to the sources below", async () => {
   const text =
     "The report connects actions to intentions [1]. This offers a gentle reminder—and Allah knows best—to examine the purpose behind an action [1]. To verify the exact wording and full context, review the original source texts below.";
   const { generateGroundedAnswer } = loadGroundedAnswerModule({
@@ -444,7 +455,10 @@ test("English Islamic teaching tone remains compatible with grounding guards", a
   });
 
   assert.equal(answer.status, "ready");
-  assert.equal(answer.text, text);
+  assert.equal(
+    answer.text,
+    "The report connects actions to intentions [1]. This offers a gentle reminder—and Allah knows best—to examine the purpose behind an action [1].",
+  );
   assert.deepEqual(Array.from(answer.warnings), []);
 });
 
@@ -1013,13 +1027,28 @@ test("citation coverage joins a sentence wrapped across lines", async () => {
   assert.equal(answer.text, text);
 });
 
-test("citation coverage accepts a varied closing pointer to the sources below", async () => {
+test("a varied closing pointer to the sources below is dropped", async () => {
   const text =
     "تدل الرواية على أن العمل مرتبط بالنية [1]. ويبقى القلب محل النية. وللوقوف على الألفاظ الكاملة والسياقات، حسْبُك مراجعة نصوص المصادر الأصلية أدناه.";
   const answer = await guardedArabicAnswer(text);
 
   assert.equal(answer.status, "ready");
-  assert.equal(answer.text, text);
+  assert.equal(answer.text, "تدل الرواية على أن العمل مرتبط بالنية [1]. ويبقى القلب محل النية.");
+});
+
+test("exhortation and reassurance lines are dropped, a short sourced closing paragraph stays", async () => {
+  const text = [
+    "تدل الروايات على أن إتمام الركوع والسجود من تمام الصلاة [1].",
+    "",
+    "فالطمأنينة في كل ركن هي ما تصح به الصلاة كما بيّنته الرواية [1]. وفي هذا تذكير لطيف لنا جميعاً بضرورة العناية بأركان صلاتنا [1]. ويمكنك مراجعة المصادر المذكورة أدناه بكل اطمئنان.",
+  ].join("\n");
+  const answer = await guardedArabicAnswer(text);
+
+  assert.equal(answer.status, "ready");
+  assert.equal(
+    answer.text,
+    "تدل الروايات على أن إتمام الركوع والسجود من تمام الصلاة [1].\n\nفالطمأنينة في كل ركن هي ما تصح به الصلاة كما بيّنته الرواية [1].",
+  );
 });
 
 test("citation coverage still rejects two uncited claims", async () => {

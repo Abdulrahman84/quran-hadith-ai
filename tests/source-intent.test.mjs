@@ -252,3 +252,67 @@ test("heuristic routing treats ta marbuta spellings the same", () => {
   assert.deepEqual(Array.from(heuristicSourceRoutes("احاديث عن فضل سورة الكهف")), ["hadith"]);
   assert.deepEqual(Array.from(heuristicSourceRoutes("ما حكم الصدقة")), ["tafsir", "hadith"]);
 });
+
+test("a request for hadith evidence by adjective searches hadith only", async () => {
+  let routerCalls = 0;
+  const { heuristicSourceRoutes, isExplicitHadithOnlyRequest, planSourceRouteDecision } = loadSourceIntent({
+    process: { env: { OPENROUTER_API_KEY: "test-key" } },
+    fetch: async () => {
+      routerCalls += 1;
+      return Response.json({ choices: [{ message: { content: '{"routes":["tafsir","hadith"]}' } }] });
+    },
+  });
+
+  assert.equal(isExplicitHadithOnlyRequest("اعرض دليلا حديثيا عن الصلاة"), true);
+  assert.equal(isExplicitHadithOnlyRequest("ما الأدلة الحديثية على فضل الصدقة"), true);
+  assert.equal(isExplicitHadithOnlyRequest("أعطني حديثا عن الصبر"), true);
+  assert.equal(isExplicitHadithOnlyRequest("Find hadiths about prayer"), true);
+  assert.deepEqual(Array.from(heuristicSourceRoutes("اعرض دليلا حديثيا عن الصلاة")), ["hadith"]);
+
+  const decision = await planSourceRouteDecision("اعرض دليلا حديثيا عن الصلاة");
+
+  assert.deepEqual(Array.from(decision.routes), ["hadith"]);
+  assert.equal(decision.planner, "heuristic");
+  assert.equal(routerCalls, 0);
+
+  // Naming a verse as well still searches both.
+  assert.deepEqual(Array.from(heuristicSourceRoutes("اعرض دليلا حديثيا ثم آية عن الصلاة")), ["tafsir", "hadith"]);
+});
+
+function routerReturning(content, onRequest = () => {}) {
+  return loadSourceIntent({
+    fetch: async (_url, init) => {
+      onRequest(JSON.parse(init.body));
+      return { ok: true, json: async () => ({ choices: [{ message: { content } }] }) };
+    },
+    process: { env: { OPENROUTER_API_KEY: "test-key", MCP_TOOL_ROUTER_ENABLED: "true" } },
+  });
+}
+
+test("the router can read a hadith request from context without the word hadith", async () => {
+  let systemPrompt = "";
+  const { planSourceRouteDecision } = routerReturning(
+    '{"routes":["hadith"],"limitedByUser":true,"reason":"The question asks what the Prophet said."}',
+    (body) => {
+      systemPrompt = body.messages[0].content;
+    },
+  );
+
+  for (const question of ["ماذا قال النبي عن الغضب؟", "النبي قال ايه عن الصبر", "What did the Prophet say about anger?"]) {
+    const decision = await planSourceRouteDecision(question);
+
+    assert.equal(decision.planner, "llm", question);
+    assert.deepEqual(Array.from(decision.routes), ["hadith"], question);
+  }
+
+  assert.match(systemPrompt, /Decide from what the question means, not from keywords/);
+  assert.match(systemPrompt, /limitedByUser/);
+});
+
+test("a narrow route the user did not ask for is still widened for an open topic", async () => {
+  const unlimited = routerReturning('{"routes":["hadith"],"limitedByUser":false,"reason":"Prayer."}');
+  const missingFlag = routerReturning('{"routes":["hadith"],"reason":"Prayer."}');
+
+  assert.deepEqual(Array.from((await unlimited.planSourceRouteDecision("ما فضل الصلاة؟")).routes), ["hadith", "tafsir"]);
+  assert.deepEqual(Array.from((await missingFlag.planSourceRouteDecision("ما فضل الصلاة؟")).routes), ["hadith", "tafsir"]);
+});

@@ -183,3 +183,34 @@ test("does not promise similar sources when retrieval returned no records", () =
     "normal",
   );
 });
+
+test("a general request for hadith evidence shows no wording-not-found notice", () => {
+  const { assessQuotationMatch } = loadQuotationMatch();
+
+  for (const question of [
+    "اعرض دليلا حديثيا عن الصلاة",
+    "ما الأدلة الحديثية على فضل الصلاة في المسجد",
+    "اعرض حديث عن فضل الصلاة في المسجد",
+    "أعطني الحديث حول بر الوالدين وصلة الرحم",
+    "Show me a hadith about praying in congregation at the mosque",
+    "ماذا قال رسول الله عن فضل صلاة الجماعة في المسجد",
+    "What did the Prophet said about praying in congregation at the mosque",
+  ]) {
+    const result = assessQuotationMatch(question, question.match(/[a-z]/i) ? "english" : "arabic", [sourceRecord()]);
+
+    assert.equal(result.state, "normal", question);
+    assert.deepEqual(Array.from(result.unmatchedCandidateTexts), [], question);
+  }
+});
+
+test("wording the user supplies after a hadith marker is still checked", () => {
+  const { assessQuotationMatch } = loadQuotationMatch();
+
+  const notFound = assessQuotationMatch("هل الحديث يقول من غشنا فهو منا", "arabic", [sourceRecord()]);
+  assert.equal(notFound.state, "similar");
+  assert.deepEqual(Array.from(notFound.unmatchedCandidateTexts), ["من غشنا فهو منا"]);
+
+  // An adjective earlier in the question does not hide a later marker.
+  const later = assessQuotationMatch("في الكتب الحديثية قال رسول الله من غشنا فليس منا", "arabic", [sourceRecord()]);
+  assert.equal(later.state, "literal");
+});

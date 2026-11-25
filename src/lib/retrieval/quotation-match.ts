@@ -89,6 +89,22 @@ function stripVerificationSuffix(value: string) {
     .trim();
 }
 
+/** «حديث» inside «حديثيا» or «الحديثية» is part of an adjective, not a marker before quoted words. */
+function continuesWord(question: string, marker: string, index: number) {
+  return /\p{L}$/u.test(marker) && /^\p{L}/u.test(question.slice(index));
+}
+
+/**
+ * «حديث عن الصلاة», "hadith about prayer": what follows the marker is the topic of a request,
+ * not wording the user wants matched.
+ */
+function namesTopic(text: string) {
+  const normalized = normalizeArabic(text.toLowerCase()).trim();
+
+  return /^(?:عن|حول|بشان|بخصوص|في (?:موضوع|فضل|حكم|باب))(?:\s|$)/u.test(normalized)
+    || /^(?:about|on|regarding|concerning)\b/i.test(normalized);
+}
+
 function attributedCandidate(question: string): QuoteCandidate | null {
   const patterns: Array<{ sourceKind: "quran" | "hadith"; pattern: RegExp }> = [
     {
@@ -110,7 +126,8 @@ function attributedCandidate(question: string): QuoteCandidate | null {
   ];
 
   for (const { sourceKind, pattern } of patterns) {
-    const match = pattern.exec(question);
+    const match = [...question.matchAll(new RegExp(pattern.source, `${pattern.flags}g`))]
+      .find((candidate) => !continuesWord(question, candidate[0], (candidate.index ?? 0) + candidate[0].length));
 
     if (!match || match.index === undefined) {
       continue;
@@ -121,7 +138,7 @@ function attributedCandidate(question: string): QuoteCandidate | null {
     );
     const candidateTokens = tokens(text, hasArabic(text));
 
-    if (candidateTokens.length >= 3 && letterCount(text) >= 10) {
+    if (candidateTokens.length >= 3 && letterCount(text) >= 10 && !namesTopic(text)) {
       return { text, sourceKind };
     }
   }

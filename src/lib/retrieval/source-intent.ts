@@ -49,7 +49,24 @@ function hasQuranSourceTerm(query: string, tokens: Set<string>, terms: string[])
 }
 // Surah names are allowed in hadith-only requests (e.g. hadith about the virtues of a surah).
 const quranOnlySourceTerms = [...quranSourceTerms, "سوره", "السوره", "surah"];
-const hadithSourceTerms = ["حديث", "احاديث", "السنه", "سنه", "hadith", "hadeeth", "sunnah"];
+// Includes the adjective forms («دليلا حديثيا», «الأدلة الحديثية»): they ask for hadith evidence too.
+const hadithSourceTerms = [
+  "حديث",
+  "حديثا",
+  "احاديث",
+  "حديثي",
+  "حديثيا",
+  "حديثيه",
+  "الحديثي",
+  "الحديثيه",
+  "السنه",
+  "سنه",
+  "hadith",
+  "hadiths",
+  "hadeeth",
+  "ahadith",
+  "sunnah",
+];
 
 export function isExplicitQuranOnlyRequest(query: string) {
   const tokens = new Set(matchingTokens(query));
@@ -110,8 +127,18 @@ function looksLikeOpenEndedIslamicTopic(query: string) {
   return hasAnyToken(tokens, islamicTerms) || normalized.includes("سيدنا محمد");
 }
 
-function applyRouteSafetyNet(query: string, routes: SourceRoute[]) {
-  if (isExplicitQuranOnlyRequest(query) || isExplicitHadithOnlyRequest(query) || !looksLikeOpenEndedIslamicTopic(query)) {
+/**
+ * A narrow route for an open Islamic topic is widened to both, unless the router read the
+ * question as limiting the source itself («ماذا قال النبي عن الغضب» asks for hadith without
+ * the word «حديث»).
+ */
+function applyRouteSafetyNet(query: string, routes: SourceRoute[], limitedByUser: boolean) {
+  if (
+    limitedByUser
+    || isExplicitQuranOnlyRequest(query)
+    || isExplicitHadithOnlyRequest(query)
+    || !looksLikeOpenEndedIslamicTopic(query)
+  ) {
     return routes;
   }
 
@@ -162,12 +189,14 @@ function parseJsonObject(value: string) {
   }
 }
 
-function normalizeModelRoutes(value: unknown): { routes: SourceRoute[]; reason: string | null } | null {
+function normalizeModelRoutes(
+  value: unknown,
+): { routes: SourceRoute[]; limitedByUser: boolean; reason: string | null } | null {
   if (typeof value !== "object" || value === null) {
     return null;
   }
 
-  const candidate = value as { routes?: unknown; reason?: unknown };
+  const candidate = value as { routes?: unknown; limitedByUser?: unknown; reason?: unknown };
 
   if (!Array.isArray(candidate.routes)) {
     return null;
@@ -181,6 +210,7 @@ function normalizeModelRoutes(value: unknown): { routes: SourceRoute[]; reason: 
 
   return {
     routes,
+    limitedByUser: candidate.limitedByUser === true,
     reason: typeof candidate.reason === "string" && candidate.reason.trim() ? candidate.reason.trim().slice(0, 240) : null,
   };
 }
@@ -192,26 +222,24 @@ function routeSystemPrompt() {
     "Available tools:",
     "- tafsir: Quran text, ayah lookup, translation, and tafsir.",
     "- hadith: hadith text, collection references, source-attributed grades, and hadith metadata.",
-    "Critical rule: if the user asks about a general Islamic topic or concept, routes MUST be [\"tafsir\",\"hadith\"].",
-    "A single route is allowed only when the user explicitly limits the source to Quran/tafsir/ayah or explicitly limits the source to hadith.",
+    "Decide from what the question means, not from keywords. The user may ask for one kind of source without naming it.",
+    "Set limitedByUser to true when the question itself asks for one kind of source, in any wording or dialect:",
+    "- hadith only: what the Prophet said, did, taught, approved or forbade; his Sunnah; Prophetic evidence; a narration or report (e.g. «ماذا قال النبي عن الغضب», «النبي قال ايه عن الصبر», «اعرض دليلا حديثيا عن الصلاة», «ما ورد في السنة عن الصدقة», \"what did the Prophet say about anger\").",
+    "- tafsir only: what Allah says, a verse, the Quran's wording, or tafsir (e.g. «ماذا قال الله عن الصبر», «آية عن بر الوالدين», \"what does the Quran say about patience\").",
+    "Set limitedByUser to false when the user asks about a general Islamic topic, ruling, or concept without limiting the source; routes MUST then be [\"tafsir\",\"hadith\"].",
+    "The Quran or the Prophet as a topic is not a limit: «فضل قراءة القرآن» or a question about the Prophet's character, appearance or biography uses both routes.",
     "Return only compact JSON with this exact shape:",
-    "{\"routes\":[\"tafsir\"],\"reason\":\"short reason\"}",
+    "{\"routes\":[\"tafsir\"],\"limitedByUser\":true,\"reason\":\"short reason\"}",
     "The routes array must contain only string values, never objects.",
     "Examples:",
-    "{\"routes\":[\"tafsir\"],\"reason\":\"The question asks for ayah tafsir.\"}",
-    "{\"routes\":[\"hadith\"],\"reason\":\"The question asks for hadith records.\"}",
-    "{\"routes\":[\"tafsir\",\"hadith\"],\"reason\":\"The question asks for broad source evidence.\"}",
-    "{\"routes\":[\"tafsir\",\"hadith\"],\"reason\":\"The question asks about an Islamic topic without limiting the source.\"}",
-    "{\"routes\":[\"tafsir\",\"hadith\"],\"reason\":\"The question asks about patience as a general Islamic topic.\"}",
-    "{\"routes\":[\"tafsir\",\"hadith\"],\"reason\":\"The question asks about prayer as a general Islamic topic.\"}",
-    "{\"routes\":[\"tafsir\",\"hadith\"],\"reason\":\"The question asks about the Prophet's traits, character, description, Sunnah, sayings, or actions and should include hadith too.\"}",
-    "{\"routes\":[\"tafsir\",\"hadith\"],\"reason\":\"The question asks for Quranic and Prophetic evidence together.\"}",
+    "{\"routes\":[\"tafsir\"],\"limitedByUser\":true,\"reason\":\"The question asks for ayah tafsir.\"}",
+    "{\"routes\":[\"hadith\"],\"limitedByUser\":true,\"reason\":\"The question asks what the Prophet said.\"}",
+    "{\"routes\":[\"hadith\"],\"limitedByUser\":true,\"reason\":\"The question asks for Prophetic evidence.\"}",
+    "{\"routes\":[\"tafsir\",\"hadith\"],\"limitedByUser\":false,\"reason\":\"The question asks about prayer as a general Islamic topic.\"}",
+    "{\"routes\":[\"tafsir\",\"hadith\"],\"limitedByUser\":false,\"reason\":\"The question asks about the Prophet's character and should include both sources.\"}",
+    "{\"routes\":[\"tafsir\",\"hadith\"],\"limitedByUser\":true,\"reason\":\"The question asks for Quranic and Prophetic evidence together.\"}",
     "Allowed routes are only \"tafsir\" and \"hadith\".",
-    "Use only tafsir when the user clearly asks only for Quran, ayah lookup, translation, or tafsir.",
-    "Use only hadith when the user clearly asks only for hadith records, hadith validation, or hadith grading.",
-    "Use both routes for open-ended Islamic subjects unless the user explicitly limits the source. Do not return only tafsir for an open-ended topic.",
     "Open-ended subjects include worship, prayer, fasting, mercy, patience, character, rulings, stories, belief, paradise, hellfire, family, ethics, and descriptions of people.",
-    "Questions about Prophet Muhammad, his صفات, أخلاق, شمائل, سنة, sayings, actions, appearance, character, or biography must include hadith; use both unless the user asks for hadith only.",
     "Do not answer the religious question. Do not invent tools.",
   ].join("\n");
 }
@@ -224,7 +252,7 @@ async function planSourceRoutesWithLlm(query: string): Promise<SourceRoutePlan> 
   const completion = await completeLlmText({
     task: "router",
     json: true,
-    maxTokens: 80,
+    maxTokens: 100,
     temperature: 0,
     messages: [
       { role: "system", content: routeSystemPrompt() },
@@ -243,7 +271,7 @@ async function planSourceRoutesWithLlm(query: string): Promise<SourceRoutePlan> 
   }
 
   return {
-    routes: applyRouteSafetyNet(query, normalized.routes),
+    routes: applyRouteSafetyNet(query, normalized.routes, normalized.limitedByUser),
     planner: "llm",
     reason: normalized.reason,
     warning: null,
