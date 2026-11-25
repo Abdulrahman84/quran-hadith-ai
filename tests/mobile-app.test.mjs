@@ -95,7 +95,7 @@ test("Mobile export leaves the Node-only API routes and proxy out of the bundle"
   assert.match(nextConfig, /pageExtensions: \["tsx"\]/);
   assert.ok(fs.existsSync(path.join(process.cwd(), "src/app/api/search/route.ts")));
   assert.ok(fs.existsSync(path.join(process.cwd(), "src/proxy.ts")));
-  assert.match(capacitorConfig, /appId: "ai\.sanad\.app"/);
+  assert.match(capacitorConfig, /appId: "com\.sanaddai\.app"/);
   assert.match(capacitorConfig, /appName: "Sanad AI"/);
   assert.match(capacitorConfig, /webDir: "out"/);
   assert.doesNotMatch(capacitorConfig, /server:\s*\{[^}]*url/);

@@ -11,7 +11,7 @@ android {
     namespace = "ai.sanad.app"
     compileSdk = rootProject.ext.compileSdkVersion
     defaultConfig {
-        applicationId "ai.sanad.app"
+        applicationId "com.sanaddai.app"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1

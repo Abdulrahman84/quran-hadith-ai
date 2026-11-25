@@ -1,6 +1,6 @@
 # Releasing to the App Store and Google Play
 
-The app is `ai.sanad.app` on both stores. Listing text lives in
+The app is `com.sanaddai.app` on both stores (`ai.sanad.app` was already taken on Google Play). The Android Java package stays `ai.sanad.app`. Listing text lives in
 `fastlane/metadata` (the layout `fastlane deliver` and `fastlane supply` read),
 so it can be pasted into the consoles or uploaded with fastlane later.
 
