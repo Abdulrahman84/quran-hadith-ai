@@ -1,6 +1,7 @@
 // Retrieval benchmark: runs eval/retrieval-questions.json through searchSources and scores
 // how well the expected references are ranked. Usage: npm run eval:retrieval -- --help
 import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
 
 type ExpectedRef = { kind: "hadith"; collection: string; hadithNumber: string } | { kind: "quran"; verseKey: string };
@@ -65,6 +66,11 @@ function applyLocalSourceDefaults() {
   if (process.env.HADITH_SEARCH_MODE?.trim().toLowerCase() === "hybrid") {
     // The index sits next to the hadith database built in the same hadith-mcp checkout.
     process.env.HADITH_MCP_EMBEDDINGS_PATH ??= path.join(path.dirname(process.env.HADITH_MCP_DB_PATH), "hadith-embeddings.sqlite");
+  }
+  if (process.env.QURAN_SEARCH_MODE?.trim().toLowerCase() === "hybrid") {
+    // The Quran index sits next to the quran.db it was built from (the build script's default).
+    const quranDb = process.env.TAFSIR_DB_PATH?.trim() || path.join(os.homedir(), ".cache/tafsir-mcp/quran.db");
+    process.env.QURAN_EMBEDDINGS_PATH ??= path.join(path.dirname(quranDb), "quran-embeddings-bge-m3.bin");
   }
 }
 
@@ -289,6 +295,10 @@ async function main() {
         models: {
           router: process.env.MCP_TOOL_ROUTER_MODEL ?? process.env.OPENROUTER_MODEL ?? null,
           hadithPlanner: process.env.HADITH_QUERY_PLANNER_MODEL ?? null,
+        },
+        searchModes: {
+          hadith: process.env.HADITH_SEARCH_MODE?.trim() || "lexical",
+          quran: process.env.QURAN_SEARCH_MODE?.trim() || "lexical",
         },
         overall,
         byTag,
