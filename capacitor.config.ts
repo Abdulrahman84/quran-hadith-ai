@@ -4,7 +4,7 @@ import { KeyboardResize } from "@capacitor/keyboard";
 const sandColor = "#fbfaf5";
 
 const config: CapacitorConfig = {
-  appId: "ai.sanad.app",
+  appId: "com.sanaddai.app",
   appName: "Sanad AI",
   // Static UI export from `npm run mobile:build` (MOBILE_EXPORT=1 next build).
   webDir: "out",

@@ -1,0 +1,8 @@
+No sign-in is needed; the app has no accounts.
+
+To try it:
+1. On the Ask tab, tap one of the suggested questions under "Try a question" (or type "What is the tafsir of Ayat al-Kursi?"). Sources appear first, then a short answer citing them.
+2. Switch to "Check a Text" and paste: إنما الأعمال بالنيات
+3. The language button in the top bar switches between Arabic and English.
+
+The app talks to our own API at https://sanaddai.com, which searches the Quran, tafsir and hadith texts and writes the answer with an AI model. It does not provide religious rulings and says so in the app.

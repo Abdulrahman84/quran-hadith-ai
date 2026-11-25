@@ -2,6 +2,7 @@
 
 import { useI18n } from "@/components/i18n-provider";
 import { InfoHero } from "@/components/info/info-hero";
+import { InfoLinks } from "@/components/info/info-links";
 import { LtrTerms } from "@/components/info/ltr-terms";
 import type { TranslationKey } from "@/lib/i18n";
 
@@ -60,6 +61,7 @@ export default function HowItWorks() {
           ))}
         </ul>
       </section>
+      <InfoLinks />
     </main>
   );
 }

@@ -25,6 +25,12 @@ export function SiteFooter() {
           <Link className="footer-link" href="/source-policy">
             {t("nav.sourcePolicy")}
           </Link>
+          <Link className="footer-link" href="/privacy">
+            {t("nav.privacy")}
+          </Link>
+          <Link className="footer-link" href="/support">
+            {t("nav.support")}
+          </Link>
         </nav>
       </div>
     </footer>

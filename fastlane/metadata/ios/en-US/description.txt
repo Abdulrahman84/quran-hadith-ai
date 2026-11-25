@@ -1,0 +1,20 @@
+Sanad answers questions about the Quran and hadith from the sources themselves, and shows you those sources.
+
+Ask a question in Arabic or English. Sanad searches the Quran, six tafsir works and the six major hadith collections, shows the texts it found with their references, then writes a short answer using only those texts. Each point in the answer carries a number that links to its source, so you can read it yourself.
+
+CHECK A TEXT
+Heard a saying attributed to the Prophet ﷺ, or a verse quoted from memory? Paste the wording and Sanad looks for it in the sources and tells you whether it found an exact match, similar texts, or nothing. Where the dataset records a grade for a hadith, the grade is shown with who gave it.
+
+SOURCES
+• The Quran: all 6,236 verses in the Uthmani script
+• Tafsir: al-Tabari, Ibn Kathir, al-Baghawi, al-Sa'di, al-Muyassar and al-Mukhtasar (Arabic and English)
+• Hadith: 33,736 hadith from Sahih al-Bukhari, Sahih Muslim and the Sunan of Abu Dawud, al-Tirmidhi, al-Nasa'i and Ibn Majah, in Arabic with an English translation
+
+HOW ANSWERS ARE CHECKED
+Before an answer appears, Sanad checks that every reference points to a text on screen and that quotations match their source. If the check fails, the answer is rewritten once; if it still fails, you get the texts without a written answer.
+
+GOOD TO KNOW
+• Sanad doesn't issue fatwas. For religious rulings, ask a qualified scholar.
+• Read the cited text before relying on an answer.
+• No account, no ads, no tracking.
+• An internet connection is required.

@@ -2,6 +2,7 @@
 
 import { useI18n } from "@/components/i18n-provider";
 import { InfoHero } from "@/components/info/info-hero";
+import { InfoLinks } from "@/components/info/info-links";
 import { LtrTerms } from "@/components/info/ltr-terms";
 import { SourceBookShelf, type SourceBook } from "@/components/info/source-books";
 import { hadithCollections } from "@/lib/retrieval/hadith-collections";
@@ -134,6 +135,7 @@ export default function SourcePolicy() {
           </div>
         </li>
       </ol>
+      <InfoLinks />
     </main>
   );
 }
