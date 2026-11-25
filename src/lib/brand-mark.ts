@@ -38,12 +38,14 @@ export const markPalettes = {
     pages: "#FBFAF5",
     trim: "#C69A4B",
   },
-  // The deep-green app icon tile and dark splash screen.
+  // The deep-green app icon tile and dark splash screen. The face matches the
+  // light version (dark eyes, light highlight): pale eyes with a dark dot read
+  // as pupils glancing up and to the side.
   onDark: {
     shell: "#FBFAF5",
-    screen: "#0B5D3E",
-    eye: "#FBFAF5",
-    shine: "#0B5D3E",
+    screen: "#FBFAF5",
+    eye: "#0B5D3E",
+    shine: "#FBFAF5",
     accent: "#D6B264",
     book: "#D6B264",
     pages: "#FBFAF5",
