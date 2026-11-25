@@ -50,3 +50,17 @@ test("Docker image bundles a pinned and verified Tafsir MCP runtime", () => {
   assert.match(smokeTest, /client\.listTools\(\)/);
   assert.match(smokeTest, /name: "fetch_ayah"/);
 });
+
+test("Docker image downloads, checksums and checks the Quran embedding index", () => {
+  const dockerfile = read("Dockerfile");
+  const render = read("render.yaml");
+
+  assert.match(dockerfile, /FROM node:22-bookworm-slim AS quran-index/);
+  assert.match(dockerfile, /QURAN_EMBEDDINGS_URL=https:\/\/github\.com\/Abdulrahman84\/quran-hadith-ai\/releases\/download\/quran-embeddings-bge-m3-v1\//);
+  assert.match(dockerfile, /QURAN_EMBEDDINGS_SHA256=[0-9a-f]{64}\n/);
+  assert.match(dockerfile, /"\$QURAN_EMBEDDINGS_SHA256  \/opt\/quran-index\/quran-embeddings-bge-m3\.bin" \| sha256sum -c -/);
+  assert.match(dockerfile, /COPY --from=app \/app\/scripts\/quran-embeddings\.mjs/);
+  assert.match(dockerfile, /node scripts\/quran-embeddings\.mjs check --db "\$TAFSIR_DB_PATH" --index "\$QURAN_EMBEDDINGS_PATH"/);
+  assert.match(dockerfile, /ENV QURAN_SEARCH_MODE=hybrid/);
+  assert.match(render, /QURAN_SEARCH_MODE\n\s+value: hybrid/);
+});

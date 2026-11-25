@@ -59,6 +59,8 @@ services:
         value: "12000"
       - key: HADITH_SEARCH_MODE
         value: hybrid
+      - key: QURAN_SEARCH_MODE
+        value: hybrid
       - key: EMBEDDINGS_PROVIDER
         value: openai
       - key: EMBEDDINGS_BASE_URL
