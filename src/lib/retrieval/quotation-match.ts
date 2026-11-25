@@ -89,6 +89,17 @@ function stripVerificationSuffix(value: string) {
     .trim();
 }
 
+/**
+ * «حديث النية مع المصدر», "hadith of Jibril with its source": asking for the source, chain or grade
+ * is part of the request, so it isn't counted as wording to match.
+ */
+function stripRequestSuffix(value: string) {
+  return value
+    .replace(/\s+(?:مع|و)\s*(?:ذكر\s+)?(?:ال)?(?:مصدر|مصادر|مرجع|سند|تخريج|شرح|دليل|درجة|رقم)\S*\s*$/u, "")
+    .replace(/\s+with\s+(?:its\s+|the\s+|a\s+)?(?:source|sources|reference|references|chain|isnad|grade|grading|explanation)\s*$/i, "")
+    .trim();
+}
+
 /** «حديث» inside «حديثيا» or «الحديثية» is part of an adjective, not a marker before quoted words. */
 function continuesWord(question: string, marker: string, index: number) {
   return /\p{L}$/u.test(marker) && /^\p{L}/u.test(question.slice(index));
@@ -133,9 +144,9 @@ function attributedCandidate(question: string): QuoteCandidate | null {
       continue;
     }
 
-    const text = stripVerificationSuffix(
+    const text = stripRequestSuffix(stripVerificationSuffix(
       textAfterMarker(question, match.index, match[0].length),
-    );
+    ));
     const candidateTokens = tokens(text, hasArabic(text));
 
     if (candidateTokens.length >= 3 && letterCount(text) >= 10 && !namesTopic(text)) {

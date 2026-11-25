@@ -214,3 +214,32 @@ test("wording the user supplies after a hadith marker is still checked", () => {
   const later = assessQuotationMatch("في الكتب الحديثية قال رسول الله من غشنا فليس منا", "arabic", [sourceRecord()]);
   assert.equal(later.state, "literal");
 });
+
+test("asking for the source or grade of a named hadith shows no wording-not-found notice", () => {
+  const { assessQuotationMatch } = loadQuotationMatch();
+
+  for (const question of [
+    "ابحث عن حديث النية مع المصدر",
+    "اعرض حديث جبريل مع السند",
+    "حديث النية مع ذكر التخريج",
+    "Find hadith on intention with source",
+    "Show the hadith of Jibril with its source",
+  ]) {
+    const result = assessQuotationMatch(question, /[a-z]/i.test(question) ? "english" : "arabic", [sourceRecord()]);
+
+    assert.equal(result.state, "normal", question);
+  }
+});
+
+test("still checks quoted hadith wording when the source is asked for too", () => {
+  const { assessQuotationMatch } = loadQuotationMatch();
+
+  assert.equal(
+    assessQuotationMatch("حديث من غشنا فليس منا مع المصدر", "arabic", [sourceRecord()]).state,
+    "literal",
+  );
+  assert.deepEqual(
+    Array.from(assessQuotationMatch("حديث من غشنا فهو منا مع المصدر", "arabic", [sourceRecord()]).unmatchedCandidateTexts),
+    ["من غشنا فهو منا"],
+  );
+});
