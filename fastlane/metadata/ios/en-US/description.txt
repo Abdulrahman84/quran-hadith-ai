@@ -3,7 +3,7 @@ Sanad answers questions about the Quran and hadith from the sources themselves, 
 Ask a question in Arabic or English. Sanad searches the Quran, six tafsir works and the six major hadith collections, shows the texts it found with their references, then writes a short answer using only those texts. Each point in the answer carries a number that links to its source, so you can read it yourself.
 
 CHECK A TEXT
-Heard a saying attributed to the Prophet ﷺ, or a verse quoted from memory? Paste the wording and Sanad looks for it in the sources and tells you whether it found an exact match, similar texts, or nothing. Where the dataset records a grade for a hadith, the grade is shown with who gave it.
+Heard a saying attributed to the Prophet (peace be upon him), or a verse quoted from memory? Paste the wording and Sanad looks for it in the sources and tells you whether it found an exact match, similar texts, or nothing. Where the dataset records a grade for a hadith, the grade is shown with who gave it.
 
 SOURCES
 • The Quran: all 6,236 verses in the Uthmani script
