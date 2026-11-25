@@ -16,6 +16,8 @@
     "mobile:build": "node scripts/build-mobile.mjs && cap sync",
     "mobile:ios": "npm run mobile:build && cap open ios",
     "mobile:android": "npm run mobile:build && cap open android",
+    "mobile:release:ios": "npm run mobile:build && node scripts/release-ios.mjs",
+    "mobile:release:android": "npm run mobile:build && cd android && ./gradlew bundleRelease",
     "mobile:assets": "npm run brand:assets && npx --yes @capacitor/assets@4.0.0 generate --ios --android --iconBackgroundColor \"#0b5d3e\" --iconBackgroundColorDark \"#0b5d3e\" --splashBackgroundColor \"#fbfaf5\" --splashBackgroundColorDark \"#0b5d3e\"",
     "brand:assets": "node --no-warnings scripts/generate-brand-assets.mjs"
   },
