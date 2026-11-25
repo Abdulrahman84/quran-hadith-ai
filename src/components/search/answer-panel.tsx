@@ -58,7 +58,7 @@ export function AnswerPanel({
             {submittedQuestion}
           </p>
         </div>
-        <span className="pulse-dot" aria-hidden="true" />
+        {isRetrieving ? <span className="pulse-dot" aria-hidden="true" /> : null}
       </div>
 
       <div

@@ -2,6 +2,7 @@ import type { GroundedAnswer } from "@/lib/retrieval/types";
 
 import { completeLlmText, streamLlmText, type LlmCompletionResult } from "../provider";
 import { createAnswerDraftForwarder, stripThinkingBlocks } from "./draft";
+import { removeFillerSentences } from "./filler";
 import { answerGuardFailure } from "./guardrails";
 import { repairInstruction, systemPrompt, userPrompt } from "./prompts";
 import { citationLabelsForText } from "./record-labels";
@@ -48,7 +49,7 @@ async function repairGroundedAnswer(
     temperature: 0.05,
     deprioritizeModels: [rejectedModel],
     acceptText: (candidateText) => {
-      const text = stripThinkingBlocks(candidateText);
+      const text = removeFillerSentences(stripThinkingBlocks(candidateText), input.language);
 
       return Boolean(text) && !answerGuardFailure(text, input);
     },
@@ -64,7 +65,7 @@ async function repairGroundedAnswer(
     return { text: null, guardFailure: `repair_${completion.status}` };
   }
 
-  const text = stripThinkingBlocks(completion.text);
+  const text = removeFillerSentences(stripThinkingBlocks(completion.text), input.language);
 
   if (!text) {
     return { text: null, guardFailure: "repair_empty" };
@@ -140,7 +141,7 @@ async function composeGroundedAnswer(
     };
   }
 
-  const text = stripThinkingBlocks(completion.text);
+  const text = removeFillerSentences(stripThinkingBlocks(completion.text), input.language);
 
   if (!text) {
     return {
