@@ -222,6 +222,21 @@ test("a streamed answer that passes the checks is kept as-is", async () => {
   assert.deepEqual(events.map((event) => event.text), ["Actions are connected ", "to intentions ", "[1]."]);
 });
 
+test("removing a filler sentence after streaming does not mark the draft replaced", async () => {
+  const chunks = ["Actions are connected to intentions [1]. ", "Let us all remember this."];
+  const { generateGroundedAnswer } = loadGroundedAnswer(streamingModel(chunks));
+  const events = [];
+  const answer = await generateGroundedAnswer(
+    { question: "What about intentions?", language: "english", records: [sourceRecord()] },
+    { onDraft: (event) => events.push(event) },
+  );
+
+  assert.equal(answer.status, "ready");
+  assert.equal(answer.text, "Actions are connected to intentions [1].");
+  assert.deepEqual(Array.from(answer.warnings), []);
+  assert.ok(events.every((event) => event.type === "delta"));
+});
+
 test("thinking blocks never reach the streamed draft", async () => {
   const chunks = ["<thi", "nk>planning</think>", "Actions follow intentions [1]."];
   const { generateGroundedAnswer } = loadGroundedAnswer(streamingModel(chunks));

@@ -1,5 +1,6 @@
 import type { GroundedAnswer } from "@/lib/retrieval/types";
 
+import { removeFillerSentences } from "./filler";
 import { draftGuardFailure } from "./guardrails";
 import type { AnswerDraftEvent, GenerateGroundedAnswerInput } from "./types";
 
@@ -67,7 +68,10 @@ export function createAnswerDraftForwarder(input: GenerateGroundedAnswerInput, o
     },
     /** Marks the final answer as a replacement when it differs from what the reader saw. */
     finalize(answer: GroundedAnswer): GroundedAnswer {
-      const keptDraft = answer.status === "ready" && !withdrawn && answer.text === shownText.trim();
+      // Dropping filler sentences is cleanup, not a correction against the sources, so it doesn't count as replacing the draft.
+      const keptDraft = answer.status === "ready"
+        && !withdrawn
+        && answer.text === removeFillerSentences(shownText.trim(), input.language);
 
       if (!everShown || keptDraft) {
         return answer;
