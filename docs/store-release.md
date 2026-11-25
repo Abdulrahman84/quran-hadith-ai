@@ -16,10 +16,22 @@ Bump both before every upload; the stores reject a build number they have seen.
 ## iOS
 
 1. Add `APPLE_TEAM_ID=<team id>` to `.env.local`. The team ID stays out of the repo.
-2. `npm run mobile:release:ios` builds the web bundle, archives with automatic
-   signing and exports `release/ios/App.ipa`.
-3. Upload the `.ipa` with Xcode Organizer, Transporter, or
-   `xcrun altool --upload-app` and an App Store Connect API key.
+2. Without an Apple account signed in to Xcode, also add an App Store Connect
+   API key: `ASC_KEY_ID` and `ASC_ISSUER_ID`. The key file is read from
+   `~/.appstoreconnect/private_keys/AuthKey_<ASC_KEY_ID>.p8` unless
+   `ASC_KEY_PATH` points elsewhere.
+3. Automatic signing needs a registered device on the team. If the team has
+   none, create an App Store provisioning profile for `com.sanaddai.app`,
+   install it, and set `IOS_PROFILE_NAME` to its name. The archive is then left
+   unsigned and the export signs it with that profile and the team's Apple
+   Distribution certificate.
+4. `npm run mobile:release:ios` builds the web bundle, archives and exports
+   `release/ios/App.ipa`.
+5. Upload the `.ipa` with Xcode Organizer, Transporter, or
+   `xcrun altool --upload-app --type ios --file release/ios/App.ipa --apiKey <ASC_KEY_ID> --apiIssuer <ASC_ISSUER_ID>`.
+
+The App Store description can't contain ﷺ (App Store Connect rejects it), so
+the iOS descriptions spell the salutation out.
 
 The app is iPhone only, portrait only. `PrivacyInfo.xcprivacy` declares the
 data collected (below) and `ITSAppUsesNonExemptEncryption` is `false`: the app
