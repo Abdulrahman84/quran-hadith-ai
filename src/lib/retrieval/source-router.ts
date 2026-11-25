@@ -3,7 +3,7 @@ import { startQuestionRewrite } from "./question-rewrite";
 import { startQuranVectorSearch } from "./quran-hybrid";
 import type { HadithCollectionSelection } from "./hadith-collections";
 import { normalizeArabic, tokenize } from "../text/arabic";
-import { isExplicitHadithOnlyRequest, isExplicitQuranOnlyRequest, planSourceRouteDecision, type SourceRoute } from "./source-intent";
+import { isExplicitQuranOnlyRequest, planSourceRouteDecision, type SourceRoute } from "./source-intent";
 import { searchTafsirSources } from "./tafsir-mcp";
 import type { TafsirSourceSelection } from "./tafsir-sources";
 import type { RetrievalLanguage, RetrievalResponse, RetrievalStatus, SourceMode, SourceRecord } from "./types";
@@ -73,11 +73,12 @@ export async function searchSources(
   const hadithQueryPlan = isExplicitQuranOnlyRequest(query) ? undefined : startHadithQueryPlan(query, language);
   // A Fusha rewrite for dialect, Arabizi and misspelled questions, also started alongside routing.
   const questionRewrite = startQuestionRewrite(query, language);
-  // With QURAN_SEARCH_MODE=hybrid the question is embedded now too, so the Quran vector search is
-  // usually done by the time routing and the keyword search finish. Explicit hadith-only requests skip it.
-  const quranVectorSearch = isExplicitHadithOnlyRequest(query) ? undefined : startQuranVectorSearch(query);
   const routeDecision = await planSourceRouteDecision(query);
   const routes = routeDecision.routes;
+  // With QURAN_SEARCH_MODE=hybrid the question is embedded for the Quran index once routing picks the
+  // Quran, alongside the keyword search. Starting it before routing saved little and, for hadith-only
+  // questions, slowed the hadith search's own embedding calls (OpenRouter serves parallel calls slower).
+  const quranVectorSearch = routes.includes("tafsir") ? startQuranVectorSearch(query) : undefined;
   onProgress?.(0, routes.length, routes);
 
   let completedRoutes = 0;

@@ -22,7 +22,7 @@ export type QuranVectorSearch =
       model: string;
       provider: string;
       indexSize: number;
-      /** When the lists were collected, counted from when the question arrived. */
+      /** When the lists were collected, counted from when the vector search started. */
       ms: number;
     }
   | { status: "unavailable"; reason: string };
@@ -41,16 +41,16 @@ function errorMessage(error: unknown) {
 }
 
 /**
- * The vector search runs in the background while routing and the keyword search run. collect()
- * waits for it until budgetMs after the question arrived, and no longer, so a slow embedding API
- * costs a bounded wait instead of the full embedding timeout. When routing and the keyword search
- * already took that long, it uses the vectors only if they are ready.
+ * The vector search runs in the background while the keyword search runs. collect() waits for it
+ * until budgetMs after it started, and no longer, so a slow embedding API costs a bounded wait
+ * instead of the full embedding timeout. When the keyword search already took that long, it uses
+ * the vectors only if they are ready.
  */
 export type QuranVectorSearchHandle = { collect(budgetMs: number): Promise<QuranVectorSearch> };
 
 /**
- * OpenRouter's bge-m3 usually answers in 0.4 to 0.9 s and sometimes takes 2 s (November 2026). Most
- * questions spend longer than this on the routing model call, so they never wait.
+ * OpenRouter's bge-m3 usually answers in 0.4 to 0.9 s and sometimes takes 2 s (November 2026). The
+ * keyword search runs meanwhile; on a small production instance it takes longer than that.
  */
 export const QURAN_VECTOR_WAIT_MS = 2000;
 
@@ -80,6 +80,10 @@ export function searchQuranVectors(query: string, deps: VectorSearchDeps = {}): 
 
   if (!indexPath) {
     return unavailable("no Quran embedding index configured (QURAN_EMBEDDINGS_PATH).");
+  }
+
+  if (!query.trim()) {
+    return unavailable("empty question.");
   }
 
   const embedder = deps.embedder === undefined ? createQueryEmbedder(env) : deps.embedder;

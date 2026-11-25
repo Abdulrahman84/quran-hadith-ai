@@ -167,6 +167,9 @@ test("the vector search reports why it is unavailable instead of failing", async
   assert.equal(noPath.status, "unavailable");
   assert.match(noPath.reason, /QURAN_EMBEDDINGS_PATH/);
 
+  const emptyQuestion = await searchQuranVectors("  ", { env: { QURAN_EMBEDDINGS_PATH: file }, embedder: fakeEmbedder({}) });
+  assert.match(emptyQuestion.reason, /empty question/);
+
   const noProvider = await searchQuranVectors("الصبر", { env: { QURAN_EMBEDDINGS_PATH: file }, embedder: null });
   assert.match(noProvider.reason, /no embedding provider/);
 
@@ -204,7 +207,7 @@ test("the keyword search waits a bounded time for a slow embedding, then gives u
   assert.match(late.reason, /not ready within 40 ms/);
   assert.ok(Date.now() - startedAt < 300);
 
-  // The budget counts from when the question arrived: a search collected after it ran out does not wait.
+  // The budget counts from when the vector search started: a search collected after it ran out does not wait.
   const handle = searchQuranVectors("الصبر", { env, embedder: slowEmbedder({ الصبر: 500 }) });
   await new Promise((resolve) => setTimeout(resolve, 60));
   const collectStartedAt = Date.now();

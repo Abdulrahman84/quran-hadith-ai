@@ -313,7 +313,7 @@ function vectorProvenanceNotes(
   const queries = vectorSearch.lists.map((list) => list.query).join(" | ");
   return [
     `Quran search: hybrid, reciprocal rank fusion (k=${QURAN_FUSION_K}, keyword and embedding lists weighted equally) of ${hybrid.keywordAyahs} keyword-matched ayahs and the nearest of ${vectorSearch.indexSize} ayah embeddings (${vectorSearch.model} via ${vectorSearch.provider}) for: ${queries}.`,
-    `Quran semantic search added ${hybrid.addedAyahs} ayahs the keyword search did not find. Timing: vector lists collected ${vectorSearch.ms} ms after the question arrived, keyword search waited ${waitMs} ms for them, fetching added ayahs ${hybrid.fetchMs} ms.`,
+    `Quran semantic search added ${hybrid.addedAyahs} ayahs the keyword search did not find. Timing: vector lists collected ${vectorSearch.ms} ms after the embedding started, keyword search waited ${waitMs} ms for them, fetching added ayahs ${hybrid.fetchMs} ms.`,
     "Embedding similarity finds related meaning; it does not verify a quotation.",
   ];
 }
