@@ -133,10 +133,28 @@ async function callExactVerse(client: Client, query: string, tafsirSources: stri
   return normalizeFetchedAyahWithTafsir(ayahPayload, tafsirPayload);
 }
 
+/**
+ * Al-Tabari is by far the largest tafsir: one text search over it takes seconds on a small
+ * server (about 4 s on a cold cache even on a laptop), while the others take milliseconds.
+ * When all tafsirs are selected it is left out of the text search that finds verses, but its
+ * commentary is still fetched for every verse found. A user who picks al-Tabari alone still
+ * searches it.
+ */
+const slowTafsirSearchSources = new Set(["tabary"]);
+
+/** At most this many query attempts per search, so a question that finds nothing stays cheap. */
+const MAX_TAFSIR_ATTEMPTS = 3;
+
+function tafsirSearchSources(tafsirSources: string[]) {
+  const fast = tafsirSources.filter((source) => !slowTafsirSearchSources.has(source));
+  return fast.length > 0 ? fast : tafsirSources;
+}
+
 async function callSearches(client: Client, query: string, tafsirSources: string[]) {
+  const searchSources = tafsirSearchSources(tafsirSources);
   const [quranPayload, tafsirPayloads] = await Promise.all([
     callTool(client, "search_quran_text", { query, limit: 5 }),
-    Promise.all(tafsirSources.map((source) => callTool(client, "search_in_tafsir", { query, source, limit: 5 }))),
+    Promise.all(searchSources.map((source) => callTool(client, "search_in_tafsir", { query, source, limit: 5 }))),
   ]);
   const quranRecords = unwrapTafsirToolResults(quranPayload)
     .filter(isQuranSearchResult)
@@ -160,7 +178,7 @@ async function callSearches(client: Client, query: string, tafsirSources: string
     )
   ).flat();
   const tafsirRecords = tafsirPayloads.flatMap((payload, sourceIndex) => {
-    const source = tafsirSources[sourceIndex] || tafsirSources[0] || "moyassar";
+    const source = searchSources[sourceIndex] || searchSources[0] || "moyassar";
 
     return unwrapTafsirToolResults(payload)
       .filter(isTafsirSearchResult)
@@ -220,7 +238,7 @@ export async function searchTafsirSources(
           return attemptRecords;
         };
 
-        for (const searchQuery of searchQueries) {
+        for (const searchQuery of searchQueries.slice(0, MAX_TAFSIR_ATTEMPTS)) {
           const attemptRecords = await timedAttempt(searchQuery);
 
           if (attemptRecords.length > 0) {
@@ -232,8 +250,12 @@ export async function searchTafsirSources(
 
         if (records.length === 0) {
           for (const fallbackQuery of splitFallbackQueries(query, language)) {
-            if (fallbackQuery === retrievalQuery) {
+            if (fallbackQuery === retrievalQuery || searchQueries.includes(fallbackQuery)) {
               continue;
+            }
+
+            if (attemptMs.length >= MAX_TAFSIR_ATTEMPTS + 1) {
+              break;
             }
 
             const fallbackRecords = await timedAttempt(fallbackQuery);
@@ -256,7 +278,7 @@ export async function searchTafsirSources(
           provenanceNotes: [
             tafsirAttribution,
             ...(rewrite?.fusha ? [`Question rewritten for search: ${rewrite.fusha}`] : []),
-            `Timing (tafsir): ${attemptMs.length} search attempts across ${selectedTafsirSources.length} tafsir works (${attemptMs.join(" + ")} ms), total ${Date.now() - startedAt} ms.`,
+            `Timing (tafsir): ${attemptMs.length} search attempts across ${tafsirSearchSources(selectedTafsirSources).length} searched tafsir works (${attemptMs.join(" + ")} ms), total ${Date.now() - startedAt} ms.`,
             ...(planned.changed || retrievalQuery !== query ? [`Product query planner searched Tafsir MCP for: ${retrievalQuery}`] : []),
             ...(formatMcpStderr(stderr) ? [formatMcpStderr(stderr)] : []),
           ],
