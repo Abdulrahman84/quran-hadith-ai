@@ -1,4 +1,4 @@
-import { searchHadithSources } from "./hadith-mcp";
+import { searchHadithSources, startHadithQueryPlan } from "./hadith-mcp";
 import type { HadithCollectionSelection } from "./hadith-collections";
 import { normalizeArabic, tokenize } from "../text/arabic";
 import { isExplicitQuranOnlyRequest, planSourceRouteDecision, type SourceRoute } from "./source-intent";
@@ -66,6 +66,9 @@ export async function searchSources(
   options: { tafsirSource?: TafsirSourceSelection; hadithCollection?: HadithCollectionSelection } = {},
   onProgress?: (completed: number, total: number, routes: SourceRoute[]) => void,
 ): Promise<RetrievalResponse> {
+  // Hadith is searched for almost every question, so its query plan (a model call) starts now,
+  // alongside the routing model call, instead of after it. Explicit Quran-only requests skip it.
+  const hadithQueryPlan = isExplicitQuranOnlyRequest(query) ? undefined : startHadithQueryPlan(query, language);
   const routeDecision = await planSourceRouteDecision(query);
   const routes = routeDecision.routes;
   onProgress?.(0, routes.length, routes);
@@ -76,7 +79,7 @@ export async function searchSources(
       const response =
         route === "tafsir"
           ? await searchTafsirSources(query, language, { tafsirSource: options.tafsirSource })
-          : await searchHadithSources(query, language, { collection: options.hadithCollection });
+          : await searchHadithSources(query, language, { collection: options.hadithCollection, queryPlan: hadithQueryPlan });
 
       completedRoutes += 1;
       onProgress?.(completedRoutes, routes.length, routes);
