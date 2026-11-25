@@ -66,7 +66,7 @@ test("a question that finds nothing makes a bounded number of attempts", async (
   });
 
   const attempts = calls.filter((call) => call.name === "search_quran_text").length;
-  assert.ok(attempts <= 4, `expected at most 4 attempts, got ${attempts}`);
+  assert.ok(attempts <= 3, `expected at most 3 attempts, got ${attempts}`);
 });
 
 test("verses found are fetched with every tafsir, including al-Tabari", async () => {
@@ -78,4 +78,17 @@ test("verses found are fetched with every tafsir, including al-Tabari", async ()
   const fetches = calls.filter((call) => call.name === "fetch_tafsir");
   assert.ok(fetches.length > 0);
   assert.ok(fetches.every((call) => call.arguments.sources.includes("tabary")));
+});
+
+test("English questions search English tafsir text, Arabic questions the Arabic tafsirs", async () => {
+  const english = loadTafsirMcp(nothing);
+  await english.tafsirMcp.searchTafsirSources("kindness to parents", "english");
+  const englishSearched = new Set(english.calls.filter((call) => call.name === "search_in_tafsir").map((call) => call.arguments.source));
+  assert.deepEqual([...englishSearched], ["mukhtasar_en"]);
+
+  const arabic = loadTafsirMcp(nothing);
+  await arabic.tafsirMcp.searchTafsirSources("بر الوالدين", "arabic");
+  const arabicSearched = new Set(arabic.calls.filter((call) => call.name === "search_in_tafsir").map((call) => call.arguments.source));
+  assert.ok(!arabicSearched.has("mukhtasar_en") && !arabicSearched.has("tabary"));
+  assert.ok(arabicSearched.has("moyassar") && arabicSearched.has("katheer"));
 });

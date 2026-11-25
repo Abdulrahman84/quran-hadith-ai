@@ -142,16 +142,32 @@ async function callExactVerse(client: Client, query: string, tafsirSources: stri
  */
 const slowTafsirSearchSources = new Set(["tabary"]);
 
-/** At most this many query attempts per search, so a question that finds nothing stays cheap. */
-const MAX_TAFSIR_ATTEMPTS = 3;
+/**
+ * At most this many query attempts per search. Each attempt is several tool calls that the tafsir
+ * server runs one at a time, which costs about 3 s on a small production instance.
+ */
+const MAX_TAFSIR_ATTEMPTS = 2;
 
-function tafsirSearchSources(tafsirSources: string[]) {
-  const fast = tafsirSources.filter((source) => !slowTafsirSearchSources.has(source));
-  return fast.length > 0 ? fast : tafsirSources;
+/** Tafsir text written in English; the others are Arabic. */
+const englishTafsirSources = new Set(["mukhtasar_en"]);
+
+/**
+ * The tafsirs whose text is searched to find verses: the ones written in the question's language
+ * (an English query can never match Arabic commentary), without al-Tabari. Every selected tafsir
+ * is still fetched for the verses found. An explicit single-tafsir choice is always searched.
+ */
+function tafsirSearchSources(tafsirSources: string[], language: RetrievalLanguage = "arabic") {
+  if (tafsirSources.length === 1) {
+    return tafsirSources;
+  }
+
+  const sameLanguage = tafsirSources.filter((source) => englishTafsirSources.has(source) === (language === "english"));
+  const fast = sameLanguage.filter((source) => !slowTafsirSearchSources.has(source));
+  return fast.length > 0 ? fast : sameLanguage.length > 0 ? sameLanguage : tafsirSources;
 }
 
-async function callSearches(client: Client, query: string, tafsirSources: string[]) {
-  const searchSources = tafsirSearchSources(tafsirSources);
+async function callSearches(client: Client, query: string, tafsirSources: string[], language: RetrievalLanguage) {
+  const searchSources = tafsirSearchSources(tafsirSources, language);
   const [quranPayload, tafsirPayloads] = await Promise.all([
     callTool(client, "search_quran_text", { query, limit: 5 }),
     Promise.all(searchSources.map((source) => callTool(client, "search_in_tafsir", { query, source, limit: 5 }))),
@@ -190,14 +206,14 @@ async function callSearches(client: Client, query: string, tafsirSources: string
   });
 }
 
-async function retrieveTafsirRecords(client: Client, query: string, tafsirSources: string[]) {
+async function retrieveTafsirRecords(client: Client, query: string, tafsirSources: string[], language: RetrievalLanguage) {
   const exactRecords = await callExactVerse(client, query, tafsirSources);
 
   if (exactRecords.length > 0) {
     return exactRecords;
   }
 
-  return callSearches(client, query, tafsirSources);
+  return callSearches(client, query, tafsirSources, language);
 }
 
 export async function searchTafsirSources(
@@ -233,7 +249,7 @@ export async function searchTafsirSources(
         const attemptMs: number[] = [];
         const timedAttempt = async (searchQuery: string) => {
           const attemptStartedAt = Date.now();
-          const attemptRecords = await retrieveTafsirRecords(client, searchQuery, selectedTafsirSources);
+          const attemptRecords = await retrieveTafsirRecords(client, searchQuery, selectedTafsirSources, language);
           attemptMs.push(Date.now() - attemptStartedAt);
           return attemptRecords;
         };
@@ -254,7 +270,7 @@ export async function searchTafsirSources(
               continue;
             }
 
-            if (attemptMs.length >= MAX_TAFSIR_ATTEMPTS + 1) {
+            if (attemptMs.length > MAX_TAFSIR_ATTEMPTS) {
               break;
             }
 
@@ -278,7 +294,7 @@ export async function searchTafsirSources(
           provenanceNotes: [
             tafsirAttribution,
             ...(rewrite?.fusha ? [`Question rewritten for search: ${rewrite.fusha}`] : []),
-            `Timing (tafsir): ${attemptMs.length} search attempts across ${tafsirSearchSources(selectedTafsirSources).length} searched tafsir works (${attemptMs.join(" + ")} ms), total ${Date.now() - startedAt} ms.`,
+            `Timing (tafsir): ${attemptMs.length} search attempts across ${tafsirSearchSources(selectedTafsirSources, language).length} searched tafsir works (${attemptMs.join(" + ")} ms), total ${Date.now() - startedAt} ms.`,
             ...(planned.changed || retrievalQuery !== query ? [`Product query planner searched Tafsir MCP for: ${retrievalQuery}`] : []),
             ...(formatMcpStderr(stderr) ? [formatMcpStderr(stderr)] : []),
           ],
