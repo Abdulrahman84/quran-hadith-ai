@@ -1,8 +1,9 @@
 import { searchHadithSources, startHadithQueryPlan } from "./hadith-mcp";
 import { startQuestionRewrite } from "./question-rewrite";
+import { startQuranVectorSearch } from "./quran-hybrid";
 import type { HadithCollectionSelection } from "./hadith-collections";
 import { normalizeArabic, tokenize } from "../text/arabic";
-import { isExplicitQuranOnlyRequest, planSourceRouteDecision, type SourceRoute } from "./source-intent";
+import { isExplicitHadithOnlyRequest, isExplicitQuranOnlyRequest, planSourceRouteDecision, type SourceRoute } from "./source-intent";
 import { searchTafsirSources } from "./tafsir-mcp";
 import type { TafsirSourceSelection } from "./tafsir-sources";
 import type { RetrievalLanguage, RetrievalResponse, RetrievalStatus, SourceMode, SourceRecord } from "./types";
@@ -72,6 +73,9 @@ export async function searchSources(
   const hadithQueryPlan = isExplicitQuranOnlyRequest(query) ? undefined : startHadithQueryPlan(query, language);
   // A Fusha rewrite for dialect, Arabizi and misspelled questions, also started alongside routing.
   const questionRewrite = startQuestionRewrite(query, language);
+  // With QURAN_SEARCH_MODE=hybrid the question is embedded now too, so the Quran vector search is
+  // usually done by the time routing and the keyword search finish. Explicit hadith-only requests skip it.
+  const quranVectorSearch = isExplicitHadithOnlyRequest(query) ? undefined : startQuranVectorSearch(query, questionRewrite);
   const routeDecision = await planSourceRouteDecision(query);
   const routes = routeDecision.routes;
   onProgress?.(0, routes.length, routes);
@@ -81,7 +85,11 @@ export async function searchSources(
     routes.map(async (route) => {
       const response =
         route === "tafsir"
-          ? await searchTafsirSources(query, language, { tafsirSource: options.tafsirSource, questionRewrite })
+          ? await searchTafsirSources(query, language, {
+              tafsirSource: options.tafsirSource,
+              questionRewrite,
+              vectorSearch: quranVectorSearch,
+            })
           : await searchHadithSources(query, language, {
               collection: options.hadithCollection,
               queryPlan: hadithQueryPlan,
