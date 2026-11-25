@@ -25,7 +25,19 @@ function hasAnyToken(tokens: Set<string>, values: string[]) {
 // Bare «ايه» is left out: in Egyptian Arabic it means "what" («النبي قال ايه عن الغضب؟»), and it
 // normalizes to the same letters as «آية». The verse is still recognized from «آية», «اية», «آيه»,
 // «الآية/الايه» and «آيات», see mentionsVerseWord.
-const quranSourceTerms = ["قران", "القران", "الايه", "ايات", "الايات", "تفسير", "التفسير", "tafsir", "ayah", "verse", "quran"];
+// «القرآن» alone is left out too: it is often the topic, not the source («ثواب قراءة القرآن» is
+// answered by hadith). Phrases that name it as the source are matched in mentionsQuranAsSource.
+const quranSourceTerms = ["الايه", "ايات", "الايات", "تفسير", "التفسير", "tafsir", "ayah", "verse"];
+
+/** The Quran named as where to look («في القرآن», «القرآن يقول», "in the Quran"), not as a topic. */
+function mentionsQuranAsSource(query: string) {
+  const normalized = ` ${matchingTokens(query).join(" ")} `;
+  return (
+    /(في|من|بالقران|ايات) القران /.test(normalized) ||
+    / القران (عن|يقول|بيقول|بيحكي|يحكي|قال|ذكر) /.test(normalized) ||
+    /\b(in|from) the quran\b|\bquran (on|about|say|says|said)\b|\bquranic verse/.test(query.toLowerCase())
+  );
+}
 
 /** «آية» spelled so it can't be the Egyptian «ايه» (what): with madda, or ending in taa marbuta. */
 function mentionsVerseWord(query: string) {
@@ -33,7 +45,7 @@ function mentionsVerseWord(query: string) {
 }
 
 function hasQuranSourceTerm(query: string, tokens: Set<string>, terms: string[]) {
-  return hasAnyToken(tokens, terms) || mentionsVerseWord(query);
+  return hasAnyToken(tokens, terms) || mentionsVerseWord(query) || mentionsQuranAsSource(query);
 }
 // Surah names are allowed in hadith-only requests (e.g. hadith about the virtues of a surah).
 const quranOnlySourceTerms = [...quranSourceTerms, "سوره", "السوره", "surah"];
@@ -42,7 +54,7 @@ const hadithSourceTerms = ["حديث", "احاديث", "السنه", "سنه", "
 export function isExplicitQuranOnlyRequest(query: string) {
   const tokens = new Set(matchingTokens(query));
   const mentionsQuranOnlySource =
-    hasQuranSourceTerm(query, tokens, quranOnlySourceTerms) || normalizeArabic(query.toLowerCase()).includes("في القران");
+    hasQuranSourceTerm(query, tokens, quranOnlySourceTerms);
 
   return mentionsQuranOnlySource && !hasAnyToken(tokens, hadithSourceTerms);
 }

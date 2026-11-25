@@ -11,6 +11,7 @@ import {
   normalizeQuranSearchResult,
   normalizeTafsirSearchResult,
   planTafsirSearchQueries,
+  withoutQuranSourcePhrase,
   type FetchedAyah,
   type FetchedTafsir,
   type QuranSearchResult,
@@ -142,6 +143,9 @@ async function callExactVerse(client: Client, query: string, tafsirSources: stri
  */
 const slowTafsirSearchSources = new Set(["tabary"]);
 
+/** Single words never worth a fallback search on their own (prepositions, question words). */
+const arabicFunctionWords = new Set(["في", "فى", "من", "عن", "على", "الى", "إلى", "ما", "ماذا", "شو", "ايش", "وش"]);
+
 /**
  * At most this many query attempts per search. Each attempt is several tool calls that the tafsir
  * server runs one at a time, which costs about 3 s on a small production instance.
@@ -265,8 +269,12 @@ export async function searchTafsirSources(
         }
 
         if (records.length === 0) {
-          for (const fallbackQuery of splitFallbackQueries(query, language)) {
-            if (fallbackQuery === retrievalQuery || searchQueries.includes(fallbackQuery)) {
+          for (const fallbackQuery of splitFallbackQueries(withoutQuranSourcePhrase(query, language), language)) {
+            if (
+              fallbackQuery === retrievalQuery ||
+              searchQueries.includes(fallbackQuery) ||
+              arabicFunctionWords.has(fallbackQuery)
+            ) {
               continue;
             }
 

@@ -220,6 +220,27 @@ export function unwrapTafsirToolResults(payload: unknown): unknown[] {
   return Array.isArray(candidate.result) ? candidate.result : [];
 }
 
+// «في القرآن», «من القرآن الكريم», «بالقرآن»: the user naming where to look. Searching the Quran
+// for the word القرآن only finds verses about the Quran itself, so the phrase is dropped. «القرآن»
+// on its own is kept, since it may be the topic («فضل القرآن»).
+const arabicQuranSourcePhrase = /(?:^|\s)(?:(?:في|فى|من)\s+|ب)ال?قر[اآ]ن(?:\s+الكريم)?(?=$|[\s؟?!.،,])/gu;
+
+/** The question without a phrase naming the Quran as where to look (Arabic only). */
+export function withoutQuranSourcePhrase(query: string, language: RetrievalLanguage) {
+  if (language !== "arabic") {
+    return query.trim();
+  }
+
+  const stripped = query
+    .replace(arabicQuranSourcePhrase, " ")
+    .replace(/\s+([؟?!.،,])/g, "$1")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  // Nothing left but punctuation: the phrase was the whole question, so keep it.
+  return /[\p{L}\p{N}]/u.test(stripped) ? stripped : query.trim();
+}
+
 export function planTafsirSearchQueries(query: string, language: RetrievalLanguage) {
   const trimmed = query.trim();
 
@@ -227,7 +248,7 @@ export function planTafsirSearchQueries(query: string, language: RetrievalLangua
     return [];
   }
 
-  const terms = tokenize(trimmed, { keep: ":：" }).filter((token) => {
+  const terms = tokenize(withoutQuranSourcePhrase(trimmed, language), { keep: ":：" }).filter((token) => {
     if (language === "arabic") {
       return !tafsirArabicPromptWords.has(token) && !tafsirArabicPromptWords.has(normalizeArabic(token));
     }
