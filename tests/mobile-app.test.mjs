@@ -102,23 +102,31 @@ test("Mobile export leaves the Node-only API routes and proxy out of the bundle"
 });
 
 test("The logo, favicon and app icons all come from the vector mark", () => {
-  const { markElements, markPalettes } = loadModule("src/lib/brand-mark.ts");
+  const { markElements, markPalettes, faviconElements } = loadModule("src/lib/brand-mark.ts");
   const logo = readSource("src/components/sanad-logo.tsx");
   const layout = readSource("src/app/layout.tsx");
 
   for (const palette of Object.values(markPalettes)) {
     const markup = markElements(palette);
+    // The robot's head, the open book and the rahl, with a transparent gap
+    // between the book and what sits behind it.
     assert.match(markup, /class="sanad-mark-head"/);
-    assert.ok(markup.includes(palette.book) && markup.includes(palette.accent));
+    assert.match(markup, /mask="url\(#sanad-mark-gap\)"/);
+    assert.ok(markup.includes(palette.book) && markup.includes(palette.pages) && markup.includes(palette.accent));
+
+    const favicon = faviconElements(palette);
+    assert.match(favicon, /class="sanad-mark-head"/);
+    assert.doesNotMatch(favicon, /sanad-mark-gap/);
   }
 
   assert.match(logo, /markElements\(markPalettes\.onLight\)/);
   assert.match(logo, /سند/);
   assert.doesNotMatch(logo, /<image/);
-  assert.match(layout, /\/brand\/sanad-mark\.svg/);
+  assert.match(layout, /\/brand\/sanad-favicon\.svg/);
 
   for (const file of [
     "public/brand/sanad-mark.svg",
+    "public/brand/sanad-favicon.svg",
     "public/brand/sanad-app-icon.png",
     "assets/icon-only.png",
     "assets/splash.png",

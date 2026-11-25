@@ -1,7 +1,9 @@
 #!/usr/bin/env node
 // Renders every logo asset from the vector mark in src/lib/brand-mark.ts:
 // - assets/*.png: sources for `@capacitor/assets` (iOS/Android icons, splashes)
-// - public/brand/sanad-mark.svg and sanad-app-icon.png: web favicon and touch icon
+// - public/brand/sanad-mark.svg: the full mark as a scalable file
+// - public/brand/sanad-favicon.svg: the head-only browser tab icon
+// - public/brand/sanad-app-icon.png: the touch icon
 // - src/app/icon.png: the browser tab icon Next.js serves
 // Run through `npm run brand:assets` (or `npm run mobile:assets`, which then
 // writes the native sizes). Needs Node 23+ to import the .ts module directly.
@@ -9,7 +11,7 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import sharp from "sharp";
 
-import { markElements, markPalettes, markViewBox } from "../src/lib/brand-mark.ts";
+import { faviconElements, faviconViewBox, markElements, markPalettes, markViewBox } from "../src/lib/brand-mark.ts";
 
 const projectDir = process.cwd();
 const assetsDir = path.join(projectDir, "assets");
@@ -89,5 +91,11 @@ writeFileSync(
   `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${x} ${y} ${width} ${height}">${markElements(markPalettes.onLight)}</svg>\n`,
 );
 console.log("wrote public/brand/sanad-mark.svg");
+// Browser tabs draw the icon at 16-32px, where only the head stays readable.
+writeFileSync(
+  path.join(brandDir, "sanad-favicon.svg"),
+  `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${faviconViewBox.x} ${faviconViewBox.y} ${faviconViewBox.width} ${faviconViewBox.height}">${faviconElements(markPalettes.onLight)}</svg>\n`,
+);
+console.log("wrote public/brand/sanad-favicon.svg");
 await writePng(path.join(brandDir, "sanad-app-icon.png"), 512, greenTile(512) + markLayer(512, 320, markPalettes.onDark));
 await writePng(path.join(projectDir, "src/app/icon.png"), 512, greenTile(512, 112) + markLayer(512, 320, markPalettes.onDark));

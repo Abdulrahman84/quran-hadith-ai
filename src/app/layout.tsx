@@ -35,8 +35,8 @@ export const metadata: Metadata = {
     google: "P4KIgp2oN1afFuRDLRHg20NkD-cAUvc-WTVaow1cbuk",
   },
   icons: {
-    icon: [{ url: "/brand/sanad-mark.svg?v=vector-mark", type: "image/svg+xml" }],
-    apple: "/brand/sanad-app-icon.png?v=vector-mark",
+    icon: [{ url: "/brand/sanad-favicon.svg?v=rahl", type: "image/svg+xml" }],
+    apple: "/brand/sanad-app-icon.png?v=rahl",
   },
 };
 
