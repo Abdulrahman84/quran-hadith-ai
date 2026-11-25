@@ -3,6 +3,7 @@ import type { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { formatMcpStderr } from "./mcp-error";
 import { getMcpPayload, withStdioMcpClient, type McpCallResult } from "./mcp-stdio";
 import { planRetrievalQuery, splitFallbackQueries } from "./query-planner";
+import type { QuestionRewrite } from "./question-rewrite";
 import { resolveTafsirSources, type TafsirSourceSelection } from "./tafsir-sources";
 import {
   normalizeFetchedAyahWithTafsir,
@@ -184,7 +185,7 @@ async function retrieveTafsirRecords(client: Client, query: string, tafsirSource
 export async function searchTafsirSources(
   query: string,
   language: RetrievalLanguage,
-  options: { tafsirSource?: TafsirSourceSelection } = {},
+  options: { tafsirSource?: TafsirSourceSelection; questionRewrite?: Promise<QuestionRewrite> } = {},
 ): Promise<RetrievalResponse> {
   const planned = planRetrievalQuery(query, language);
   const config = getTafsirMcpConfig();
@@ -198,7 +199,16 @@ export async function searchTafsirSources(
         env: config.env,
       },
       async ({ client, stderr }) => {
-        const searchQueries = [...new Set([...planTafsirSearchQueries(query, language), planned.retrievalQuery])];
+        // The Fusha rewrite goes first: a dialect word like «اهلنا» still matches some verse, so
+        // searching the user's own words first would stop before the rewrite is ever tried.
+        const rewrite = options.questionRewrite ? await options.questionRewrite : null;
+        const searchQueries = [
+          ...new Set([
+            ...(rewrite?.fusha ? planTafsirSearchQueries(rewrite.fusha, language) : []),
+            ...planTafsirSearchQueries(query, language),
+            planned.retrievalQuery,
+          ]),
+        ];
         let retrievalQuery = searchQueries[0] || planned.retrievalQuery;
         let records: SourceRecord[] = [];
         const startedAt = Date.now();
@@ -245,6 +255,7 @@ export async function searchTafsirSources(
           warnings: records.length > 0 ? [] : [{ code: "no_tafsir_results", message: "No Quran or tafsir records matched this query." }],
           provenanceNotes: [
             tafsirAttribution,
+            ...(rewrite?.fusha ? [`Question rewritten for search: ${rewrite.fusha}`] : []),
             `Timing (tafsir): ${attemptMs.length} search attempts across ${selectedTafsirSources.length} tafsir works (${attemptMs.join(" + ")} ms), total ${Date.now() - startedAt} ms.`,
             ...(planned.changed || retrievalQuery !== query ? [`Product query planner searched Tafsir MCP for: ${retrievalQuery}`] : []),
             ...(formatMcpStderr(stderr) ? [formatMcpStderr(stderr)] : []),

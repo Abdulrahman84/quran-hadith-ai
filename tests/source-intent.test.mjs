@@ -213,6 +213,22 @@ test("skips the AI router when the question names its source explicitly", async 
   assert.deepEqual(Array.from(quranOnly.routes), ["tafsir"]);
 });
 
+test("Egyptian «ايه» (what) is not read as «آية» (verse)", () => {
+  const { heuristicSourceRoutes, isExplicitQuranOnlyRequest, isExplicitHadithOnlyRequest } = loadSourceIntent();
+
+  assert.equal(isExplicitQuranOnlyRequest("انا عصبي جدا، النبي قال ايه عن الغضب؟"), false);
+  assert.equal(isExplicitQuranOnlyRequest("جاري بيضايقني هو الاسلام بيقول ايه عن حق الجار"), false);
+  assert.deepEqual(Array.from(heuristicSourceRoutes("النبي قال ايه عن الغضب")), ["tafsir", "hadith"]);
+  assert.equal(isExplicitHadithOnlyRequest("في حديث بيقول ايه عن الصبر؟"), true);
+
+  // The verse is still recognized when spelled so it can't mean "what".
+  assert.equal(isExplicitQuranOnlyRequest("اشرح آية الكرسي"), true);
+  assert.equal(isExplicitQuranOnlyRequest("اشرح اية الكرسي"), true);
+  assert.equal(isExplicitQuranOnlyRequest("وين الايه يلي فيها كتب عليكم الصيام"), true);
+  assert.equal(isExplicitQuranOnlyRequest("ايات الصبر"), true);
+  assert.equal(isExplicitQuranOnlyRequest("تفسير ايه الكرسي"), true);
+});
+
 test("heuristic routing treats ta marbuta spellings the same", () => {
   const { heuristicSourceRoutes, isExplicitQuranOnlyRequest } = loadSourceIntent();
 

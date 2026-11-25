@@ -13,7 +13,7 @@ const MAX_MATCHES_PER_RULE = 40;
 // Bump only when the output format changes; other tools read retrieval-questions.json.
 const DATASET_SCHEMA_VERSION = 1;
 const KINDS = new Set(["exact-quote", "reference", "paraphrase", "topical"]);
-const MODIFIERS = new Set(["cross-lingual", "source-limited"]);
+const MODIFIERS = new Set(["cross-lingual", "source-limited", "dialect", "informal"]);
 const CORPORA = new Set(["hadith", "quran", "mixed"]);
 
 function loadEnvFile(file) {
@@ -92,7 +92,7 @@ const items = spec.items.map((item) => {
   const expectedTags = [
     item.kind,
     ...(item.language === "english" ? ["cross-lingual"] : []),
-    ...item.tags.filter((tag) => tag === "source-limited"),
+    ...["source-limited", "dialect", "informal"].filter((tag) => item.tags.includes(tag)),
     item.corpus,
   ];
   if (JSON.stringify(item.tags) !== JSON.stringify(expectedTags)) {

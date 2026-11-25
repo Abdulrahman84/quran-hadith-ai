@@ -1124,11 +1124,473 @@
           "1:2"
         ]
       }
+    },
+    {
+      "id": "d-anger-eg",
+      "question": "انا عصبي جدا ومش عارف اتحكم في نفسي، النبي قال ايه عن الغضب؟",
+      "language": "arabic",
+      "kind": "topical",
+      "corpus": "hadith",
+      "tags": [
+        "topical",
+        "dialect",
+        "hadith"
+      ],
+      "hadith": [
+        {
+          "all": [
+            "اوصني قال لا تغضب"
+          ]
+        },
+        {
+          "all": [
+            "الشديد بالصرعة"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "d-neighbor-eg",
+      "question": "جاري بيضايقني كتير هو الاسلام بيقول ايه عن حق الجار",
+      "language": "arabic",
+      "kind": "topical",
+      "corpus": "hadith",
+      "tags": [
+        "topical",
+        "dialect",
+        "hadith"
+      ],
+      "hadith": [
+        {
+          "all": [
+            "يوصيني بالجار"
+          ]
+        },
+        {
+          "all": [
+            "فليقل خيرا او ليصمت",
+            "جاره"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "d-smile-eg",
+      "question": "هي الابتسامه في وش الناس تتحسب صدقه؟",
+      "language": "arabic",
+      "kind": "paraphrase",
+      "corpus": "hadith",
+      "tags": [
+        "paraphrase",
+        "dialect",
+        "informal",
+        "hadith"
+      ],
+      "hadith": [
+        {
+          "all": [
+            "تبسمك في وجه اخيك"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "d-ramadan-eg",
+      "question": "اللي بيصوم رمضان ربنا بيغفرله اللي فات من ذنوبه؟",
+      "language": "arabic",
+      "kind": "paraphrase",
+      "corpus": "hadith",
+      "tags": [
+        "paraphrase",
+        "dialect",
+        "hadith"
+      ],
+      "hadith": [
+        {
+          "all": [
+            "من صام رمضان ايمانا واحتسابا"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "d-cat-lev",
+      "question": "شو قصة المرا يلي فاتت عالنار بسبب بسة؟",
+      "language": "arabic",
+      "kind": "paraphrase",
+      "corpus": "hadith",
+      "tags": [
+        "paraphrase",
+        "dialect",
+        "hadith"
+      ],
+      "hadith": [
+        {
+          "all": [
+            "امراة",
+            "في هرة"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "d-parents-lev",
+      "question": "شو بيحكي القرآن عن انو لازم نكون منيحين مع اهلنا",
+      "language": "arabic",
+      "kind": "topical",
+      "corpus": "quran",
+      "tags": [
+        "topical",
+        "source-limited",
+        "dialect",
+        "quran"
+      ],
+      "quran": {
+        "all": [
+          "وبالوالدين احسانا"
+        ]
+      }
+    },
+    {
+      "id": "d-intentions-lev",
+      "question": "في حديث بيحكي انو كل شغلة بالنية؟ شو نصه",
+      "language": "arabic",
+      "kind": "paraphrase",
+      "corpus": "hadith",
+      "tags": [
+        "paraphrase",
+        "source-limited",
+        "dialect",
+        "hadith"
+      ],
+      "hadith": [
+        {
+          "all": [
+            "الاعمال بالني"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "d-fasting-lev",
+      "question": "وين الايه يلي فيها كتب عليكم الصيام",
+      "language": "arabic",
+      "kind": "paraphrase",
+      "corpus": "quran",
+      "tags": [
+        "paraphrase",
+        "source-limited",
+        "dialect",
+        "informal",
+        "quran"
+      ],
+      "quran": {
+        "all": [
+          "كتب عليكم الصيام"
+        ]
+      }
+    },
+    {
+      "id": "d-kinship-gulf",
+      "question": "ابي اعرف وش فضل صلة الرحم، صحيح انها توسع الرزق؟",
+      "language": "arabic",
+      "kind": "topical",
+      "corpus": "hadith",
+      "tags": [
+        "topical",
+        "dialect",
+        "hadith"
+      ],
+      "hadith": [
+        {
+          "all": [
+            "يبسط له في رزقه"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "d-seven-gulf",
+      "question": "مين السبعه اللي ربي يظلهم يوم القيامه",
+      "language": "arabic",
+      "kind": "paraphrase",
+      "corpus": "hadith",
+      "tags": [
+        "paraphrase",
+        "dialect",
+        "informal",
+        "hadith"
+      ],
+      "hadith": [
+        {
+          "all": [
+            "سبعة يظلهم الله"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "d-siwak-gulf",
+      "question": "وش ورد عن السواك؟ ودي اعرف هل الرسول وصى فيه",
+      "language": "arabic",
+      "kind": "topical",
+      "corpus": "hadith",
+      "tags": [
+        "topical",
+        "dialect",
+        "hadith"
+      ],
+      "hadith": [
+        {
+          "all": [
+            "لولا ان اشق علي امتي لامرتهم بالسواك"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "d-patience-iq",
+      "question": "اكو حديث عن الصبر من تصير مصيبه؟",
+      "language": "arabic",
+      "kind": "topical",
+      "corpus": "hadith",
+      "tags": [
+        "topical",
+        "source-limited",
+        "dialect",
+        "informal",
+        "hadith"
+      ],
+      "hadith": [
+        {
+          "all": [
+            "عجبا لامر المومن"
+          ]
+        },
+        {
+          "all": [
+            "الصبر عند الصدمة الاولي"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "d-honesty-iq",
+      "question": "شنو يكول الرسول عن الصدك والجذب؟",
+      "language": "arabic",
+      "kind": "topical",
+      "corpus": "hadith",
+      "tags": [
+        "topical",
+        "dialect",
+        "informal",
+        "hadith"
+      ],
+      "hadith": [
+        {
+          "all": [
+            "ان الصدق يهدي الي البر"
+          ]
+        },
+        {
+          "all": [
+            "عليكم بالصدق"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "d-goodword-ma",
+      "question": "واش الكلمة الزوينة كتعتبر صدقة؟",
+      "language": "arabic",
+      "kind": "paraphrase",
+      "corpus": "hadith",
+      "tags": [
+        "paraphrase",
+        "dialect",
+        "hadith"
+      ],
+      "hadith": [
+        {
+          "all": [
+            "الكلمة الطيبة صدقة"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "d-animals-ma",
+      "question": "شنو قال النبي على الرحمة بالحيوانات بحال الكلاب والقطط",
+      "language": "arabic",
+      "kind": "topical",
+      "corpus": "hadith",
+      "tags": [
+        "topical",
+        "dialect",
+        "hadith"
+      ],
+      "hadith": [
+        {
+          "all": [
+            "يلهث ياكل الثري"
+          ]
+        },
+        {
+          "all": [
+            "امراة",
+            "في هرة"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "d-brother-typo",
+      "question": "لا يؤمن احدكم حتي يحب لاخيه",
+      "language": "arabic",
+      "kind": "exact-quote",
+      "corpus": "hadith",
+      "tags": [
+        "exact-quote",
+        "informal",
+        "hadith"
+      ],
+      "hadith": [
+        {
+          "all": [
+            "حتي يحب لاخيه"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "d-buniya-typo",
+      "question": "بني الاسلام علي خمس شو هم",
+      "language": "arabic",
+      "kind": "paraphrase",
+      "corpus": "hadith",
+      "tags": [
+        "paraphrase",
+        "dialect",
+        "informal",
+        "hadith"
+      ],
+      "hadith": [
+        {
+          "all": [
+            "بني الاسلام علي خمس"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "d-kursi-typo",
+      "question": "تفسير ايه الكرسي",
+      "language": "arabic",
+      "kind": "reference",
+      "corpus": "quran",
+      "tags": [
+        "reference",
+        "source-limited",
+        "informal",
+        "quran"
+      ],
+      "quran": {
+        "verseKeys": [
+          "2:255"
+        ]
+      }
+    },
+    {
+      "id": "d-yusr-typo",
+      "question": "ان مع العسر يسري",
+      "language": "arabic",
+      "kind": "exact-quote",
+      "corpus": "quran",
+      "tags": [
+        "exact-quote",
+        "informal",
+        "quran"
+      ],
+      "quran": {
+        "all": [
+          "مع العسر يسرا"
+        ]
+      }
+    },
+    {
+      "id": "d-anger-arabizi",
+      "question": "el nabi 2al eh 3an el ghadab",
+      "language": "arabic",
+      "kind": "topical",
+      "corpus": "hadith",
+      "tags": [
+        "topical",
+        "dialect",
+        "informal",
+        "hadith"
+      ],
+      "hadith": [
+        {
+          "all": [
+            "اوصني قال لا تغضب"
+          ]
+        },
+        {
+          "all": [
+            "الشديد بالصرعة"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "d-ramadan-arabizi",
+      "question": "fadl syam ramadan",
+      "language": "arabic",
+      "kind": "paraphrase",
+      "corpus": "hadith",
+      "tags": [
+        "paraphrase",
+        "informal",
+        "hadith"
+      ],
+      "hadith": [
+        {
+          "all": [
+            "من صام رمضان ايمانا واحتسابا"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "d-haya-mixed",
+      "question": "hadith about الحياء من الايمان",
+      "language": "english",
+      "kind": "topical",
+      "corpus": "hadith",
+      "tags": [
+        "topical",
+        "cross-lingual",
+        "source-limited",
+        "informal",
+        "hadith"
+      ],
+      "hadith": [
+        {
+          "all": [
+            "الحياء شعبة من الايمان"
+          ]
+        },
+        {
+          "all": [
+            "الحياء من الايمان"
+          ]
+        }
+      ]
     }
   ],
   "tagging": {
     "kind": "exactly one of exact-quote | reference | paraphrase | topical",
-    "modifiers": "cross-lingual (question is English; source text is Arabic, matched via translations/tafsir) and source-limited (question explicitly names hadith/Sunnah or Quran/verse/tafsir)",
+    "modifiers": "cross-lingual (question is English; source text is Arabic, matched via translations/tafsir) and source-limited (question explicitly names hadith/Sunnah or Quran/verse/tafsir); dialect (colloquial Arabic: Egyptian, Levantine, Gulf, Iraqi, Maghrebi) and informal (typos, missing hamzas, Arabizi, mixed Arabic/English, half-remembered quotes)",
     "corpus": "hadith | quran | mixed (where the ground truth lives)"
   }
 }
