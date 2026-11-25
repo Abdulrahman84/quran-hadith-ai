@@ -80,7 +80,7 @@ export function AnswerPanel({
           <SearchLoading detail={progressDetail} phase={searchProgressPhase} progress={searchProgress} />
         ) : requestError ? (
           <div role="alert">
-            <p className="text-xs font-bold uppercase tracking-[0.16em] text-[var(--color-red)]">
+            <p className="text-xs font-bold uppercase tracking-[0.16em] rtl:tracking-normal text-[var(--color-red)]">
               {t("result.failed")}
             </p>
             <p className="mt-3 text-sm font-medium leading-7 text-[var(--color-muted)]">{requestError}</p>

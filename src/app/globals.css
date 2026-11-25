@@ -53,6 +53,13 @@ body {
   box-shadow: 0 0 0 5px var(--color-surface);
 }
 
+/* Regions focused from script (tabindex="-1") so screen readers announce them;
+   they aren't controls, so they get no focus ring. */
+[tabindex="-1"]:focus-visible {
+  outline: none;
+  box-shadow: none;
+}
+
 html[dir="rtl"] body {
   text-align: right;
 }
@@ -1577,4 +1584,45 @@ html[dir="rtl"] .suggestion-row:hover .suggestion-arrow {
   .workflow-tab {
     transition: none;
   }
+}
+
+/* Privacy and support pages */
+.text-section .info-step-text {
+  max-width: 68ch;
+}
+
+.text-section-link {
+  display: inline-block;
+  margin-top: 0.75rem;
+  color: var(--color-green);
+  font-weight: 600;
+  text-decoration: underline;
+  text-decoration-color: var(--color-gold);
+  text-underline-offset: 0.3em;
+}
+
+.faq-list {
+  display: grid;
+  gap: 0.4rem;
+  margin-top: 1rem;
+  max-width: 68ch;
+}
+
+.faq-list dt {
+  font-weight: 600;
+}
+
+.faq-list dd {
+  margin-bottom: 0.9rem;
+  color: var(--color-muted);
+  line-height: 1.9;
+}
+
+.info-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 1.5rem;
+  margin-top: 3rem;
+  border-top: 1px solid var(--color-border);
+  padding-top: 1rem;
 }

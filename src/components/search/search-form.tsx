@@ -90,7 +90,7 @@ export function SearchForm({
             role="status"
             tabIndex={-1}
           >
-            <p className="text-[0.7rem] font-bold uppercase tracking-[0.14em] text-[var(--color-green-soft)]">
+            <p className="text-[0.7rem] font-bold uppercase tracking-[0.14em] rtl:tracking-normal text-[var(--color-green-soft)]">
               {t("result.tracing")}
             </p>
             <p
@@ -128,6 +128,8 @@ export function SearchForm({
 
           <div className="mt-3">
             <textarea
+              autoCorrect="off"
+              spellCheck={false}
               className={`query-textarea w-full min-w-0 resize-none bg-transparent text-lg font-semibold leading-8 text-[var(--color-ink)] outline-none placeholder:text-[var(--color-muted)]/50 ${
                 hasScenario ? "min-h-12" : "min-h-14 sm:min-h-16"
               }`}

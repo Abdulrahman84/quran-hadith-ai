@@ -140,6 +140,8 @@ export function CheckPanel() {
           {t("check.inputLabel")}
         </label>
         <textarea
+          autoCorrect="off"
+          spellCheck={false}
           className="query-textarea mt-3 min-h-28 w-full resize-y bg-transparent text-lg font-semibold leading-8 text-[var(--color-ink)] outline-none placeholder:text-[var(--color-muted)]/50"
           disabled={isLoading}
           id="check-text"
