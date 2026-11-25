@@ -132,6 +132,7 @@ async function executeSearch(
   const { question, language, hadithCollection, tafsirSource } = input;
 
   report?.(14, "routing");
+  const retrievalStartedAt = Date.now();
   const response = await searchSources(
     question,
     language,
@@ -143,7 +144,9 @@ async function executeSearch(
   );
   const quotationMatch = assessQuotationMatch(question, language, response.records);
 
+  const retrievalMs = Date.now() - retrievalStartedAt;
   report?.(76, "answering", { records: response.records.length });
+  const answerStartedAt = Date.now();
   const answer = await generateGroundedAnswer(
     {
       question,
@@ -154,19 +157,28 @@ async function executeSearch(
     draftOptions,
   );
 
-  const result = { ...response, answer, quotationMatch } satisfies RetrievalResponse;
+  const result = {
+    ...response,
+    answer,
+    quotationMatch,
+    provenanceNotes: [
+      ...response.provenanceNotes,
+      `Timing: routing and retrieval ${retrievalMs} ms, answer ${Date.now() - answerStartedAt} ms.`,
+    ],
+  } satisfies RetrievalResponse;
 
   if (isCacheableSearchResponse(result)) {
     searchCache.set(searchCacheKey(input), withoutDraftWarnings(result));
   }
 
   report?.(94, "finalizing");
-  await recordQuestionRun({
+  // Analytics never holds up the answer; it handles its own errors and times out after 4 s.
+  void recordQuestionRun({
     question,
     language,
     response: result,
     durationMs: Date.now() - startedAt,
-  });
+  }).catch((error: unknown) => console.error("[analytics] Recording a search failed.", error));
 
   return result;
 }
@@ -275,7 +287,9 @@ export async function POST(request: Request) {
   const cached = searchCache.get(searchCacheKey(input));
 
   if (cached) {
-    await recordQuestionRun({ question, language, response: cached, durationMs: Date.now() - startedAt });
+    void recordQuestionRun({ question, language, response: cached, durationMs: Date.now() - startedAt }).catch(
+      (error: unknown) => console.error("[analytics] Recording a search failed.", error),
+    );
 
     return acceptsProgressStream
       ? cachedStreamResponse(cached)

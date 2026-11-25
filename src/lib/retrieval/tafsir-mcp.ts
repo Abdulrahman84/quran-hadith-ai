@@ -201,9 +201,17 @@ export async function searchTafsirSources(
         const searchQueries = [...new Set([...planTafsirSearchQueries(query, language), planned.retrievalQuery])];
         let retrievalQuery = searchQueries[0] || planned.retrievalQuery;
         let records: SourceRecord[] = [];
+        const startedAt = Date.now();
+        const attemptMs: number[] = [];
+        const timedAttempt = async (searchQuery: string) => {
+          const attemptStartedAt = Date.now();
+          const attemptRecords = await retrieveTafsirRecords(client, searchQuery, selectedTafsirSources);
+          attemptMs.push(Date.now() - attemptStartedAt);
+          return attemptRecords;
+        };
 
         for (const searchQuery of searchQueries) {
-          const attemptRecords = await retrieveTafsirRecords(client, searchQuery, selectedTafsirSources);
+          const attemptRecords = await timedAttempt(searchQuery);
 
           if (attemptRecords.length > 0) {
             retrievalQuery = searchQuery;
@@ -218,7 +226,7 @@ export async function searchTafsirSources(
               continue;
             }
 
-            const fallbackRecords = await retrieveTafsirRecords(client, fallbackQuery, selectedTafsirSources);
+            const fallbackRecords = await timedAttempt(fallbackQuery);
 
             if (fallbackRecords.length > 0) {
               retrievalQuery = fallbackQuery;
@@ -237,6 +245,7 @@ export async function searchTafsirSources(
           warnings: records.length > 0 ? [] : [{ code: "no_tafsir_results", message: "No Quran or tafsir records matched this query." }],
           provenanceNotes: [
             tafsirAttribution,
+            `Timing (tafsir): ${attemptMs.length} search attempts across ${selectedTafsirSources.length} tafsir works (${attemptMs.join(" + ")} ms), total ${Date.now() - startedAt} ms.`,
             ...(planned.changed || retrievalQuery !== query ? [`Product query planner searched Tafsir MCP for: ${retrievalQuery}`] : []),
             ...(formatMcpStderr(stderr) ? [formatMcpStderr(stderr)] : []),
           ],

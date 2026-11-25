@@ -294,13 +294,21 @@ export async function searchHadithSources(
         },
       },
       async ({ client, stderr }) => {
+        const startedAt = Date.now();
         const candidates = new Map<string, HadithRerankCandidate>();
         const successfulQueries: string[] = [];
         // The semantic call embeds the user's own question, which suits embeddings better than the
         // planner's keyword queries, and it doesn't need the plan, so it starts before the plan is ready.
+        let semanticMs = 0;
         const semanticSearch =
-          searchMode === "hybrid" ? callSemanticSearchHadith(client, query, language, collection) : Promise.resolve(null);
+          searchMode === "hybrid"
+            ? callSemanticSearchHadith(client, query, language, collection).finally(() => {
+                semanticMs = Date.now() - startedAt;
+              })
+            : Promise.resolve(null);
         const hadithQueryPlan = await (options.queryPlan ?? planHadithRetrievalQueries(query, language, planned.retrievalQuery));
+        const planReadyMs = Date.now() - startedAt;
+        let lexicalMs = 0;
         const collectAttempts = (attempts: Array<SearchAttempt | null>, firstSearchOrder: number) => {
           attempts.forEach((attempt, index) => {
             if (attempt) {
@@ -314,7 +322,9 @@ export async function searchHadithSources(
           semanticSearch,
           Promise.all(
             hadithQueryPlan.queries.map((searchQuery) => callSearchHadith(client, searchQuery, language, collection)),
-          ),
+          ).finally(() => {
+            lexicalMs = Date.now() - startedAt - planReadyMs;
+          }),
         ]);
 
         collectAttempts(lexicalAttempts, 0);
@@ -354,6 +364,7 @@ export async function searchHadithSources(
           };
         }
 
+        const rankStartedAt = Date.now();
         const lexicalRecords = rerankHadithRecords([...candidates.values()], query, language);
         // The lexical reranker scores planner-phrase overlap, which would bury semantic matches
         // worded differently from the planned queries, so the two rankings are fused instead.
@@ -376,6 +387,9 @@ export async function searchHadithSources(
             ...(semantic?.attempt ? ["Hadith ranking: reciprocal rank fusion (k=60) of the semantic and reranked lexical lists."] : []),
             ...(collection === "all" ? [] : [`Hadith collection filter: ${collection}.`]),
             `Hadith query planner: ${hadithQueryPlan.planner}.`,
+            `Timing (hadith): plan ready at ${planReadyMs} ms, ${hadithQueryPlan.queries.length} lexical queries ${lexicalMs} ms${
+              semantic ? `, semantic done at ${semanticMs} ms` : ""
+            }, rank ${Date.now() - rankStartedAt} ms, total ${Date.now() - startedAt} ms.`,
             ...(hadithQueryPlan.warning ? [`Hadith query planner warning: ${hadithQueryPlan.warning}`] : []),
             ...(planned.changed || successfulQueries.some((searchQuery) => searchQuery !== query)
               ? [`Product query planner searched Hadith MCP for: ${successfulQueries.slice(0, 5).join(" | ")}`]
