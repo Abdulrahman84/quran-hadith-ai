@@ -97,6 +97,63 @@ is unavailable, search falls back to lexical results and adds a provenance note,
 On the 58-question benchmark (`eval/`), hybrid raised recall@5 from 77.6% to 87.9% overall, and from 77.8% to 94.4%
 on hadith questions. The gains are biggest on paraphrased, topical and English questions about Arabic-only wording.
 
+### Hybrid Quran search (optional)
+
+Quran and tafsir come from the third-party Tafsir MCP, which only offers keyword search, so the vector side lives in
+the app. `QURAN_SEARCH_MODE=hybrid` loads an embedding index with one vector per ayah (6,236 vectors, 25.6 MB) and,
+for every question that goes to the Quran, finds the ayahs nearest to the user's question by cosine similarity.
+That list is fused with the Tafsir MCP keyword results by reciprocal rank fusion (k=60), the keyword list first so
+it wins ties. Dialect and Arabizi questions still benefit from the Fusha rewrite, because the keyword search
+searches it.
+
+- Each ayah's vector embeds the ayah text followed by its Al-Muyassar tafsir, so a topical or English question has
+  modern wording to match, not only Quranic phrasing.
+- The embedding search can add up to 5 ayahs that the keyword search missed. The app fetches each through Tafsir MCP
+  (`fetch_ayah` and `fetch_tafsir`), so every record still comes from the MCP. It never removes a keyword match.
+- A verse named by reference (`2:255`) is fetched directly, as before, without vector results.
+- Verbatim quotes still rank first: the source router's quote ordering runs after fusion.
+- The question is embedded once the router sends it to the Quran, while the keyword search runs. The keyword
+  search waits for it until 2 s after it started (`QURAN_VECTOR_WAIT_MS`) and then goes on without it. On a small
+  production instance the keyword search usually takes longer than the embedding, so it rarely waits; locally a
+  fast keyword search waits for the embedding, usually 0.4 to 0.9 s. Hadith-only questions make no extra call.
+
+```bash
+QURAN_SEARCH_MODE=hybrid
+QURAN_EMBEDDINGS_PATH=/opt/quran-index/quran-embeddings-bge-m3.bin
+# QURAN_VECTOR_WAIT_MS=2000
+# Uses the same EMBEDDINGS_* settings as hybrid hadith search (bge-m3, OpenRouter in production).
+```
+
+Query embeddings use the same `EMBEDDINGS_*` settings, model and index model name as hadith. The hadith query
+embedding is made inside the Hadith MCP process and isn't returned, so the app embeds the question once more for
+the Quran index: one more bge-m3 call of about 20 tokens. Only the question is embedded, not its rewrite, because
+OpenRouter serves parallel bge-m3 calls more slowly (about 0.5 s alone, 1 to 2 s with three others in flight), and
+that also slows the hadith search's own embedding calls. If the index file, the embedding API or the model name is
+missing or wrong, or the embedding misses the wait, Quran search stays keyword-only and adds a provenance note.
+
+**Building the index.** `node scripts/quran-embeddings.mjs build` reads `~/.cache/tafsir-mcp/quran.db` (or
+`TAFSIR_DB_PATH`), embeds every ayah with local Ollama `bge-m3` (about 3 minutes on a laptop) and writes
+`quran-embeddings-bge-m3.bin` next to the database. The file header records the model, the text recipe, the
+database checksum and a hash of every embedded text. `node scripts/quran-embeddings.mjs check` recomputes that hash
+from a `quran.db` and fails if the ayahs or their text differ.
+
+**The index in the Docker image.** The `quran-index` stage downloads the index from the `quran-embeddings-bge-m3-v1`
+release of this repository and verifies its checksum (`QURAN_EMBEDDINGS_URL`, `QURAN_EMBEDDINGS_SHA256`). The
+runner stage then runs `quran-embeddings.mjs check` against the bundled `quran.db`, so a Tafsir MCP data change
+fails the build instead of serving a stale index. Set `QURAN_EMBEDDINGS_URL` to empty to skip the index; Quran
+search then stays keyword-only. To refresh it, rebuild the index, upload it as a new release asset, and update the
+URL and checksum. The Quranic text and Al-Muyassar tafsir in it are from the Tafsir Center for Quranic Studies,
+licensed CC BY 4.0, and the release notes carry that attribution.
+
+The index adds about 26 MB to the web app's memory. The scan over all ayahs takes a few milliseconds per question.
+
+On the 24 Quran questions of the benchmark (`eval/`, three runs of each mode, one question at a time, hybrid hadith
+search on in both), hybrid Quran search raised recall@5 from 84.7% to 93.1% and MRR from 0.787 to 0.876. Recall@1 went
+from 76.4% to 81.9%. The gains are on English and paraphrased questions whose wording the Arabic keyword search can't
+match ("there is no compulsion in religion", "which verse made fasting obligatory"). Exact quotes stayed at 28 of 30
+in both modes; the one miss is a misspelled quote that the router sometimes sends to hadith first. Mean latency for
+those questions rose from 1.8 s to 2.3 s, mostly the wait for the embedding when the keyword search finishes first.
+
 ## Rate Limits and Caching
 
 `/api/search` and `/api/check` limit each client IP, using the first `X-Forwarded-For` hop, then `X-Real-IP`.
