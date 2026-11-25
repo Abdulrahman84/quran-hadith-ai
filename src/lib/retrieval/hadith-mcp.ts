@@ -1,7 +1,7 @@
 import type { Client } from "@modelcontextprotocol/sdk/client/index.js";
 
 import type { HadithCollectionSelection } from "./hadith-collections";
-import { planHadithRetrievalQueries } from "./hadith-query-planner";
+import { planHadithRetrievalQueries, type HadithQueryPlan } from "./hadith-query-planner";
 import { rerankHadithRecords, type HadithRerankCandidate } from "./hadith-reranker";
 import { fuseHadithRankings, getHadithSearchMode, hadithMcpEmbeddingEnv } from "./hadith-hybrid";
 import { formatMcpStderr } from "./mcp-error";
@@ -244,10 +244,21 @@ function addSearchAttemptCandidates(
   });
 }
 
+/**
+ * Starts the AI hadith query plan. The source router calls this while it is still deciding
+ * which sources to search, so the planner's model call overlaps the routing call.
+ */
+export function startHadithQueryPlan(query: string, language: RetrievalLanguage): Promise<HadithQueryPlan> {
+  const plan = planHadithRetrievalQueries(query, language, planRetrievalQuery(query, language).retrievalQuery);
+  // If hadith ends up not being searched, nobody awaits this; keep a rejection from going unhandled.
+  plan.catch(() => undefined);
+  return plan;
+}
+
 export async function searchHadithSources(
   query: string,
   language: RetrievalLanguage,
-  options: { collection?: HadithCollectionSelection } = {},
+  options: { collection?: HadithCollectionSelection; queryPlan?: Promise<HadithQueryPlan> } = {},
 ): Promise<RetrievalResponse> {
   const planned = planRetrievalQuery(query, language);
   const collection = options.collection ?? "all";
@@ -285,7 +296,11 @@ export async function searchHadithSources(
       async ({ client, stderr }) => {
         const candidates = new Map<string, HadithRerankCandidate>();
         const successfulQueries: string[] = [];
-        const hadithQueryPlan = await planHadithRetrievalQueries(query, language, planned.retrievalQuery);
+        // The semantic call embeds the user's own question, which suits embeddings better than the
+        // planner's keyword queries, and it doesn't need the plan, so it starts before the plan is ready.
+        const semanticSearch =
+          searchMode === "hybrid" ? callSemanticSearchHadith(client, query, language, collection) : Promise.resolve(null);
+        const hadithQueryPlan = await (options.queryPlan ?? planHadithRetrievalQueries(query, language, planned.retrievalQuery));
         const collectAttempts = (attempts: Array<SearchAttempt | null>, firstSearchOrder: number) => {
           attempts.forEach((attempt, index) => {
             if (attempt) {
@@ -295,10 +310,8 @@ export async function searchHadithSources(
           });
         };
 
-        // The semantic call embeds the user's own question, which suits embeddings better
-        // than the planner's keyword queries. It runs alongside the lexical queries.
         const [semantic, lexicalAttempts] = await Promise.all([
-          searchMode === "hybrid" ? callSemanticSearchHadith(client, query, language, collection) : Promise.resolve(null),
+          semanticSearch,
           Promise.all(
             hadithQueryPlan.queries.map((searchQuery) => callSearchHadith(client, searchQuery, language, collection)),
           ),

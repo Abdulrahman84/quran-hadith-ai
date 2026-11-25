@@ -2,7 +2,7 @@ import { completeLlmText } from "../llm/provider";
 import { planHadithSearchQueries } from "./query-planner";
 import type { RetrievalLanguage } from "./types";
 
-type HadithQueryPlan = {
+export type HadithQueryPlan = {
   queries: string[];
   planner: "llm" | "fallback";
   warning: string | null;
