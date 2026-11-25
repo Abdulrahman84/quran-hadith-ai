@@ -22,7 +22,19 @@ function hasAnyToken(tokens: Set<string>, values: string[]) {
   return values.some((value) => tokens.has(value));
 }
 
-const quranSourceTerms = ["قران", "القران", "ايه", "الايه", "تفسير", "التفسير", "tafsir", "ayah", "verse", "quran"];
+// Bare «ايه» is left out: in Egyptian Arabic it means "what" («النبي قال ايه عن الغضب؟»), and it
+// normalizes to the same letters as «آية». The verse is still recognized from «آية», «اية», «آيه»,
+// «الآية/الايه» and «آيات», see mentionsVerseWord.
+const quranSourceTerms = ["قران", "القران", "الايه", "ايات", "الايات", "تفسير", "التفسير", "tafsir", "ayah", "verse", "quran"];
+
+/** «آية» spelled so it can't be the Egyptian «ايه» (what): with madda, or ending in taa marbuta. */
+function mentionsVerseWord(query: string) {
+  return /(^|[^\p{L}])(آية|آيه|اية|آيتين|آيتان)(?=$|[^\p{L}])/u.test(query.replace(/[\u064B-\u0652\u0670]/g, ""));
+}
+
+function hasQuranSourceTerm(query: string, tokens: Set<string>, terms: string[]) {
+  return hasAnyToken(tokens, terms) || mentionsVerseWord(query);
+}
 // Surah names are allowed in hadith-only requests (e.g. hadith about the virtues of a surah).
 const quranOnlySourceTerms = [...quranSourceTerms, "سوره", "السوره", "surah"];
 const hadithSourceTerms = ["حديث", "احاديث", "السنه", "سنه", "hadith", "hadeeth", "sunnah"];
@@ -30,7 +42,7 @@ const hadithSourceTerms = ["حديث", "احاديث", "السنه", "سنه", "
 export function isExplicitQuranOnlyRequest(query: string) {
   const tokens = new Set(matchingTokens(query));
   const mentionsQuranOnlySource =
-    hasAnyToken(tokens, quranOnlySourceTerms) || normalizeArabic(query.toLowerCase()).includes("في القران");
+    hasQuranSourceTerm(query, tokens, quranOnlySourceTerms) || normalizeArabic(query.toLowerCase()).includes("في القران");
 
   return mentionsQuranOnlySource && !hasAnyToken(tokens, hadithSourceTerms);
 }
@@ -38,7 +50,7 @@ export function isExplicitQuranOnlyRequest(query: string) {
 export function isExplicitHadithOnlyRequest(query: string) {
   const tokens = new Set(matchingTokens(query));
 
-  return hasAnyToken(tokens, hadithSourceTerms) && !hasAnyToken(tokens, quranSourceTerms);
+  return hasAnyToken(tokens, hadithSourceTerms) && !hasQuranSourceTerm(query, tokens, quranSourceTerms);
 }
 
 function looksLikeOpenEndedIslamicTopic(query: string) {
