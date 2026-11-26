@@ -46,10 +46,13 @@ Only the web app should be public. Keep database files and MCP processes private
 
 ### Hybrid hadith search (optional)
 
-`HADITH_SEARCH_MODE=hybrid` adds one `semantic_search_hadith` call per hadith search. Hadith MCP runs it on the user's
-question and merges full-text and embedding-similarity results on its side. The app then fuses that list with the
-reranked lexical results using reciprocal rank fusion (k=60). It needs a Hadith MCP build that has the tool, the
-embedding index from `npm run build:embeddings` in that repo, and the same embedding model to embed queries:
+`HADITH_SEARCH_MODE=hybrid` adds one `semantic_search_hadith` call per hadith search (two when the question has a Fusha
+rewrite). Hadith MCP runs it on the user's question and merges full-text and embedding-similarity results on its
+side. The app then fuses that list with the reranked lexical results using reciprocal rank fusion (k=60). The app
+embeds the question itself and passes the vector as `query_embedding`, so the same embedding also serves the Quran
+search (see [One embedding per question](#one-embedding-per-question)). It needs a Hadith MCP build that has the
+tool, the embedding index from `npm run build:embeddings` in that repo, and the same embedding model to embed
+queries:
 
 ```bash
 HADITH_SEARCH_MODE=hybrid
@@ -112,10 +115,10 @@ searches it.
   (`fetch_ayah` and `fetch_tafsir`), so every record still comes from the MCP. It never removes a keyword match.
 - A verse named by reference (`2:255`) is fetched directly, as before, without vector results.
 - Verbatim quotes still rank first: the source router's quote ordering runs after fusion.
-- The question is embedded once the router sends it to the Quran, while the keyword search runs. The keyword
-  search waits for it until 2 s after it started (`QURAN_VECTOR_WAIT_MS`) and then goes on without it. On a small
-  production instance the keyword search usually takes longer than the embedding, so it rarely waits; locally a
-  fast keyword search waits for the embedding, usually 0.4 to 0.9 s. Hadith-only questions make no extra call.
+- The question is embedded once the router has picked the sources, while the keyword search runs. The keyword
+  search waits for it until 2 s after the embedding started (`QURAN_VECTOR_WAIT_MS`) and then goes on without it.
+  On a small production instance the keyword search usually takes longer than the embedding, so it rarely waits;
+  locally a fast keyword search waits for the embedding, usually 0.4 to 0.9 s.
 
 ```bash
 QURAN_SEARCH_MODE=hybrid
@@ -124,12 +127,31 @@ QURAN_EMBEDDINGS_PATH=/opt/quran-index/quran-embeddings-bge-m3.bin
 # Uses the same EMBEDDINGS_* settings as hybrid hadith search (bge-m3, OpenRouter in production).
 ```
 
-Query embeddings use the same `EMBEDDINGS_*` settings, model and index model name as hadith. The hadith query
-embedding is made inside the Hadith MCP process and isn't returned, so the app embeds the question once more for
-the Quran index: one more bge-m3 call of about 20 tokens. Only the question is embedded, not its rewrite, because
-OpenRouter serves parallel bge-m3 calls more slowly (about 0.5 s alone, 1 to 2 s with three others in flight), and
-that also slows the hadith search's own embedding calls. If the index file, the embedding API or the model name is
-missing or wrong, or the embedding misses the wait, Quran search stays keyword-only and adds a provenance note.
+Query embeddings use the same `EMBEDDINGS_*` settings, model and index model name as hadith. Only the question's
+vector is searched, not its rewrite's, because the keyword search already searches the rewrite. If the index file,
+the embedding API or the model name is missing or wrong, or the embedding misses the wait, Quran search stays
+keyword-only and adds a provenance note.
+
+### One embedding per question
+
+The Quran index and the hadith index are both bge-m3, so one query vector serves both. Once the router has picked
+the sources, the app makes one embedding request (`createQueryEmbedder`, with the `EMBEDDINGS_*` settings above) if
+a picked source searches by embedding: the Quran with `QURAN_SEARCH_MODE=hybrid` and `QURAN_EMBEDDINGS_PATH`, or
+hadith with `HADITH_SEARCH_MODE=hybrid` and `HADITH_MCP_EMBEDDINGS_PATH`. A question that goes to neither makes no
+call. The Quran vector search uses the vector in the app, and the hadith search sends it to `semantic_search_hadith`
+as `query_embedding`, with `query_embedding_model` set to `EMBEDDINGS_INDEX_MODEL` (else `EMBEDDINGS_MODEL`).
+
+The hadith search also runs a semantic search on the Fusha rewrite. When the rewrite is already ready at that point,
+it joins the question's request (two inputs, one call). Otherwise the question is embedded at once and the Hadith
+MCP embeds the rewrite itself when it arrives, so the question never waits for the rewrite. OpenRouter serves
+parallel bge-m3 calls more slowly (about 0.5 s alone, 1 to 2 s with a few in flight), so this is one or two calls
+per question instead of up to three.
+
+Fallbacks: without an embedding provider, after a failed embedding, or when the Hadith MCP refuses the argument, the
+hadith call goes without a vector and the Hadith MCP embeds the question itself, as before. A Hadith MCP build from
+before `query_embedding` ignores the argument and does the same, so the app works with either build; it just makes
+the extra call. A provenance note says which happened. The Docker image clones `HADITH_MCP_REF` (default `main`), so
+production only saves the call once a Hadith MCP with `query_embedding` is on that branch.
 
 **Building the index.** `node scripts/quran-embeddings.mjs build` reads `~/.cache/tafsir-mcp/quran.db` (or
 `TAFSIR_DB_PATH`), embeds every ayah with local Ollama `bge-m3` (about 3 minutes on a laptop) and writes
