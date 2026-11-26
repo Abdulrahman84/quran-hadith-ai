@@ -159,8 +159,8 @@ Hadith MCP returns the same ranking for the app's vector as for its own embeddin
 Fallbacks: without an embedding provider, after a failed embedding, or when the Hadith MCP refuses the argument, the
 hadith call goes without a vector and the Hadith MCP embeds the question itself, as before. A Hadith MCP build from
 before `query_embedding` ignores the argument and does the same, so the app works with either build; it just makes
-the extra call. A provenance note says which happened. The Docker image clones `HADITH_MCP_REF` (default `main`), so
-production only saves the call once a Hadith MCP with `query_embedding` is on that branch.
+the extra call. A provenance note says which happened. The Docker image builds the Hadith MCP at the commit in `HADITH_MCP_REF`
+(a branch name would let the build cache keep an old clone), so bump it to deploy a newer Hadith MCP.
 
 **Building the index.** `node scripts/quran-embeddings.mjs build` reads `~/.cache/tafsir-mcp/quran.db` (or
 `TAFSIR_DB_PATH`), embeds every ayah with local Ollama `bge-m3` (about 3 minutes on a laptop) and writes

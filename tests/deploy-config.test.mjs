@@ -64,3 +64,12 @@ test("Docker image downloads, checksums and checks the Quran embedding index", (
   assert.match(dockerfile, /ENV QURAN_SEARCH_MODE=hybrid/);
   assert.match(render, /QURAN_SEARCH_MODE\n\s+value: hybrid/);
 });
+
+test("Docker image builds the Hadith MCP at a pinned commit", () => {
+  const dockerfile = read("Dockerfile");
+
+  // A branch name lets the build cache keep an old clone after the branch moves.
+  assert.match(dockerfile, /ARG HADITH_MCP_REF=[0-9a-f]{40}\n/);
+  assert.match(dockerfile, /fetch -q --depth 1 "\$HADITH_MCP_REPO" "\$HADITH_MCP_REF"/);
+  assert.doesNotMatch(dockerfile, /--branch "\$HADITH_MCP_REF"/);
+});
