@@ -1,5 +1,6 @@
 import { completeLlmText } from "../llm/provider";
 import { matchingTokens, normalizeArabic } from "../text/arabic";
+import { findNamedQuranPassage } from "./named-passages";
 
 export type SourceRoute = "tafsir" | "hadith";
 
@@ -68,12 +69,54 @@ const hadithSourceTerms = [
   "sunnah",
 ];
 
+// The Prophet named in the question: «ماذا قال النبي عن آية الكرسي» asks for hadith about the verse.
+const prophetTerms = ["النبي", "نبي", "الرسول", "رسول", "وسلم", "prophet", "messenger", "pbuh"];
+// Its virtue, reward or when to recite it («فضل سورة الكهف يوم الجمعة», "Ayat al-Kursi before
+// sleep"): those answers come from hadith, so the hadith search runs too.
+const recitationVirtueTerms = [
+  "فضل",
+  "الفضل",
+  "فضائل",
+  "فضيله",
+  "ثواب",
+  "اجر",
+  "الاجر",
+  "قراءه",
+  "قراءتها",
+  "قرائتها",
+  "يقرا",
+  "نقرا",
+  "النوم",
+  "virtue",
+  "virtues",
+  "reward",
+  "rewards",
+  "benefit",
+  "benefits",
+  "merit",
+  "merits",
+  "recite",
+  "reciting",
+  "recitation",
+  "sleep",
+  "sleeping",
+];
+
 export function isExplicitQuranOnlyRequest(query: string) {
   const tokens = new Set(matchingTokens(query));
-  const mentionsQuranOnlySource =
-    hasQuranSourceTerm(query, tokens, quranOnlySourceTerms);
 
-  return mentionsQuranOnlySource && !hasAnyToken(tokens, hadithSourceTerms);
+  if (hasAnyToken(tokens, hadithSourceTerms)) {
+    return false;
+  }
+
+  // A well-known passage named outright («آية الكرسي», "Ayat al-Kursi") is a request for that
+  // passage, in any language, unless the question asks what the Prophet said about it or about
+  // its virtue or recitation.
+  if (findNamedQuranPassage(query)) {
+    return !hasAnyToken(tokens, prophetTerms) && !hasAnyToken(tokens, recitationVirtueTerms);
+  }
+
+  return hasQuranSourceTerm(query, tokens, quranOnlySourceTerms);
 }
 
 export function isExplicitHadithOnlyRequest(query: string) {
