@@ -21,7 +21,9 @@ RUN npm prune --omit=dev
 FROM node:22-bookworm-slim AS hadith
 
 ARG HADITH_MCP_REPO=https://github.com/Abdulrahman84/hadith-mcp.git
-ARG HADITH_MCP_REF=main
+# A commit, not a branch: a branch name keeps the cached clone after the branch moves, so builds
+# could ship an old Hadith MCP. Bump it to deploy a newer one.
+ARG HADITH_MCP_REF=37f823d576ccf31951593ea573b30aa9cb2c6d5d
 # Prebuilt embedding index for semantic_search_hadith (see docs/openrouter-deployment.md).
 # Leave the URL empty to skip it; hybrid search then falls back to full-text search.
 ARG HADITH_EMBEDDINGS_URL=https://github.com/Abdulrahman84/hadith-mcp/releases/download/embeddings-bge-m3-v1/hadith-embeddings-bge-m3.sqlite
@@ -34,7 +36,9 @@ RUN apt-get update \
   && apt-get install -y --no-install-recommends ca-certificates curl git sqlite3 \
   && rm -rf /var/lib/apt/lists/*
 
-RUN git clone --depth 1 --branch "$HADITH_MCP_REF" "$HADITH_MCP_REPO" /opt/hadith-mcp
+RUN git init -q /opt/hadith-mcp \
+  && git -C /opt/hadith-mcp fetch -q --depth 1 "$HADITH_MCP_REPO" "$HADITH_MCP_REF" \
+  && git -C /opt/hadith-mcp checkout -q FETCH_HEAD
 
 WORKDIR /opt/hadith-mcp
 RUN npm ci
