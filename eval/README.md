@@ -61,6 +61,9 @@ Every question has `tags = [kind, ...modifiers, corpus]`. The same values also a
 | `source-limited` | The question explicitly limits the source (hadith/Sunnah, or Quran/verse/tafsir) |
 | `hadith` / `quran` / `mixed` | Where the ground truth lives |
 
+Questions whose id starts with `named-` name a well-known verse or surah ("Ayat al-Dayn", «خواتيم سورة البقرة»,
+"Surat al-Kahf"), plus two that name a verse but ask what the Prophet said about it, which should still get hadith.
+
 `eval:compare` reports recall@1, recall@5, MRR and latency for each tag and language. It compares only the questions
 both runs answered, taking tags from the current dataset. It also lists questions that were fixed, regressed or re-ranked.
 `paraphrase`, `topical` and `cross-lingual` are where lexical search is weakest and semantic retrieval should help most.

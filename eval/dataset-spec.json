@@ -1586,6 +1586,270 @@
           ]
         }
       ]
+    },
+    {
+      "id": "named-kursi-typo-en",
+      "question": "ayatul kursi meaning",
+      "language": "english",
+      "kind": "reference",
+      "corpus": "quran",
+      "tags": [
+        "reference",
+        "cross-lingual",
+        "informal",
+        "quran"
+      ],
+      "quran": {
+        "verseKeys": [
+          "2:255"
+        ]
+      }
+    },
+    {
+      "id": "named-fatiha-en",
+      "question": "Explain Surat al-Fatiha",
+      "language": "english",
+      "kind": "reference",
+      "corpus": "quran",
+      "tags": [
+        "reference",
+        "cross-lingual",
+        "quran"
+      ],
+      "quran": {
+        "verseKeys": [
+          "1:1",
+          "1:2",
+          "1:3",
+          "1:4",
+          "1:5",
+          "1:6",
+          "1:7"
+        ]
+      }
+    },
+    {
+      "id": "named-fatiha-ar",
+      "question": "تفسير سورة الفاتحة",
+      "language": "arabic",
+      "kind": "reference",
+      "corpus": "quran",
+      "tags": [
+        "reference",
+        "source-limited",
+        "quran"
+      ],
+      "quran": {
+        "verseKeys": [
+          "1:1",
+          "1:2",
+          "1:3",
+          "1:4",
+          "1:5",
+          "1:6",
+          "1:7"
+        ]
+      }
+    },
+    {
+      "id": "named-ikhlas-en",
+      "question": "What is the meaning of Surah al-Ikhlas?",
+      "language": "english",
+      "kind": "reference",
+      "corpus": "quran",
+      "tags": [
+        "reference",
+        "cross-lingual",
+        "quran"
+      ],
+      "quran": {
+        "verseKeys": [
+          "112:1",
+          "112:2",
+          "112:3",
+          "112:4"
+        ]
+      }
+    },
+    {
+      "id": "named-baqarah-end-en",
+      "question": "Explain the last two verses of Surah al-Baqarah",
+      "language": "english",
+      "kind": "reference",
+      "corpus": "quran",
+      "tags": [
+        "reference",
+        "cross-lingual",
+        "quran"
+      ],
+      "quran": {
+        "verseKeys": [
+          "2:285",
+          "2:286"
+        ]
+      }
+    },
+    {
+      "id": "named-baqarah-end-ar",
+      "question": "تفسير خواتيم سورة البقرة",
+      "language": "arabic",
+      "kind": "reference",
+      "corpus": "quran",
+      "tags": [
+        "reference",
+        "source-limited",
+        "quran"
+      ],
+      "quran": {
+        "verseKeys": [
+          "2:285",
+          "2:286"
+        ]
+      }
+    },
+    {
+      "id": "named-dayn-en",
+      "question": "What does Ayat al-Dayn say?",
+      "language": "english",
+      "kind": "reference",
+      "corpus": "quran",
+      "tags": [
+        "reference",
+        "cross-lingual",
+        "quran"
+      ],
+      "quran": {
+        "verseKeys": [
+          "2:282"
+        ]
+      }
+    },
+    {
+      "id": "named-dayn-ar",
+      "question": "شرح آية الدين",
+      "language": "arabic",
+      "kind": "reference",
+      "corpus": "quran",
+      "tags": [
+        "reference",
+        "source-limited",
+        "quran"
+      ],
+      "quran": {
+        "verseKeys": [
+          "2:282"
+        ]
+      }
+    },
+    {
+      "id": "named-nur-ar",
+      "question": "تفسير آية النور",
+      "language": "arabic",
+      "kind": "reference",
+      "corpus": "quran",
+      "tags": [
+        "reference",
+        "source-limited",
+        "quran"
+      ],
+      "quran": {
+        "verseKeys": [
+          "24:35"
+        ]
+      }
+    },
+    {
+      "id": "named-kahf-en",
+      "question": "Explain Surat al-Kahf",
+      "language": "english",
+      "kind": "reference",
+      "corpus": "quran",
+      "tags": [
+        "reference",
+        "cross-lingual",
+        "quran"
+      ],
+      "quran": {
+        "verseKeys": [
+          "18:1",
+          "18:2",
+          "18:3",
+          "18:4",
+          "18:5",
+          "18:6",
+          "18:7",
+          "18:8",
+          "18:9",
+          "18:10",
+          "18:11",
+          "18:12",
+          "18:13",
+          "18:14",
+          "18:15",
+          "18:16",
+          "18:17",
+          "18:18",
+          "18:19",
+          "18:20",
+          "18:21",
+          "18:22",
+          "18:23",
+          "18:24",
+          "18:25",
+          "18:26",
+          "18:27",
+          "18:28",
+          "18:29",
+          "18:30",
+          "18:31",
+          "18:32",
+          "18:33",
+          "18:34",
+          "18:35",
+          "18:36",
+          "18:37",
+          "18:38",
+          "18:39",
+          "18:40"
+        ]
+      }
+    },
+    {
+      "id": "named-kursi-hadith-en",
+      "question": "What did the Prophet say about the virtue of Ayat al-Kursi?",
+      "language": "english",
+      "kind": "topical",
+      "corpus": "hadith",
+      "tags": [
+        "topical",
+        "cross-lingual",
+        "hadith"
+      ],
+      "hadith": [
+        {
+          "all": [
+            "اية الكرسي"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "named-kursi-hadith-ar",
+      "question": "ماذا قال النبي عن فضل آية الكرسي",
+      "language": "arabic",
+      "kind": "topical",
+      "corpus": "hadith",
+      "tags": [
+        "topical",
+        "hadith"
+      ],
+      "hadith": [
+        {
+          "all": [
+            "اية الكرسي"
+          ]
+        }
+      ]
     }
   ],
   "tagging": {

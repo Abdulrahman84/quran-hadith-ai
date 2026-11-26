@@ -4,11 +4,11 @@ import { createQueryEmbedder, startSharedQueryEmbedding, type SharedQueryEmbeddi
 import { startQuestionRewrite, type QuestionRewrite } from "./question-rewrite";
 import { getQuranSearchMode, startQuranVectorSearch } from "./quran-hybrid";
 import type { HadithCollectionSelection } from "./hadith-collections";
-import { normalizeArabic, tokenize } from "../text/arabic";
 import { isExplicitQuranOnlyRequest, planSourceRouteDecision, type SourceRoute } from "./source-intent";
+import { orderRecords } from "./record-order";
 import { searchTafsirSources } from "./tafsir-mcp";
 import type { TafsirSourceSelection } from "./tafsir-sources";
-import type { RetrievalLanguage, RetrievalResponse, RetrievalStatus, SourceMode, SourceRecord } from "./types";
+import type { RetrievalLanguage, RetrievalResponse, RetrievalStatus, SourceMode } from "./types";
 
 function sourceModeForRoutes(routes: SourceRoute[]): SourceMode {
   if (routes.length === 1 && routes[0] === "hadith") {
@@ -32,36 +32,6 @@ function combinedStatus(responses: RetrievalResponse[]): RetrievalStatus {
   }
 
   return "empty";
-}
-
-const MIN_QUOTE_PHRASE_TOKENS = 3;
-
-function phraseTokens(value: string) {
-  return tokenize(normalizeArabic(value.toLowerCase()));
-}
-
-// The whole question as a normalized phrase, when it is long enough to be a quote rather than a keyword.
-function phraseForQuoteLookup(query: string) {
-  const tokens = phraseTokens(query);
-  return tokens.length >= MIN_QUOTE_PHRASE_TOKENS ? ` ${tokens.join(" ")} ` : null;
-}
-
-// Records that contain the typed text verbatim answer a quote lookup. The Quran ranks ahead of
-// hadith that cite the same words, since the ayah is the original source of the phrase.
-function quoteTier(record: SourceRecord, phrase: string | null) {
-  if (!phrase || !` ${phraseTokens(record.arabicText).join(" ")} `.includes(phrase)) {
-    return 2;
-  }
-
-  return record.sourceKind === "hadith" ? 1 : 0;
-}
-
-function sourcePriority(record: SourceRecord, quranOnly: boolean) {
-  if (quranOnly) {
-    return record.sourceKind === "hadith" ? 1 : 0;
-  }
-
-  return record.sourceKind === "hadith" ? 0 : 1;
 }
 
 const notSettled = Symbol("not settled");
@@ -147,23 +117,7 @@ export async function searchSources(
   );
   const quranOnly = isExplicitQuranOnlyRequest(query);
   const allRecords = responses.flatMap((response) => response.records);
-  const quotedPhrase = phraseForQuoteLookup(query);
-  const records = allRecords
-    .sort((left, right) => {
-      const quoteDifference = quoteTier(left, quotedPhrase) - quoteTier(right, quotedPhrase);
-
-      if (quoteDifference !== 0) {
-        return quoteDifference;
-      }
-
-      const priorityDifference = sourcePriority(left, quranOnly) - sourcePriority(right, quranOnly);
-
-      if (priorityDifference !== 0) {
-        return priorityDifference;
-      }
-
-      return (left.rank ?? Number.MAX_SAFE_INTEGER) - (right.rank ?? Number.MAX_SAFE_INTEGER);
-    });
+  const records = orderRecords(allRecords, query, quranOnly);
 
   return {
     status: combinedStatus(responses),

@@ -253,6 +253,54 @@ test("heuristic routing treats ta marbuta spellings the same", () => {
   assert.deepEqual(Array.from(heuristicSourceRoutes("ما حكم الصدقة")), ["tafsir", "hadith"]);
 });
 
+test("a named verse or surah is a request for the Quran in English as in Arabic", () => {
+  const { heuristicSourceRoutes, isExplicitQuranOnlyRequest } = loadSourceIntent();
+
+  for (const query of [
+    "Explain Ayat al-Kursi",
+    "ayatul kursi meaning",
+    "Explain al-Fatiha",
+    "What does Ayat al-Dayn say?",
+    "Explain the last two verses of Surah al-Baqarah",
+    "تفسير خواتيم سورة البقرة",
+  ]) {
+    assert.equal(isExplicitQuranOnlyRequest(query), true, query);
+    assert.deepEqual(Array.from(heuristicSourceRoutes(query)), ["tafsir"], query);
+  }
+});
+
+test("a named verse with the Prophet or hadith in the question still gets hadith", () => {
+  const { heuristicSourceRoutes, isExplicitQuranOnlyRequest } = loadSourceIntent();
+
+  for (const query of [
+    "What did the Prophet say about the virtue of Ayat al-Kursi?",
+    "ماذا قال النبي عن فضل آية الكرسي",
+    "ما ورد عن رسول الله في سورة الإخلاص",
+    "حديث عن فضل آية الكرسي",
+  ]) {
+    assert.equal(isExplicitQuranOnlyRequest(query), false, query);
+    assert.ok(Array.from(heuristicSourceRoutes(query)).includes("hadith"), query);
+  }
+
+  assert.deepEqual(Array.from(heuristicSourceRoutes("hadith about Ayat al-Kursi")), ["hadith"]);
+});
+
+test("a named verse's virtue or recitation also searches hadith", () => {
+  const { isExplicitQuranOnlyRequest } = loadSourceIntent();
+
+  for (const query of [
+    "فضل آية الكرسي",
+    "فضل سورة الكهف يوم الجمعة",
+    "ما فضل قراءة الفاتحة",
+    "Ayatul kursi before sleep",
+    "What is the reward for reciting Surah al-Ikhlas?",
+  ]) {
+    assert.equal(isExplicitQuranOnlyRequest(query), false, query);
+  }
+
+  assert.equal(isExplicitQuranOnlyRequest("Explain Ayat al-Kursi"), true);
+});
+
 test("a request for hadith evidence by adjective searches hadith only", async () => {
   let routerCalls = 0;
   const { heuristicSourceRoutes, isExplicitHadithOnlyRequest, planSourceRouteDecision } = loadSourceIntent({
