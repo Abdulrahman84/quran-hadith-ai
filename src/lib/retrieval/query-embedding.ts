@@ -4,10 +4,10 @@ type Env = Record<string, string | undefined>;
 type FetchLike = (input: string, init?: RequestInit) => Promise<Response>;
 
 /**
- * Embeds search questions in the app process, for the Quran vector index. It reads the same
- * EMBEDDINGS_* settings the Hadith MCP uses, so both indexes are queried with the same model,
- * provider, prefix and timeout. The hadith embedding is computed inside the Hadith MCP process
- * and never returned, so it cannot be shared with this one.
+ * Embeds search questions in the app process. It reads the same EMBEDDINGS_* settings the Hadith
+ * MCP uses, so the Quran and hadith indexes are queried with the same model, provider, prefix and
+ * timeout, and one vector serves both: the Quran index is searched in the app and the vector is
+ * passed to semantic_search_hadith as query_embedding.
  */
 export type QueryEmbedder = {
   /** "ollama" or the OpenAI-compatible base URL. */
@@ -127,6 +127,58 @@ export function createQueryEmbedder(env: Env = process.env, fetchImpl: FetchLike
     async embed(texts) {
       const payload = await postJson(fetchImpl, `${ollamaUrl}/api/embed`, { model, input: withPrefix(texts) }, {}, timeout);
       return vectorsFrom(payload, texts.length);
+    },
+  };
+}
+
+export type EmbeddedText = { ok: true; vector: Float32Array } | { ok: false; reason: string };
+
+/**
+ * One embedding request for a search, shared by the Quran vector search and the hadith semantic
+ * search. OpenRouter serves parallel bge-m3 calls slower (about 0.5 s alone, 1 to 2 s with a few in
+ * flight), so the question is embedded once instead of once per index.
+ */
+export type SharedQueryEmbedding = {
+  /** The name the vectors are known by in both indexes (EMBEDDINGS_INDEX_MODEL, else EMBEDDINGS_MODEL). */
+  model: string;
+  provider: string;
+  startedAt: number;
+  texts: string[];
+  /** The vector for one of the texts, or null when it was not in the request. Never rejects. */
+  vectorFor(text: string): Promise<EmbeddedText> | null;
+};
+
+function errorMessage(error: unknown) {
+  return error instanceof Error ? error.message : String(error);
+}
+
+/** Starts one request that embeds every text, with duplicates and blanks dropped. */
+export function startSharedQueryEmbedding(texts: string[], embedder: QueryEmbedder, env: Env = process.env): SharedQueryEmbedding {
+  const unique = [...new Set(texts.map((text) => text.trim()).filter(Boolean))];
+  const startedAt = Date.now();
+  const request: Promise<Float32Array[] | string> =
+    unique.length === 0 ? Promise.resolve([]) : embedder.embed(unique).catch((error: unknown) => errorMessage(error));
+
+  return {
+    model: env.EMBEDDINGS_INDEX_MODEL?.trim() || embedder.model,
+    provider: embedder.provider,
+    startedAt,
+    texts: unique,
+    vectorFor(text) {
+      const position = unique.indexOf(text.trim());
+
+      if (position < 0) {
+        return null;
+      }
+
+      return request.then((vectors): EmbeddedText => {
+        if (typeof vectors === "string") {
+          return { ok: false, reason: vectors };
+        }
+
+        const vector = vectors[position];
+        return vector ? { ok: true, vector } : { ok: false, reason: "the embedding API returned no vector for the question." };
+      });
     },
   };
 }

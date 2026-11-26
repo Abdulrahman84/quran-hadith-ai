@@ -185,6 +185,75 @@ test("the vector search reports why it is unavailable instead of failing", async
   assert.match(missingFile.reason, /ENOENT/);
 });
 
+const loadQueryEmbedding = () => loadModule(path.join(retrievalDir, "query-embedding.ts"));
+
+test("one shared request embeds the question and the rewrite, and hands each its vector", async () => {
+  const requests = [];
+  const embedder = {
+    provider: "fake",
+    model: "baai/bge-m3",
+    embed: async (texts) => {
+      requests.push([...texts]);
+      return texts.map((_, index) => Float32Array.from(unit(index === 0 ? [1, 0, 0] : [0, 1, 0])));
+    },
+  };
+  const shared = loadQueryEmbedding().startSharedQueryEmbedding([" الصبر ", "الصبر على البلاء", "", "الصبر"], embedder, {
+    EMBEDDINGS_INDEX_MODEL: "bge-m3",
+  });
+
+  assert.deepEqual(requests, [["الصبر", "الصبر على البلاء"]]);
+  assert.equal(shared.model, "bge-m3");
+  assert.deepEqual(Array.from((await shared.vectorFor("الصبر")).vector), unit([1, 0, 0]).map(Math.fround));
+  assert.deepEqual(Array.from((await shared.vectorFor("الصبر على البلاء")).vector), unit([0, 1, 0]).map(Math.fround));
+  assert.equal(shared.vectorFor("something else"), null);
+
+  const failing = loadQueryEmbedding().startSharedQueryEmbedding(["الصبر"], { ...embedder, embed: async () => Promise.reject(new Error("HTTP 503")) });
+  const failed = await failing.vectorFor("الصبر");
+  assert.equal(failed.ok, false);
+  assert.match(failed.reason, /HTTP 503/);
+});
+
+test("the vector search uses the shared question embedding instead of embedding again", async () => {
+  const file = writeTinyIndex();
+  const env = { QURAN_EMBEDDINGS_PATH: file };
+  const calls = [];
+  const shared = loadQueryEmbedding().startSharedQueryEmbedding(
+    ["قل هو الله", "سورة الإخلاص"],
+    fakeEmbedder({ "قل هو الله": unit([0.1, 0, 1]), "سورة الإخلاص": unit([1, 0, 0]) }, calls),
+    env,
+  );
+  const neverCalled = { provider: "fake", model: "bge-m3", embed: async () => assert.fail("embedded a second time") };
+  const { searchQuranVectors } = loadHybrid();
+
+  const search = await searchQuranVectors("قل هو الله", { env, queryEmbedding: shared, embedder: neverCalled }).collect(1000);
+
+  assert.equal(search.status, "ok");
+  assert.deepEqual(calls, ["قل هو الله", "سورة الإخلاص"]);
+  // Only the question's own vector is searched; the rewrite's is there for the hadith search.
+  assert.equal(search.lists.length, 1);
+  assert.equal(search.lists[0].hits[0].verseKey, "112:1");
+
+  const noProvider = await searchQuranVectors("قل هو الله", { env, queryEmbedding: null, embedder: neverCalled }).collect(1000);
+  assert.match(noProvider.reason, /no embedding provider/);
+
+  const failed = loadQueryEmbedding().startSharedQueryEmbedding(["قل هو الله"], fakeEmbedder({}), env);
+  const apiDown = await searchQuranVectors("قل هو الله", { env, queryEmbedding: failed }).collect(1000);
+  assert.equal(apiDown.status, "unavailable");
+  assert.match(apiDown.reason, /no vector for/);
+
+  // The wait budget counts from when the shared embedding started, not from when the search asked for it.
+  const slow = loadQueryEmbedding().startSharedQueryEmbedding(
+    ["قل هو الله"],
+    { provider: "fake", model: "bge-m3", embed: () => new Promise((resolve) => setTimeout(() => resolve([Float32Array.from(unit([1, 0, 0]))]), 500)) },
+    env,
+  );
+  await new Promise((resolve) => setTimeout(resolve, 60));
+  const collectStartedAt = Date.now();
+  const late = await searchQuranVectors("قل هو الله", { env, queryEmbedding: slow }).collect(50);
+  assert.equal(late.status, "unavailable");
+  assert.ok(Date.now() - collectStartedAt < 30);
+});
+
 function slowEmbedder(delays) {
   return {
     provider: "fake",

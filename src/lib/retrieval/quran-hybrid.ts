@@ -1,4 +1,4 @@
-import { createQueryEmbedder, type QueryEmbedder } from "./query-embedding";
+import { createQueryEmbedder, startSharedQueryEmbedding, type QueryEmbedder, type SharedQueryEmbedding } from "./query-embedding";
 import { getQuranVectorIndex, searchQuranVectorIndex, type QuranVectorHit, type QuranVectorIndex } from "./quran-vector-index";
 
 export type QuranSearchMode = "lexical" | "hybrid";
@@ -32,12 +32,22 @@ export const QURAN_VECTOR_CANDIDATES = 20;
 
 type VectorSearchDeps = {
   env?: Env;
+  /**
+   * The search's shared question embedding (null when no provider is configured). Without it the
+   * vector search embeds the question itself with `embedder`.
+   */
+  queryEmbedding?: SharedQueryEmbedding | null;
   embedder?: QueryEmbedder | null;
   loadIndex?: (indexPath: string, model: string) => Promise<QuranVectorIndex>;
 };
 
 function errorMessage(error: unknown) {
   return error instanceof Error ? error.message : String(error);
+}
+
+function ownEmbedding(query: string, deps: VectorSearchDeps, env: Env) {
+  const embedder = deps.embedder === undefined ? createQueryEmbedder(env) : deps.embedder;
+  return embedder ? startSharedQueryEmbedding([query], embedder, env) : null;
 }
 
 /**
@@ -66,16 +76,14 @@ const unavailable = (reason: string): QuranVectorSearchHandle => ({
 type Settled<T> = { ok: true; value: T } | { ok: false; reason: string };
 
 /**
- * Starts embedding the question and finding its nearest ayahs. Never rejects: a missing index or a
- * failed embedding gives "unavailable".
+ * Finds the question's nearest ayahs once its embedding is ready. Never rejects: a missing index or
+ * a failed embedding gives "unavailable". The wait budget counts from when the embedding started.
  *
- * Only the user's own question is embedded, not the Fusha rewrite: the keyword search already
- * searches the rewrite, and OpenRouter serves parallel embedding calls noticeably slower (0.5 s
- * alone, 1 to 2 s with three others in flight), which also slows the Hadith MCP's own calls.
+ * Only the user's own question is searched, not the Fusha rewrite: the keyword search already
+ * searches the rewrite. The same vector goes to the hadith semantic search.
  */
 export function searchQuranVectors(query: string, deps: VectorSearchDeps = {}): QuranVectorSearchHandle {
   const env = deps.env ?? process.env;
-  const startedAt = Date.now();
   const indexPath = env.QURAN_EMBEDDINGS_PATH?.trim();
 
   if (!indexPath) {
@@ -86,24 +94,22 @@ export function searchQuranVectors(query: string, deps: VectorSearchDeps = {}): 
     return unavailable("empty question.");
   }
 
-  const embedder = deps.embedder === undefined ? createQueryEmbedder(env) : deps.embedder;
+  const embedding = deps.queryEmbedding === undefined ? ownEmbedding(query, deps, env) : deps.queryEmbedding;
+  const questionVector = embedding?.vectorFor(query);
 
-  if (!embedder) {
+  if (!embedding || !questionVector) {
     return unavailable("no embedding provider configured.");
   }
 
-  const indexModel = env.EMBEDDINGS_INDEX_MODEL?.trim() || embedder.model;
-  const indexPromise = getQuranVectorIndex(indexPath, indexModel, deps.loadIndex);
-  const questionList: Promise<Settled<{ list: QuranVectorList; index: QuranVectorIndex }>> = Promise.all([
-    embedder.embed([query]),
-    indexPromise,
-  ]).then(
-    ([[vector], index]) => ({
-      ok: true,
-      value: { list: { query, hits: searchQuranVectorIndex(index, vector, QURAN_VECTOR_CANDIDATES) }, index },
-    }),
-    (error: unknown) => ({ ok: false, reason: errorMessage(error) }),
-  );
+  const startedAt = embedding.startedAt;
+  const indexPromise = getQuranVectorIndex(indexPath, embedding.model, deps.loadIndex);
+  const questionList: Promise<Settled<{ list: QuranVectorList; index: QuranVectorIndex }>> = Promise.all([questionVector, indexPromise])
+    .then(([embedded, index]): Settled<{ list: QuranVectorList; index: QuranVectorIndex }> =>
+      embedded.ok
+        ? { ok: true, value: { list: { query, hits: searchQuranVectorIndex(index, embedded.vector, QURAN_VECTOR_CANDIDATES) }, index } }
+        : { ok: false, reason: embedded.reason },
+    )
+    .catch((error: unknown) => ({ ok: false, reason: errorMessage(error) }));
 
   return {
     async collect(budgetMs) {
@@ -129,7 +135,7 @@ export function searchQuranVectors(query: string, deps: VectorSearchDeps = {}): 
           status: "ok",
           lists: [list],
           model: index.model,
-          provider: embedder.provider,
+          provider: embedding.provider,
           indexSize: index.size,
           ms: Date.now() - startedAt,
         };
@@ -140,9 +146,17 @@ export function searchQuranVectors(query: string, deps: VectorSearchDeps = {}): 
   };
 }
 
-/** Starts the vector search when Quran search is hybrid; returns undefined otherwise. */
-export function startQuranVectorSearch(query: string, env: Env = process.env): QuranVectorSearchHandle | undefined {
-  return getQuranSearchMode(env) === "hybrid" ? searchQuranVectors(query, { env }) : undefined;
+/**
+ * Starts the vector search when Quran search is hybrid; returns undefined otherwise. Pass the
+ * search's shared question embedding (or null when there is no provider) so the question is not
+ * embedded a second time.
+ */
+export function startQuranVectorSearch(
+  query: string,
+  env: Env = process.env,
+  queryEmbedding?: SharedQueryEmbedding | null,
+): QuranVectorSearchHandle | undefined {
+  return getQuranSearchMode(env) === "hybrid" ? searchQuranVectors(query, { env, queryEmbedding }) : undefined;
 }
 
 export const QURAN_FUSION_K = 60;
