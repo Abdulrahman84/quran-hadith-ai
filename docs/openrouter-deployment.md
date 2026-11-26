@@ -151,6 +151,11 @@ the global `fetch`. Through `fetch` they shared a connection with the router, pl
 openrouter.ai and finished only after them: an embedding that takes about 0.4 s alone took 1.1 to 1.6 s next to the
 hadith planner call. The Hadith MCP never saw this because it makes its calls from its own process.
 
+On the 80-question benchmark (`eval/`, one question at a time, both searches hybrid, three runs of each build
+alternated, November 2026), mean retrieval latency went from 2.99 s to 2.66 s and the median from 3.09 s to 2.88 s.
+Quran questions gained the most (mean 2.39 s to 1.94 s). Recall@5 and MRR stayed within run-to-run noise, and the
+Hadith MCP returns the same ranking for the app's vector as for its own embedding.
+
 Fallbacks: without an embedding provider, after a failed embedding, or when the Hadith MCP refuses the argument, the
 hadith call goes without a vector and the Hadith MCP embeds the question itself, as before. A Hadith MCP build from
 before `query_embedding` ignores the argument and does the same, so the app works with either build; it just makes
