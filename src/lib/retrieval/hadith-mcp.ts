@@ -3,6 +3,7 @@ import type { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import type { HadithCollectionSelection } from "./hadith-collections";
 import { planHadithRetrievalQueries, type HadithQueryPlan } from "./hadith-query-planner";
 import type { QuestionRewrite } from "./question-rewrite";
+import type { SharedQueryEmbedding } from "./query-embedding";
 import { rerankHadithRecords, type HadithRerankCandidate } from "./hadith-reranker";
 import { fuseHadithRankings, getHadithSearchMode, hadithMcpEmbeddingEnv } from "./hadith-hybrid";
 import { formatMcpStderr } from "./mcp-error";
@@ -46,6 +47,8 @@ type SearchHadithOutput = {
 
 type SemanticSearchHadithOutput = SearchHadithOutput & {
   mode?: string;
+  /** "caller" when the search used our query_embedding. Hadith MCP builds without query_embedding omit it. */
+  query_embedding_source?: string | null;
 };
 
 type SearchAttempt = {
@@ -53,7 +56,17 @@ type SearchAttempt = {
   query: string;
 };
 
-type SemanticAttempt = { attempt: SearchAttempt; mode: string } | { attempt: null; reason: string };
+/**
+ * The query vector sent with a semantic search: `sent` when one went with the call, otherwise why
+ * not (null when there was no shared embedding for this text, so the Hadith MCP embeds it as before).
+ */
+type QueryVectorArgs =
+  | { sent: true; args: { query_embedding: number[]; query_embedding_model: string } }
+  | { sent: false; failure: string | null };
+
+type SemanticAttempt =
+  | { attempt: SearchAttempt; mode: string; vector: QueryVectorArgs; vectorSource: string | null }
+  | { attempt: null; reason: string };
 
 const HADITH_SEARCH_LIMIT = 12;
 const HADITH_RESULT_LIMIT = 5;
@@ -162,11 +175,30 @@ async function callSearchHadith(
   };
 }
 
+/**
+ * Waits for the shared embedding of `text`. A failed embedding sends no vector, so the Hadith MCP
+ * embeds the text itself, as it did before the embedding was shared.
+ */
+async function queryVectorArgs(queryEmbedding: SharedQueryEmbedding | null | undefined, text: string): Promise<QueryVectorArgs> {
+  const pending = queryEmbedding?.vectorFor(text);
+
+  if (!queryEmbedding || !pending) {
+    return { sent: false, failure: null };
+  }
+
+  const embedded = await pending;
+
+  return embedded.ok
+    ? { sent: true, args: { query_embedding: Array.from(embedded.vector), query_embedding_model: queryEmbedding.model } }
+    : { sent: false, failure: embedded.reason };
+}
+
 async function callSemanticSearchHadith(
   client: Client,
   query: string,
   language: RetrievalLanguage,
   collection: HadithCollectionSelection,
+  vector: QueryVectorArgs = { sent: false, failure: null },
 ): Promise<SemanticAttempt> {
   try {
     const result = (await client.callTool({
@@ -178,21 +210,60 @@ async function callSemanticSearchHadith(
         limit: HADITH_SEARCH_LIMIT,
         offset: 0,
         mode: "hybrid",
+        // Hadith MCP builds without query_embedding drop unknown arguments and embed the query themselves.
+        ...(vector.sent ? vector.args : {}),
       },
     })) as McpCallResult;
     const payload = getMcpPayload(result);
 
     if (result.isError || !isSearchHadithOutput(payload)) {
+      // A server that refuses the vector itself still gets to embed the query.
+      if (vector.sent) {
+        return callSemanticSearchHadith(client, query, language, collection, {
+          sent: false,
+          failure: "the Hadith MCP refused the query_embedding argument",
+        });
+      }
+
       return { attempt: null, reason: "semantic_search_hadith returned an error or an unexpected payload" };
     }
 
     const output = payload as SemanticSearchHadithOutput;
 
-    return { attempt: { output, query }, mode: typeof output.mode === "string" ? output.mode : "unknown" };
+    return {
+      attempt: { output, query },
+      mode: typeof output.mode === "string" ? output.mode : "unknown",
+      vector,
+      vectorSource: typeof output.query_embedding_source === "string" ? output.query_embedding_source : null,
+    };
   } catch (error) {
     // Older Hadith MCP builds do not have the tool; lexical search still runs.
     return { attempt: null, reason: error instanceof Error ? error.message : "semantic_search_hadith failed" };
   }
+}
+
+/** Says whether the Hadith MCP searched with the shared question embedding or embedded the text itself. */
+function queryVectorNote(semantic: SemanticAttempt, label: string) {
+  if (semantic.attempt === null || semantic.mode === "fts_fallback") {
+    return [];
+  }
+
+  const { vector, vectorSource } = semantic;
+
+  if (vector.sent && vectorSource === "caller") {
+    return [`Hadith semantic search (${label}) used the app's shared query embedding; the Hadith MCP made no embedding call.`];
+  }
+
+  if (vector.sent) {
+    const reason = semantic.attempt.output.provenance_notes.find((note) => note.startsWith("Ignored the caller's query_embedding"));
+    return [
+      vectorSource === "server"
+        ? `Hadith MCP did not use the app's query embedding (${label}) and embedded it itself.${reason ? ` ${reason}` : ""}`
+        : `Hadith MCP ignored the app's query embedding (${label}), as builds without query_embedding do, and embedded it itself.`,
+    ];
+  }
+
+  return vector.failure ? [`The app's query embedding (${label}) was not used (${vector.failure.slice(0, 200)}); the Hadith MCP embedded it itself.`] : [];
 }
 
 function semanticProvenanceNote(semantic: SemanticAttempt | null) {
@@ -263,6 +334,8 @@ export async function searchHadithSources(
     collection?: HadithCollectionSelection;
     queryPlan?: Promise<HadithQueryPlan>;
     questionRewrite?: Promise<QuestionRewrite>;
+    /** The search's shared question embedding; without one the Hadith MCP embeds the question itself. */
+    queryEmbedding?: SharedQueryEmbedding | null;
   } = {},
 ): Promise<RetrievalResponse> {
   const planned = planRetrievalQuery(query, language);
@@ -302,23 +375,29 @@ export async function searchHadithSources(
         const startedAt = Date.now();
         const candidates = new Map<string, HadithRerankCandidate>();
         const successfulQueries: string[] = [];
-        // The semantic call embeds the user's own question, which suits embeddings better than the
+        // The semantic call searches the user's own question, which suits embeddings better than the
         // planner's keyword queries, and it doesn't need the plan, so it starts before the plan is ready.
+        // It sends the search's shared question embedding, so the Hadith MCP doesn't embed it again.
         let semanticMs = 0;
         const semanticSearch =
           searchMode === "hybrid"
-            ? callSemanticSearchHadith(client, query, language, collection).finally(() => {
-                semanticMs = Date.now() - startedAt;
-              })
+            ? queryVectorArgs(options.queryEmbedding, query)
+                .then((vector) => callSemanticSearchHadith(client, query, language, collection, vector))
+                .finally(() => {
+                  semanticMs = Date.now() - startedAt;
+                })
             : Promise.resolve(null);
         // Dialect and Arabizi embed poorly, so the Fusha rewrite gets a second semantic search.
         // The user's own wording is kept too: a natural question embeds better than a terse topic.
+        // The rewrite's vector is shared only when it was ready in time to join the question's request.
         let rewrittenQuery: string | null = null;
         const rewriteSemanticSearch =
           searchMode === "hybrid" && options.questionRewrite
-            ? options.questionRewrite.then((rewrite) => {
+            ? options.questionRewrite.then(async (rewrite) => {
                 rewrittenQuery = rewrite.fusha;
-                return rewrite.fusha ? callSemanticSearchHadith(client, rewrite.fusha, language, collection) : null;
+                return rewrite.fusha
+                  ? callSemanticSearchHadith(client, rewrite.fusha, language, collection, await queryVectorArgs(options.queryEmbedding, rewrite.fusha))
+                  : null;
               })
             : Promise.resolve(null);
         const hadithQueryPlan = await (options.queryPlan ?? planHadithRetrievalQueries(query, language, planned.retrievalQuery));
@@ -403,12 +482,14 @@ export async function searchHadithSources(
             `Hadith retrieval budget: up to ${hadithQueryPlan.queries.length} queries with ${HADITH_SEARCH_LIMIT} candidates each.`,
             "Hadith reranker: matn-aware lexical rerank.",
             ...semanticProvenanceNote(semantic),
+            ...(semantic ? queryVectorNote(semantic, "question") : []),
             ...(semantic?.attempt ? ["Hadith ranking: reciprocal rank fusion (k=60) of the semantic and reranked lexical lists."] : []),
             ...(collection === "all" ? [] : [`Hadith collection filter: ${collection}.`]),
             `Hadith query planner: ${hadithQueryPlan.planner}.`,
             ...(rewriteSemantic?.attempt && rewrittenQuery
               ? [`Hadith semantic search also ran on the rewritten question: ${rewrittenQuery} (${rewriteSemanticRecords.length} results).`]
               : []),
+            ...(rewriteSemantic ? queryVectorNote(rewriteSemantic, "rewrite") : []),
             `Timing (hadith): plan ready at ${planReadyMs} ms, ${hadithQueryPlan.queries.length} lexical queries ${lexicalMs} ms${
               semantic ? `, semantic done at ${semanticMs} ms` : ""
             }, rank ${Date.now() - rankStartedAt} ms, total ${Date.now() - startedAt} ms.`,

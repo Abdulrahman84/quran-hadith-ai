@@ -1,13 +1,55 @@
+import http from "node:http";
+import https from "node:https";
+
 import { hadithMcpEmbeddingEnv } from "./hadith-hybrid";
 
 type Env = Record<string, string | undefined>;
 type FetchLike = (input: string, init?: RequestInit) => Promise<Response>;
 
+// Embedding requests get sockets of their own. Through the global fetch they share a connection
+// with the router, planner and rewrite model calls to the same host, and then wait for them: an
+// embedding that takes 0.4 s alone took 1.1 to 1.6 s next to the hadith planner call (November 2026).
+const embeddingAgents = { "http:": new http.Agent({ keepAlive: true }), "https:": new https.Agent({ keepAlive: true }) };
+
+/** A small POST-only fetch over node:http(s), on the embedding agents above. */
+export const embeddingFetch: FetchLike = (input, init = {}) =>
+  new Promise((resolve, reject) => {
+    const url = new URL(input);
+    const transport = url.protocol === "http:" ? http : https;
+    const request = transport.request(
+      url,
+      {
+        method: init.method ?? "POST",
+        headers: Object.fromEntries(new Headers(init.headers).entries()),
+        agent: url.protocol === "http:" ? embeddingAgents["http:"] : embeddingAgents["https:"],
+        signal: init.signal ?? undefined,
+      },
+      (response) => {
+        const chunks: Buffer[] = [];
+        response.on("data", (chunk: Buffer) => chunks.push(chunk));
+        response.on("error", reject);
+        response.on("end", () =>
+          resolve(
+            new Response(Buffer.concat(chunks), {
+              status: response.statusCode ?? 500,
+              headers: Object.entries(response.headers).flatMap(([name, value]) =>
+                value === undefined ? [] : [[name, Array.isArray(value) ? value.join(", ") : value] as [string, string]],
+              ),
+            }),
+          ),
+        );
+      },
+    );
+
+    request.on("error", reject);
+    request.end(typeof init.body === "string" ? init.body : undefined);
+  });
+
 /**
- * Embeds search questions in the app process, for the Quran vector index. It reads the same
- * EMBEDDINGS_* settings the Hadith MCP uses, so both indexes are queried with the same model,
- * provider, prefix and timeout. The hadith embedding is computed inside the Hadith MCP process
- * and never returned, so it cannot be shared with this one.
+ * Embeds search questions in the app process. It reads the same EMBEDDINGS_* settings the Hadith
+ * MCP uses, so the Quran and hadith indexes are queried with the same model, provider, prefix and
+ * timeout, and one vector serves both: the Quran index is searched in the app and the vector is
+ * passed to semantic_search_hadith as query_embedding.
  */
 export type QueryEmbedder = {
   /** "ollama" or the OpenAI-compatible base URL. */
@@ -86,7 +128,7 @@ function vectorsFrom(payload: unknown, expected: number): Float32Array[] {
  * "ollama" (the default when no base URL is set) or "none". Returns null when nothing usable is
  * configured. The OpenRouter key falls back to OPENROUTER_API_KEY, as for the Hadith MCP.
  */
-export function createQueryEmbedder(env: Env = process.env, fetchImpl: FetchLike = fetch): QueryEmbedder | null {
+export function createQueryEmbedder(env: Env = process.env, fetchImpl: FetchLike = embeddingFetch): QueryEmbedder | null {
   const settings = hadithMcpEmbeddingEnv(env);
   const baseUrl = settings.EMBEDDINGS_BASE_URL?.replace(/\/+$/, "");
   const kind = settings.EMBEDDINGS_PROVIDER?.toLowerCase() || (baseUrl ? "openai" : "ollama");
@@ -127,6 +169,58 @@ export function createQueryEmbedder(env: Env = process.env, fetchImpl: FetchLike
     async embed(texts) {
       const payload = await postJson(fetchImpl, `${ollamaUrl}/api/embed`, { model, input: withPrefix(texts) }, {}, timeout);
       return vectorsFrom(payload, texts.length);
+    },
+  };
+}
+
+export type EmbeddedText = { ok: true; vector: Float32Array } | { ok: false; reason: string };
+
+/**
+ * One embedding request for a search, shared by the Quran vector search and the hadith semantic
+ * search. OpenRouter serves parallel bge-m3 calls slower (about 0.5 s alone, 1 to 2 s with a few in
+ * flight), so the question is embedded once instead of once per index.
+ */
+export type SharedQueryEmbedding = {
+  /** The name the vectors are known by in both indexes (EMBEDDINGS_INDEX_MODEL, else EMBEDDINGS_MODEL). */
+  model: string;
+  provider: string;
+  startedAt: number;
+  texts: string[];
+  /** The vector for one of the texts, or null when it was not in the request. Never rejects. */
+  vectorFor(text: string): Promise<EmbeddedText> | null;
+};
+
+function errorMessage(error: unknown) {
+  return error instanceof Error ? error.message : String(error);
+}
+
+/** Starts one request that embeds every text, with duplicates and blanks dropped. */
+export function startSharedQueryEmbedding(texts: string[], embedder: QueryEmbedder, env: Env = process.env): SharedQueryEmbedding {
+  const unique = [...new Set(texts.map((text) => text.trim()).filter(Boolean))];
+  const startedAt = Date.now();
+  const request: Promise<Float32Array[] | string> =
+    unique.length === 0 ? Promise.resolve([]) : embedder.embed(unique).catch((error: unknown) => errorMessage(error));
+
+  return {
+    model: env.EMBEDDINGS_INDEX_MODEL?.trim() || embedder.model,
+    provider: embedder.provider,
+    startedAt,
+    texts: unique,
+    vectorFor(text) {
+      const position = unique.indexOf(text.trim());
+
+      if (position < 0) {
+        return null;
+      }
+
+      return request.then((vectors): EmbeddedText => {
+        if (typeof vectors === "string") {
+          return { ok: false, reason: vectors };
+        }
+
+        const vector = vectors[position];
+        return vector ? { ok: true, vector } : { ok: false, reason: "the embedding API returned no vector for the question." };
+      });
     },
   };
 }

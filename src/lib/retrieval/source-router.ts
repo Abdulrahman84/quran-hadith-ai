@@ -1,6 +1,8 @@
 import { searchHadithSources, startHadithQueryPlan } from "./hadith-mcp";
-import { startQuestionRewrite } from "./question-rewrite";
-import { startQuranVectorSearch } from "./quran-hybrid";
+import { getHadithSearchMode } from "./hadith-hybrid";
+import { createQueryEmbedder, startSharedQueryEmbedding, type SharedQueryEmbedding } from "./query-embedding";
+import { startQuestionRewrite, type QuestionRewrite } from "./question-rewrite";
+import { getQuranSearchMode, startQuranVectorSearch } from "./quran-hybrid";
 import type { HadithCollectionSelection } from "./hadith-collections";
 import { isExplicitQuranOnlyRequest, planSourceRouteDecision, type SourceRoute } from "./source-intent";
 import { orderRecords } from "./record-order";
@@ -32,6 +34,47 @@ function combinedStatus(responses: RetrievalResponse[]): RetrievalStatus {
   return "empty";
 }
 
+const notSettled = Symbol("not settled");
+
+async function valueIfSettled<T>(promise: Promise<T>): Promise<T | null> {
+  const value = await Promise.race([promise, Promise.resolve(notSettled)]);
+  return value === notSettled ? null : (value as T);
+}
+
+/**
+ * Starts the question's embedding once routing has picked the sources, and only when a picked
+ * source searches by embedding: the Quran with QURAN_SEARCH_MODE=hybrid, hadith with
+ * HADITH_SEARCH_MODE=hybrid. Starting it before routing saved little, and a source that ends up not
+ * searched would pay for nothing. The hadith search also embeds the Fusha rewrite: when the rewrite
+ * is already ready, it joins the question's request; otherwise the Hadith MCP embeds it itself
+ * when it arrives, so the question is not held back waiting for it.
+ *
+ * Returns undefined when nothing uses an embedding, and null when no embedding provider is set.
+ */
+async function startSearchQueryEmbedding(
+  query: string,
+  routes: SourceRoute[],
+  questionRewrite: Promise<QuestionRewrite>,
+): Promise<SharedQueryEmbedding | null | undefined> {
+  const quranUsesIt =
+    routes.includes("tafsir") && getQuranSearchMode() === "hybrid" && Boolean(process.env.QURAN_EMBEDDINGS_PATH?.trim());
+  const hadithUsesIt =
+    routes.includes("hadith") && getHadithSearchMode() === "hybrid" && Boolean(process.env.HADITH_MCP_EMBEDDINGS_PATH?.trim());
+
+  if (!quranUsesIt && !hadithUsesIt) {
+    return undefined;
+  }
+
+  const embedder = createQueryEmbedder();
+
+  if (!embedder) {
+    return null;
+  }
+
+  const rewrite = hadithUsesIt ? await valueIfSettled(questionRewrite) : null;
+  return startSharedQueryEmbedding([query, rewrite?.fusha ?? ""], embedder);
+}
+
 export async function searchSources(
   query: string,
   language: RetrievalLanguage,
@@ -45,10 +88,9 @@ export async function searchSources(
   const questionRewrite = startQuestionRewrite(query, language);
   const routeDecision = await planSourceRouteDecision(query);
   const routes = routeDecision.routes;
-  // With QURAN_SEARCH_MODE=hybrid the question is embedded for the Quran index once routing picks the
-  // Quran, alongside the keyword search. Starting it before routing saved little and, for hadith-only
-  // questions, slowed the hadith search's own embedding calls (OpenRouter serves parallel calls slower).
-  const quranVectorSearch = routes.includes("tafsir") ? startQuranVectorSearch(query) : undefined;
+  // One embedding request serves both the Quran vector search and the hadith semantic search.
+  const queryEmbedding = await startSearchQueryEmbedding(query, routes, questionRewrite);
+  const quranVectorSearch = routes.includes("tafsir") ? startQuranVectorSearch(query, process.env, queryEmbedding) : undefined;
   onProgress?.(0, routes.length, routes);
 
   let completedRoutes = 0;
@@ -65,6 +107,7 @@ export async function searchSources(
               collection: options.hadithCollection,
               queryPlan: hadithQueryPlan,
               questionRewrite,
+              queryEmbedding,
             });
 
       completedRoutes += 1;
