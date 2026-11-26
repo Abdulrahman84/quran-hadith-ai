@@ -25,6 +25,9 @@ npm run eval:compare -- a.json b.json             # or two specific reports
 The label only names the run. Switch the actual backend through its own configuration before running.
 For hybrid hadith search, run `HADITH_SEARCH_MODE=hybrid npm run eval:retrieval -- --label hybrid`. The script then
 defaults `HADITH_MCP_EMBEDDINGS_PATH` to `hadith-embeddings.sqlite` next to `HADITH_MCP_DB_PATH`.
+For hybrid Quran search, add `QURAN_SEARCH_MODE=hybrid`. The script then defaults `QURAN_EMBEDDINGS_PATH` to
+`quran-embeddings-bge-m3.bin` next to `TAFSIR_DB_PATH` (or `~/.cache/tafsir-mcp/quran.db`), where
+`node scripts/quran-embeddings.mjs build` writes it. Both modes are recorded in the report as `searchModes`.
 
 Each question runs through `searchSources`, which calls the OpenRouter router and hadith planner models.
 With flash-lite the full set costs a few cents. It also starts the local Hadith MCP and Tafsir MCP.
@@ -57,6 +60,9 @@ Every question has `tags = [kind, ...modifiers, corpus]`. The same values also a
 | `cross-lingual` | English question, with ground truth identified from the Arabic text |
 | `source-limited` | The question explicitly limits the source (hadith/Sunnah, or Quran/verse/tafsir) |
 | `hadith` / `quran` / `mixed` | Where the ground truth lives |
+
+Questions whose id starts with `named-` name a well-known verse or surah ("Ayat al-Dayn", «خواتيم سورة البقرة»,
+"Surat al-Kahf"), plus two that name a verse but ask what the Prophet said about it, which should still get hadith.
 
 `eval:compare` reports recall@1, recall@5, MRR and latency for each tag and language. It compares only the questions
 both runs answered, taking tags from the current dataset. It also lists questions that were fixed, regressed or re-ranked.

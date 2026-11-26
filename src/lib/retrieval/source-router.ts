@@ -1,11 +1,14 @@
 import { searchHadithSources, startHadithQueryPlan } from "./hadith-mcp";
-import { startQuestionRewrite } from "./question-rewrite";
+import { getHadithSearchMode } from "./hadith-hybrid";
+import { createQueryEmbedder, startSharedQueryEmbedding, type SharedQueryEmbedding } from "./query-embedding";
+import { startQuestionRewrite, type QuestionRewrite } from "./question-rewrite";
+import { getQuranSearchMode, startQuranVectorSearch } from "./quran-hybrid";
 import type { HadithCollectionSelection } from "./hadith-collections";
-import { normalizeArabic, tokenize } from "../text/arabic";
 import { isExplicitQuranOnlyRequest, planSourceRouteDecision, type SourceRoute } from "./source-intent";
+import { orderRecords } from "./record-order";
 import { searchTafsirSources } from "./tafsir-mcp";
 import type { TafsirSourceSelection } from "./tafsir-sources";
-import type { RetrievalLanguage, RetrievalResponse, RetrievalStatus, SourceMode, SourceRecord } from "./types";
+import type { RetrievalLanguage, RetrievalResponse, RetrievalStatus, SourceMode } from "./types";
 
 function sourceModeForRoutes(routes: SourceRoute[]): SourceMode {
   if (routes.length === 1 && routes[0] === "hadith") {
@@ -31,34 +34,45 @@ function combinedStatus(responses: RetrievalResponse[]): RetrievalStatus {
   return "empty";
 }
 
-const MIN_QUOTE_PHRASE_TOKENS = 3;
+const notSettled = Symbol("not settled");
 
-function phraseTokens(value: string) {
-  return tokenize(normalizeArabic(value.toLowerCase()));
+async function valueIfSettled<T>(promise: Promise<T>): Promise<T | null> {
+  const value = await Promise.race([promise, Promise.resolve(notSettled)]);
+  return value === notSettled ? null : (value as T);
 }
 
-// The whole question as a normalized phrase, when it is long enough to be a quote rather than a keyword.
-function phraseForQuoteLookup(query: string) {
-  const tokens = phraseTokens(query);
-  return tokens.length >= MIN_QUOTE_PHRASE_TOKENS ? ` ${tokens.join(" ")} ` : null;
-}
+/**
+ * Starts the question's embedding once routing has picked the sources, and only when a picked
+ * source searches by embedding: the Quran with QURAN_SEARCH_MODE=hybrid, hadith with
+ * HADITH_SEARCH_MODE=hybrid. Starting it before routing saved little, and a source that ends up not
+ * searched would pay for nothing. The hadith search also embeds the Fusha rewrite: when the rewrite
+ * is already ready, it joins the question's request; otherwise the Hadith MCP embeds it itself
+ * when it arrives, so the question is not held back waiting for it.
+ *
+ * Returns undefined when nothing uses an embedding, and null when no embedding provider is set.
+ */
+async function startSearchQueryEmbedding(
+  query: string,
+  routes: SourceRoute[],
+  questionRewrite: Promise<QuestionRewrite>,
+): Promise<SharedQueryEmbedding | null | undefined> {
+  const quranUsesIt =
+    routes.includes("tafsir") && getQuranSearchMode() === "hybrid" && Boolean(process.env.QURAN_EMBEDDINGS_PATH?.trim());
+  const hadithUsesIt =
+    routes.includes("hadith") && getHadithSearchMode() === "hybrid" && Boolean(process.env.HADITH_MCP_EMBEDDINGS_PATH?.trim());
 
-// Records that contain the typed text verbatim answer a quote lookup. The Quran ranks ahead of
-// hadith that cite the same words, since the ayah is the original source of the phrase.
-function quoteTier(record: SourceRecord, phrase: string | null) {
-  if (!phrase || !` ${phraseTokens(record.arabicText).join(" ")} `.includes(phrase)) {
-    return 2;
+  if (!quranUsesIt && !hadithUsesIt) {
+    return undefined;
   }
 
-  return record.sourceKind === "hadith" ? 1 : 0;
-}
+  const embedder = createQueryEmbedder();
 
-function sourcePriority(record: SourceRecord, quranOnly: boolean) {
-  if (quranOnly) {
-    return record.sourceKind === "hadith" ? 1 : 0;
+  if (!embedder) {
+    return null;
   }
 
-  return record.sourceKind === "hadith" ? 0 : 1;
+  const rewrite = hadithUsesIt ? await valueIfSettled(questionRewrite) : null;
+  return startSharedQueryEmbedding([query, rewrite?.fusha ?? ""], embedder);
 }
 
 export async function searchSources(
@@ -74,6 +88,9 @@ export async function searchSources(
   const questionRewrite = startQuestionRewrite(query, language);
   const routeDecision = await planSourceRouteDecision(query);
   const routes = routeDecision.routes;
+  // One embedding request serves both the Quran vector search and the hadith semantic search.
+  const queryEmbedding = await startSearchQueryEmbedding(query, routes, questionRewrite);
+  const quranVectorSearch = routes.includes("tafsir") ? startQuranVectorSearch(query, process.env, queryEmbedding) : undefined;
   onProgress?.(0, routes.length, routes);
 
   let completedRoutes = 0;
@@ -81,11 +98,16 @@ export async function searchSources(
     routes.map(async (route) => {
       const response =
         route === "tafsir"
-          ? await searchTafsirSources(query, language, { tafsirSource: options.tafsirSource, questionRewrite })
+          ? await searchTafsirSources(query, language, {
+              tafsirSource: options.tafsirSource,
+              questionRewrite,
+              vectorSearch: quranVectorSearch,
+            })
           : await searchHadithSources(query, language, {
               collection: options.hadithCollection,
               queryPlan: hadithQueryPlan,
               questionRewrite,
+              queryEmbedding,
             });
 
       completedRoutes += 1;
@@ -95,23 +117,7 @@ export async function searchSources(
   );
   const quranOnly = isExplicitQuranOnlyRequest(query);
   const allRecords = responses.flatMap((response) => response.records);
-  const quotedPhrase = phraseForQuoteLookup(query);
-  const records = allRecords
-    .sort((left, right) => {
-      const quoteDifference = quoteTier(left, quotedPhrase) - quoteTier(right, quotedPhrase);
-
-      if (quoteDifference !== 0) {
-        return quoteDifference;
-      }
-
-      const priorityDifference = sourcePriority(left, quranOnly) - sourcePriority(right, quranOnly);
-
-      if (priorityDifference !== 0) {
-        return priorityDifference;
-      }
-
-      return (left.rank ?? Number.MAX_SAFE_INTEGER) - (right.rank ?? Number.MAX_SAFE_INTEGER);
-    });
+  const records = orderRecords(allRecords, query, quranOnly);
 
   return {
     status: combinedStatus(responses),

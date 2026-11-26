@@ -73,6 +73,24 @@ RUN mkdir -p /opt/tafsir-data \
   && test "$(sqlite3 /opt/tafsir-data/quran.db 'PRAGMA journal_mode=DELETE;')" = "delete" \
   && test "$(sqlite3 /opt/tafsir-data/quran.db 'PRAGMA quick_check;')" = "ok"
 
+FROM node:22-bookworm-slim AS quran-index
+
+# Prebuilt Quran embedding index for hybrid Quran search (see docs/openrouter-deployment.md).
+# Leave the URL empty to skip it; Quran search then stays keyword-only.
+ARG QURAN_EMBEDDINGS_URL=https://github.com/Abdulrahman84/quran-hadith-ai/releases/download/quran-embeddings-bge-m3-v1/quran-embeddings-bge-m3.bin
+ARG QURAN_EMBEDDINGS_SHA256=a4963fcb6104874b2893f916cfb91dc061ff6b5750f8523bd31a0db68ceb77d0
+
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends ca-certificates curl \
+  && rm -rf /var/lib/apt/lists/*
+
+RUN mkdir -p /opt/quran-index \
+  && if [ -n "$QURAN_EMBEDDINGS_URL" ]; then \
+    test -n "$QURAN_EMBEDDINGS_SHA256" \
+    && curl -fsSL --retry 3 -o /opt/quran-index/quran-embeddings-bge-m3.bin "$QURAN_EMBEDDINGS_URL" \
+    && echo "$QURAN_EMBEDDINGS_SHA256  /opt/quran-index/quran-embeddings-bge-m3.bin" | sha256sum -c -; \
+  fi
+
 FROM python:3.12-slim-bookworm AS runner
 
 WORKDIR /app
@@ -101,6 +119,9 @@ ENV EMBEDDINGS_TIMEOUT_MS=8000
 ENV TAFSIR_MCP_COMMAND=/opt/tafsir-mcp/bin/python
 ENV TAFSIR_MCP_ARGS="-m tafsir.server"
 ENV TAFSIR_DB_PATH=/opt/tafsir-data/quran.db
+# Hybrid Quran search: the index above, queried with the same EMBEDDINGS_* settings as hadith.
+ENV QURAN_SEARCH_MODE=hybrid
+ENV QURAN_EMBEDDINGS_PATH=/opt/quran-index/quran-embeddings-bge-m3.bin
 
 ENV OPENROUTER_MODEL=google/gemini-3.5-flash-lite
 ENV OPENROUTER_APP_NAME="Sanad AI"
@@ -122,14 +143,20 @@ COPY --from=app /app/.next ./.next
 COPY --from=app /app/public ./public
 COPY --from=app /app/next.config.ts ./next.config.ts
 COPY --from=app /app/scripts/smoke-tafsir-mcp.mjs ./scripts/smoke-tafsir-mcp.mjs
+COPY --from=app /app/scripts/quran-embeddings.mjs ./scripts/quran-embeddings.mjs
 
 COPY --from=hadith /opt/hadith-mcp /opt/hadith-mcp
 COPY --from=tafsir /opt/tafsir-mcp /opt/tafsir-mcp
 COPY --from=tafsir /opt/tafsir-data /opt/tafsir-data
+COPY --from=quran-index /opt/quran-index /opt/quran-index
 
 RUN node --version
 RUN test "$(sqlite3 "$TAFSIR_DB_PATH" 'PRAGMA quick_check;')" = "ok"
 RUN node scripts/smoke-tafsir-mcp.mjs
+# The downloaded index must match this quran.db (same ayahs, same embedded text) and EMBEDDINGS_INDEX_MODEL.
+RUN if [ -f "$QURAN_EMBEDDINGS_PATH" ]; then \
+    node scripts/quran-embeddings.mjs check --db "$TAFSIR_DB_PATH" --index "$QURAN_EMBEDDINGS_PATH"; \
+  fi
 
 EXPOSE 3000
 

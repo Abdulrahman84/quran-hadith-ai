@@ -227,3 +227,128 @@ test("lexical mode never calls the semantic tool or forwards embedding settings"
   assert.deepEqual({ ...calls.config.env }, { HADITH_MCP_DB_PATH: hadithEnv.HADITH_MCP_DB_PATH });
   assert.ok(!response.provenanceNotes.some((note) => /semantic/i.test(note)));
 });
+
+// A stand-in for the search's shared query embedding: vectors for the given texts, or a failure.
+function sharedEmbedding(vectorsByText, { failure = null } = {}) {
+  return {
+    model: "bge-m3",
+    provider: "fake",
+    startedAt: Date.now(),
+    texts: Object.keys(vectorsByText),
+    vectorFor: (text) =>
+      text in vectorsByText
+        ? Promise.resolve(failure ? { ok: false, reason: failure } : { ok: true, vector: Float32Array.from(vectorsByText[text]) })
+        : null,
+  };
+}
+
+function semanticServer({ querySource = "caller", refuseVectors = false } = {}) {
+  return async ({ name, arguments: args }) => {
+    if (name !== "semantic_search_hadith") {
+      return { structuredContent: searchOutput(args.query, [hadithResult("bukhari", "2:42", 1, "advice")]) };
+    }
+
+    if (refuseVectors && args.query_embedding) {
+      return { isError: true, content: [{ type: "text", text: "Input validation error" }] };
+    }
+
+    const source = querySource === null ? {} : { query_embedding_source: args.query_embedding ? querySource : "server" };
+    return {
+      structuredContent: searchOutput(args.query, [hadithResult("muslim", "1:103", 1, "sincere advice")], { mode: "hybrid", ...source }),
+    };
+  };
+}
+
+const semanticCalls = (calls) => calls.tools.filter((call) => call.name === "semantic_search_hadith").map((call) => call.arguments);
+
+test("hybrid mode sends the shared question embedding to the Hadith MCP", async () => {
+  const { hadithMcp, calls } = loadHadithMcp({ env: { ...hadithEnv, HADITH_SEARCH_MODE: "hybrid" }, callTool: semanticServer() });
+
+  const response = await hadithMcp.searchHadithSources("sincere advice", "english", {
+    queryEmbedding: sharedEmbedding({ "sincere advice": [0.6, 0.8] }),
+  });
+
+  const [semantic] = semanticCalls(calls);
+  assert.deepEqual(Array.from(semantic.query_embedding), [0.6, 0.8].map(Math.fround));
+  assert.equal(semantic.query_embedding_model, "bge-m3");
+  assert.equal(semantic.mode, "hybrid");
+  // The Hadith MCP still gets the embedding settings, to embed by itself when it has to.
+  assert.equal(calls.config.env.OLLAMA_URL, hadithEnv.OLLAMA_URL);
+  assert.deepEqual(Array.from(response.records, (item) => item.hadithNumber), ["1:103", "2:42"]);
+  assert.ok(response.provenanceNotes.some((note) => note.includes("used the app's shared query embedding")));
+});
+
+test("the rewrite's vector is sent only when it joined the question's embedding request", async () => {
+  const questionRewrite = Promise.resolve({ fusha: "النصيحة", warning: null });
+  const env = { ...hadithEnv, HADITH_SEARCH_MODE: "hybrid" };
+
+  const both = loadHadithMcp({ env, callTool: semanticServer() });
+  await both.hadithMcp.searchHadithSources("الدين نصيحه", "arabic", {
+    questionRewrite,
+    queryEmbedding: sharedEmbedding({ "الدين نصيحه": [1, 0], النصيحة: [0, 1] }),
+  });
+  assert.deepEqual(
+    semanticCalls(both.calls)
+      .map((args) => [args.query, Array.from(args.query_embedding ?? [])])
+      .sort(([left], [right]) => left.localeCompare(right)),
+    [
+      ["الدين نصيحه", [1, 0]],
+      ["النصيحة", [0, 1]],
+    ].sort(([left], [right]) => left.localeCompare(right)),
+  );
+
+  const questionOnly = loadHadithMcp({ env, callTool: semanticServer() });
+  const response = await questionOnly.hadithMcp.searchHadithSources("الدين نصيحه", "arabic", {
+    questionRewrite,
+    queryEmbedding: sharedEmbedding({ "الدين نصيحه": [1, 0] }),
+  });
+  const question = semanticCalls(questionOnly.calls).find((args) => args.query === "الدين نصيحه");
+  const rewrite = semanticCalls(questionOnly.calls).find((args) => args.query !== "الدين نصيحه");
+  assert.ok(question.query_embedding);
+  assert.equal(rewrite.query, "النصيحة");
+  assert.equal(rewrite.query_embedding, undefined);
+  assert.ok(!response.provenanceNotes.some((note) => note.includes("(rewrite)")));
+});
+
+test("without a usable shared vector the Hadith MCP embeds the question itself", async () => {
+  const env = { ...hadithEnv, HADITH_SEARCH_MODE: "hybrid" };
+
+  const failed = loadHadithMcp({ env, callTool: semanticServer() });
+  const failedResponse = await failed.hadithMcp.searchHadithSources("sincere advice", "english", {
+    queryEmbedding: sharedEmbedding({ "sincere advice": [1, 0] }, { failure: "HTTP 503" }),
+  });
+  assert.equal(semanticCalls(failed.calls)[0].query_embedding, undefined);
+  assert.ok(failedResponse.provenanceNotes.some((note) => note.includes("was not used (HTTP 503); the Hadith MCP embedded it itself")));
+  assert.equal(failedResponse.records[0].hadithNumber, "1:103");
+
+  const noProvider = loadHadithMcp({ env, callTool: semanticServer() });
+  await noProvider.hadithMcp.searchHadithSources("sincere advice", "english", { queryEmbedding: null });
+  assert.equal(semanticCalls(noProvider.calls)[0].query_embedding, undefined);
+
+  // A Hadith MCP built before query_embedding drops the argument and embeds the question itself.
+  const older = loadHadithMcp({ env, callTool: semanticServer({ querySource: null }) });
+  const olderResponse = await older.hadithMcp.searchHadithSources("sincere advice", "english", {
+    queryEmbedding: sharedEmbedding({ "sincere advice": [1, 0] }),
+  });
+  assert.equal(olderResponse.records[0].hadithNumber, "1:103");
+  assert.ok(olderResponse.provenanceNotes.some((note) => note.includes("as builds without query_embedding do")));
+
+  // One that checks the vector and finds it doesn't fit its index says so and embeds it itself.
+  const mismatched = loadHadithMcp({ env, callTool: semanticServer({ querySource: "server" }) });
+  const mismatchedResponse = await mismatched.hadithMcp.searchHadithSources("sincere advice", "english", {
+    queryEmbedding: sharedEmbedding({ "sincere advice": [1, 0] }),
+  });
+  assert.ok(mismatchedResponse.provenanceNotes.some((note) => note.includes("did not use the app's query embedding (question)")));
+
+  // One that refuses the argument outright is asked again without it.
+  const refusing = loadHadithMcp({ env, callTool: semanticServer({ refuseVectors: true }) });
+  const refusingResponse = await refusing.hadithMcp.searchHadithSources("sincere advice", "english", {
+    queryEmbedding: sharedEmbedding({ "sincere advice": [1, 0] }),
+  });
+  assert.deepEqual(
+    semanticCalls(refusing.calls).map((args) => Boolean(args.query_embedding)),
+    [true, false],
+  );
+  assert.equal(refusingResponse.records[0].hadithNumber, "1:103");
+  assert.ok(refusingResponse.provenanceNotes.some((note) => note.includes("refused the query_embedding argument")));
+});
