@@ -1,11 +1,11 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-11-25T07:41:24.588Z",
+  "generatedAt": "2026-11-26T07:04:51.338Z",
   "sources": {
     "hadithDb": "hadith-meeatif.sqlite",
     "quranDb": "quran.db"
   },
-  "count": 80,
+  "count": 92,
   "items": [
     {
       "id": "h-niyyat-ar",
@@ -4676,6 +4676,718 @@
             "source": "hadith",
             "all": [
               "الحياء من الايمان"
+            ]
+          },
+          "matches": 8
+        }
+      ]
+    },
+    {
+      "id": "named-kursi-typo-en",
+      "question": "ayatul kursi meaning",
+      "language": "english",
+      "kind": "reference",
+      "corpus": "quran",
+      "tags": [
+        "reference",
+        "cross-lingual",
+        "informal",
+        "quran"
+      ],
+      "minExpected": 1,
+      "expected": [
+        {
+          "kind": "quran",
+          "verseKey": "2:255"
+        }
+      ],
+      "evidence": [
+        {
+          "rule": {
+            "source": "quran",
+            "verseKeys": [
+              "2:255"
+            ]
+          },
+          "matches": 1
+        }
+      ]
+    },
+    {
+      "id": "named-fatiha-en",
+      "question": "Explain Surat al-Fatiha",
+      "language": "english",
+      "kind": "reference",
+      "corpus": "quran",
+      "tags": [
+        "reference",
+        "cross-lingual",
+        "quran"
+      ],
+      "minExpected": 1,
+      "expected": [
+        {
+          "kind": "quran",
+          "verseKey": "1:1"
+        },
+        {
+          "kind": "quran",
+          "verseKey": "1:2"
+        },
+        {
+          "kind": "quran",
+          "verseKey": "1:3"
+        },
+        {
+          "kind": "quran",
+          "verseKey": "1:4"
+        },
+        {
+          "kind": "quran",
+          "verseKey": "1:5"
+        },
+        {
+          "kind": "quran",
+          "verseKey": "1:6"
+        },
+        {
+          "kind": "quran",
+          "verseKey": "1:7"
+        }
+      ],
+      "evidence": [
+        {
+          "rule": {
+            "source": "quran",
+            "verseKeys": [
+              "1:1",
+              "1:2",
+              "1:3",
+              "1:4",
+              "1:5",
+              "1:6",
+              "1:7"
+            ]
+          },
+          "matches": 7
+        }
+      ]
+    },
+    {
+      "id": "named-fatiha-ar",
+      "question": "تفسير سورة الفاتحة",
+      "language": "arabic",
+      "kind": "reference",
+      "corpus": "quran",
+      "tags": [
+        "reference",
+        "source-limited",
+        "quran"
+      ],
+      "minExpected": 1,
+      "expected": [
+        {
+          "kind": "quran",
+          "verseKey": "1:1"
+        },
+        {
+          "kind": "quran",
+          "verseKey": "1:2"
+        },
+        {
+          "kind": "quran",
+          "verseKey": "1:3"
+        },
+        {
+          "kind": "quran",
+          "verseKey": "1:4"
+        },
+        {
+          "kind": "quran",
+          "verseKey": "1:5"
+        },
+        {
+          "kind": "quran",
+          "verseKey": "1:6"
+        },
+        {
+          "kind": "quran",
+          "verseKey": "1:7"
+        }
+      ],
+      "evidence": [
+        {
+          "rule": {
+            "source": "quran",
+            "verseKeys": [
+              "1:1",
+              "1:2",
+              "1:3",
+              "1:4",
+              "1:5",
+              "1:6",
+              "1:7"
+            ]
+          },
+          "matches": 7
+        }
+      ]
+    },
+    {
+      "id": "named-ikhlas-en",
+      "question": "What is the meaning of Surah al-Ikhlas?",
+      "language": "english",
+      "kind": "reference",
+      "corpus": "quran",
+      "tags": [
+        "reference",
+        "cross-lingual",
+        "quran"
+      ],
+      "minExpected": 1,
+      "expected": [
+        {
+          "kind": "quran",
+          "verseKey": "112:1"
+        },
+        {
+          "kind": "quran",
+          "verseKey": "112:2"
+        },
+        {
+          "kind": "quran",
+          "verseKey": "112:3"
+        },
+        {
+          "kind": "quran",
+          "verseKey": "112:4"
+        }
+      ],
+      "evidence": [
+        {
+          "rule": {
+            "source": "quran",
+            "verseKeys": [
+              "112:1",
+              "112:2",
+              "112:3",
+              "112:4"
+            ]
+          },
+          "matches": 4
+        }
+      ]
+    },
+    {
+      "id": "named-baqarah-end-en",
+      "question": "Explain the last two verses of Surah al-Baqarah",
+      "language": "english",
+      "kind": "reference",
+      "corpus": "quran",
+      "tags": [
+        "reference",
+        "cross-lingual",
+        "quran"
+      ],
+      "minExpected": 1,
+      "expected": [
+        {
+          "kind": "quran",
+          "verseKey": "2:285"
+        },
+        {
+          "kind": "quran",
+          "verseKey": "2:286"
+        }
+      ],
+      "evidence": [
+        {
+          "rule": {
+            "source": "quran",
+            "verseKeys": [
+              "2:285",
+              "2:286"
+            ]
+          },
+          "matches": 2
+        }
+      ]
+    },
+    {
+      "id": "named-baqarah-end-ar",
+      "question": "تفسير خواتيم سورة البقرة",
+      "language": "arabic",
+      "kind": "reference",
+      "corpus": "quran",
+      "tags": [
+        "reference",
+        "source-limited",
+        "quran"
+      ],
+      "minExpected": 1,
+      "expected": [
+        {
+          "kind": "quran",
+          "verseKey": "2:285"
+        },
+        {
+          "kind": "quran",
+          "verseKey": "2:286"
+        }
+      ],
+      "evidence": [
+        {
+          "rule": {
+            "source": "quran",
+            "verseKeys": [
+              "2:285",
+              "2:286"
+            ]
+          },
+          "matches": 2
+        }
+      ]
+    },
+    {
+      "id": "named-dayn-en",
+      "question": "What does Ayat al-Dayn say?",
+      "language": "english",
+      "kind": "reference",
+      "corpus": "quran",
+      "tags": [
+        "reference",
+        "cross-lingual",
+        "quran"
+      ],
+      "minExpected": 1,
+      "expected": [
+        {
+          "kind": "quran",
+          "verseKey": "2:282"
+        }
+      ],
+      "evidence": [
+        {
+          "rule": {
+            "source": "quran",
+            "verseKeys": [
+              "2:282"
+            ]
+          },
+          "matches": 1
+        }
+      ]
+    },
+    {
+      "id": "named-dayn-ar",
+      "question": "شرح آية الدين",
+      "language": "arabic",
+      "kind": "reference",
+      "corpus": "quran",
+      "tags": [
+        "reference",
+        "source-limited",
+        "quran"
+      ],
+      "minExpected": 1,
+      "expected": [
+        {
+          "kind": "quran",
+          "verseKey": "2:282"
+        }
+      ],
+      "evidence": [
+        {
+          "rule": {
+            "source": "quran",
+            "verseKeys": [
+              "2:282"
+            ]
+          },
+          "matches": 1
+        }
+      ]
+    },
+    {
+      "id": "named-nur-ar",
+      "question": "تفسير آية النور",
+      "language": "arabic",
+      "kind": "reference",
+      "corpus": "quran",
+      "tags": [
+        "reference",
+        "source-limited",
+        "quran"
+      ],
+      "minExpected": 1,
+      "expected": [
+        {
+          "kind": "quran",
+          "verseKey": "24:35"
+        }
+      ],
+      "evidence": [
+        {
+          "rule": {
+            "source": "quran",
+            "verseKeys": [
+              "24:35"
+            ]
+          },
+          "matches": 1
+        }
+      ]
+    },
+    {
+      "id": "named-kahf-en",
+      "question": "Explain Surat al-Kahf",
+      "language": "english",
+      "kind": "reference",
+      "corpus": "quran",
+      "tags": [
+        "reference",
+        "cross-lingual",
+        "quran"
+      ],
+      "minExpected": 1,
+      "expected": [
+        {
+          "kind": "quran",
+          "verseKey": "18:1"
+        },
+        {
+          "kind": "quran",
+          "verseKey": "18:2"
+        },
+        {
+          "kind": "quran",
+          "verseKey": "18:3"
+        },
+        {
+          "kind": "quran",
+          "verseKey": "18:4"
+        },
+        {
+          "kind": "quran",
+          "verseKey": "18:5"
+        },
+        {
+          "kind": "quran",
+          "verseKey": "18:6"
+        },
+        {
+          "kind": "quran",
+          "verseKey": "18:7"
+        },
+        {
+          "kind": "quran",
+          "verseKey": "18:8"
+        },
+        {
+          "kind": "quran",
+          "verseKey": "18:9"
+        },
+        {
+          "kind": "quran",
+          "verseKey": "18:10"
+        },
+        {
+          "kind": "quran",
+          "verseKey": "18:11"
+        },
+        {
+          "kind": "quran",
+          "verseKey": "18:12"
+        },
+        {
+          "kind": "quran",
+          "verseKey": "18:13"
+        },
+        {
+          "kind": "quran",
+          "verseKey": "18:14"
+        },
+        {
+          "kind": "quran",
+          "verseKey": "18:15"
+        },
+        {
+          "kind": "quran",
+          "verseKey": "18:16"
+        },
+        {
+          "kind": "quran",
+          "verseKey": "18:17"
+        },
+        {
+          "kind": "quran",
+          "verseKey": "18:18"
+        },
+        {
+          "kind": "quran",
+          "verseKey": "18:19"
+        },
+        {
+          "kind": "quran",
+          "verseKey": "18:20"
+        },
+        {
+          "kind": "quran",
+          "verseKey": "18:21"
+        },
+        {
+          "kind": "quran",
+          "verseKey": "18:22"
+        },
+        {
+          "kind": "quran",
+          "verseKey": "18:23"
+        },
+        {
+          "kind": "quran",
+          "verseKey": "18:24"
+        },
+        {
+          "kind": "quran",
+          "verseKey": "18:25"
+        },
+        {
+          "kind": "quran",
+          "verseKey": "18:26"
+        },
+        {
+          "kind": "quran",
+          "verseKey": "18:27"
+        },
+        {
+          "kind": "quran",
+          "verseKey": "18:28"
+        },
+        {
+          "kind": "quran",
+          "verseKey": "18:29"
+        },
+        {
+          "kind": "quran",
+          "verseKey": "18:30"
+        },
+        {
+          "kind": "quran",
+          "verseKey": "18:31"
+        },
+        {
+          "kind": "quran",
+          "verseKey": "18:32"
+        },
+        {
+          "kind": "quran",
+          "verseKey": "18:33"
+        },
+        {
+          "kind": "quran",
+          "verseKey": "18:34"
+        },
+        {
+          "kind": "quran",
+          "verseKey": "18:35"
+        },
+        {
+          "kind": "quran",
+          "verseKey": "18:36"
+        },
+        {
+          "kind": "quran",
+          "verseKey": "18:37"
+        },
+        {
+          "kind": "quran",
+          "verseKey": "18:38"
+        },
+        {
+          "kind": "quran",
+          "verseKey": "18:39"
+        },
+        {
+          "kind": "quran",
+          "verseKey": "18:40"
+        }
+      ],
+      "evidence": [
+        {
+          "rule": {
+            "source": "quran",
+            "verseKeys": [
+              "18:1",
+              "18:2",
+              "18:3",
+              "18:4",
+              "18:5",
+              "18:6",
+              "18:7",
+              "18:8",
+              "18:9",
+              "18:10",
+              "18:11",
+              "18:12",
+              "18:13",
+              "18:14",
+              "18:15",
+              "18:16",
+              "18:17",
+              "18:18",
+              "18:19",
+              "18:20",
+              "18:21",
+              "18:22",
+              "18:23",
+              "18:24",
+              "18:25",
+              "18:26",
+              "18:27",
+              "18:28",
+              "18:29",
+              "18:30",
+              "18:31",
+              "18:32",
+              "18:33",
+              "18:34",
+              "18:35",
+              "18:36",
+              "18:37",
+              "18:38",
+              "18:39",
+              "18:40"
+            ]
+          },
+          "matches": 40
+        }
+      ]
+    },
+    {
+      "id": "named-kursi-hadith-en",
+      "question": "What did the Prophet say about the virtue of Ayat al-Kursi?",
+      "language": "english",
+      "kind": "topical",
+      "corpus": "hadith",
+      "tags": [
+        "topical",
+        "cross-lingual",
+        "hadith"
+      ],
+      "minExpected": 1,
+      "expected": [
+        {
+          "kind": "hadith",
+          "collection": "bukhari",
+          "hadithNumber": "40:11"
+        },
+        {
+          "kind": "hadith",
+          "collection": "bukhari",
+          "hadithNumber": "59:84"
+        },
+        {
+          "kind": "hadith",
+          "collection": "bukhari",
+          "hadithNumber": "66:32"
+        },
+        {
+          "kind": "hadith",
+          "collection": "tirmidhi",
+          "hadithNumber": "45:4"
+        },
+        {
+          "kind": "hadith",
+          "collection": "tirmidhi",
+          "hadithNumber": "45:5"
+        },
+        {
+          "kind": "hadith",
+          "collection": "tirmidhi",
+          "hadithNumber": "45:6"
+        },
+        {
+          "kind": "hadith",
+          "collection": "tirmidhi",
+          "hadithNumber": "45:10"
+        },
+        {
+          "kind": "hadith",
+          "collection": "ibn_majah",
+          "hadithNumber": "31:114"
+        }
+      ],
+      "evidence": [
+        {
+          "rule": {
+            "source": "hadith",
+            "all": [
+              "اية الكرسي"
+            ]
+          },
+          "matches": 8
+        }
+      ]
+    },
+    {
+      "id": "named-kursi-hadith-ar",
+      "question": "ماذا قال النبي عن فضل آية الكرسي",
+      "language": "arabic",
+      "kind": "topical",
+      "corpus": "hadith",
+      "tags": [
+        "topical",
+        "hadith"
+      ],
+      "minExpected": 1,
+      "expected": [
+        {
+          "kind": "hadith",
+          "collection": "bukhari",
+          "hadithNumber": "40:11"
+        },
+        {
+          "kind": "hadith",
+          "collection": "bukhari",
+          "hadithNumber": "59:84"
+        },
+        {
+          "kind": "hadith",
+          "collection": "bukhari",
+          "hadithNumber": "66:32"
+        },
+        {
+          "kind": "hadith",
+          "collection": "tirmidhi",
+          "hadithNumber": "45:4"
+        },
+        {
+          "kind": "hadith",
+          "collection": "tirmidhi",
+          "hadithNumber": "45:5"
+        },
+        {
+          "kind": "hadith",
+          "collection": "tirmidhi",
+          "hadithNumber": "45:6"
+        },
+        {
+          "kind": "hadith",
+          "collection": "tirmidhi",
+          "hadithNumber": "45:10"
+        },
+        {
+          "kind": "hadith",
+          "collection": "ibn_majah",
+          "hadithNumber": "31:114"
+        }
+      ],
+      "evidence": [
+        {
+          "rule": {
+            "source": "hadith",
+            "all": [
+              "اية الكرسي"
             ]
           },
           "matches": 8
