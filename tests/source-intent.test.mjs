@@ -263,7 +263,6 @@ test("a named verse or surah is a request for the Quran in English as in Arabic"
     "What does Ayat al-Dayn say?",
     "Explain the last two verses of Surah al-Baqarah",
     "تفسير خواتيم سورة البقرة",
-    "فضل آية الكرسي",
   ]) {
     assert.equal(isExplicitQuranOnlyRequest(query), true, query);
     assert.deepEqual(Array.from(heuristicSourceRoutes(query)), ["tafsir"], query);
@@ -284,6 +283,22 @@ test("a named verse with the Prophet or hadith in the question still gets hadith
   }
 
   assert.deepEqual(Array.from(heuristicSourceRoutes("hadith about Ayat al-Kursi")), ["hadith"]);
+});
+
+test("a named verse's virtue or recitation also searches hadith", () => {
+  const { isExplicitQuranOnlyRequest } = loadSourceIntent();
+
+  for (const query of [
+    "فضل آية الكرسي",
+    "فضل سورة الكهف يوم الجمعة",
+    "ما فضل قراءة الفاتحة",
+    "Ayatul kursi before sleep",
+    "What is the reward for reciting Surah al-Ikhlas?",
+  ]) {
+    assert.equal(isExplicitQuranOnlyRequest(query), false, query);
+  }
+
+  assert.equal(isExplicitQuranOnlyRequest("Explain Ayat al-Kursi"), true);
 });
 
 test("a request for hadith evidence by adjective searches hadith only", async () => {
