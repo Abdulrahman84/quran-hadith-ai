@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import fs from "node:fs";
+import http from "node:http";
 import os from "node:os";
 import path from "node:path";
 import test from "node:test";
@@ -211,6 +212,37 @@ test("one shared request embeds the question and the rewrite, and hands each its
   const failed = await failing.vectorFor("الصبر");
   assert.equal(failed.ok, false);
   assert.match(failed.reason, /HTTP 503/);
+});
+
+test("embedding requests go over their own sockets and read like a fetch response", async (t) => {
+  const received = [];
+  const server = http.createServer((request, response) => {
+    let body = "";
+    request.on("data", (chunk) => (body += chunk));
+    request.on("end", () => {
+      received.push({ method: request.method, url: request.url, auth: request.headers.authorization, body: JSON.parse(body) });
+      if (request.url === "/slow") return setTimeout(() => response.end("{}"), 500);
+      response.writeHead(request.url === "/busy" ? 503 : 200, { "Content-Type": "application/json" });
+      response.end(JSON.stringify({ data: [{ index: 0, embedding: [3, 4] }] }));
+    });
+  });
+  await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
+  t.after(() => server.close());
+  const base = `http://127.0.0.1:${server.address().port}`;
+  const { createQueryEmbedder, embeddingFetch } = loadModule(path.join(retrievalDir, "query-embedding.ts"), {
+    globals: { Headers, Response, Buffer },
+  });
+
+  const embedder = createQueryEmbedder({ EMBEDDINGS_BASE_URL: base, EMBEDDINGS_API_KEY: "test-key", EMBEDDINGS_MODEL: "m" });
+  const [vector] = await embedder.embed(["الصبر"]);
+  assert.deepEqual(Array.from(vector), [0.6, 0.8].map(Math.fround));
+  assert.deepEqual(received[0], { method: "POST", url: "/embeddings", auth: "Bearer test-key", body: { model: "m", input: ["الصبر"] } });
+
+  const busy = await embeddingFetch(`${base}/busy`, { method: "POST", body: "{}" });
+  assert.equal(busy.status, 503);
+  assert.equal(busy.headers.get("content-type"), "application/json");
+
+  await assert.rejects(embeddingFetch(`${base}/slow`, { method: "POST", body: "{}", signal: AbortSignal.timeout(50) }), /abort/i);
 });
 
 test("the vector search uses the shared question embedding instead of embedding again", async () => {

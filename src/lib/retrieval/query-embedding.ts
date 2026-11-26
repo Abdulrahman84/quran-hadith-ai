@@ -1,7 +1,49 @@
+import http from "node:http";
+import https from "node:https";
+
 import { hadithMcpEmbeddingEnv } from "./hadith-hybrid";
 
 type Env = Record<string, string | undefined>;
 type FetchLike = (input: string, init?: RequestInit) => Promise<Response>;
+
+// Embedding requests get sockets of their own. Through the global fetch they share a connection
+// with the router, planner and rewrite model calls to the same host, and then wait for them: an
+// embedding that takes 0.4 s alone took 1.1 to 1.6 s next to the hadith planner call (November 2026).
+const embeddingAgents = { "http:": new http.Agent({ keepAlive: true }), "https:": new https.Agent({ keepAlive: true }) };
+
+/** A small POST-only fetch over node:http(s), on the embedding agents above. */
+export const embeddingFetch: FetchLike = (input, init = {}) =>
+  new Promise((resolve, reject) => {
+    const url = new URL(input);
+    const transport = url.protocol === "http:" ? http : https;
+    const request = transport.request(
+      url,
+      {
+        method: init.method ?? "POST",
+        headers: Object.fromEntries(new Headers(init.headers).entries()),
+        agent: url.protocol === "http:" ? embeddingAgents["http:"] : embeddingAgents["https:"],
+        signal: init.signal ?? undefined,
+      },
+      (response) => {
+        const chunks: Buffer[] = [];
+        response.on("data", (chunk: Buffer) => chunks.push(chunk));
+        response.on("error", reject);
+        response.on("end", () =>
+          resolve(
+            new Response(Buffer.concat(chunks), {
+              status: response.statusCode ?? 500,
+              headers: Object.entries(response.headers).flatMap(([name, value]) =>
+                value === undefined ? [] : [[name, Array.isArray(value) ? value.join(", ") : value] as [string, string]],
+              ),
+            }),
+          ),
+        );
+      },
+    );
+
+    request.on("error", reject);
+    request.end(typeof init.body === "string" ? init.body : undefined);
+  });
 
 /**
  * Embeds search questions in the app process. It reads the same EMBEDDINGS_* settings the Hadith
@@ -86,7 +128,7 @@ function vectorsFrom(payload: unknown, expected: number): Float32Array[] {
  * "ollama" (the default when no base URL is set) or "none". Returns null when nothing usable is
  * configured. The OpenRouter key falls back to OPENROUTER_API_KEY, as for the Hadith MCP.
  */
-export function createQueryEmbedder(env: Env = process.env, fetchImpl: FetchLike = fetch): QueryEmbedder | null {
+export function createQueryEmbedder(env: Env = process.env, fetchImpl: FetchLike = embeddingFetch): QueryEmbedder | null {
   const settings = hadithMcpEmbeddingEnv(env);
   const baseUrl = settings.EMBEDDINGS_BASE_URL?.replace(/\/+$/, "");
   const kind = settings.EMBEDDINGS_PROVIDER?.toLowerCase() || (baseUrl ? "openai" : "ollama");
