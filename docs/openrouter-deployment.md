@@ -143,9 +143,13 @@ as `query_embedding`, with `query_embedding_model` set to `EMBEDDINGS_INDEX_MODE
 
 The hadith search also runs a semantic search on the Fusha rewrite. When the rewrite is already ready at that point,
 it joins the question's request (two inputs, one call). Otherwise the question is embedded at once and the Hadith
-MCP embeds the rewrite itself when it arrives, so the question never waits for the rewrite. OpenRouter serves
-parallel bge-m3 calls more slowly (about 0.5 s alone, 1 to 2 s with a few in flight), so this is one or two calls
-per question instead of up to three.
+MCP embeds the rewrite itself when it arrives, so the question never waits for the rewrite. That is one or two
+bge-m3 calls per question instead of up to three; OpenRouter serves parallel bge-m3 calls more slowly.
+
+The app sends embedding requests over sockets of their own (`embeddingFetch`, a keep-alive `node:https` agent), not
+the global `fetch`. Through `fetch` they shared a connection with the router, planner and rewrite calls to
+openrouter.ai and finished only after them: an embedding that takes about 0.4 s alone took 1.1 to 1.6 s next to the
+hadith planner call. The Hadith MCP never saw this because it makes its calls from its own process.
 
 Fallbacks: without an embedding provider, after a failed embedding, or when the Hadith MCP refuses the argument, the
 hadith call goes without a vector and the Hadith MCP embeds the question itself, as before. A Hadith MCP build from
