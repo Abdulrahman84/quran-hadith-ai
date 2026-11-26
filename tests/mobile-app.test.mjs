@@ -108,14 +108,14 @@ test("The logo, favicon and app icons all come from the vector mark", () => {
 
   for (const palette of Object.values(markPalettes)) {
     const markup = markElements(palette);
-    // The robot's head, the open book and the rahl, with a transparent gap
+    // The seal, the open book and the rahl, with a transparent gap
     // between the book and what sits behind it.
-    assert.match(markup, /class="sanad-mark-head"/);
+    assert.match(markup, /class="sanad-mark-seal"/);
     assert.match(markup, /mask="url\(#sanad-mark-gap\)"/);
     assert.ok(markup.includes(palette.book) && markup.includes(palette.pages) && markup.includes(palette.accent));
 
     const favicon = faviconElements(palette);
-    assert.match(favicon, /class="sanad-mark-head"/);
+    assert.match(favicon, /class="sanad-mark-seal"/);
     assert.doesNotMatch(favicon, /sanad-mark-gap/);
   }
 
